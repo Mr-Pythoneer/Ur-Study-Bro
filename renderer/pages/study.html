@@ -48,6 +48,8 @@
 
   .app-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:8px; margin-top:12px; }
   .app-check { display:flex; align-items:center; gap:9px; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:all .15s; font-size:13px; font-weight:500; user-select:none; }
+  .app-grid.locked .app-check { cursor:default; opacity:.7; }
+  .app-grid.locked .app-check:hover { border-color:var(--border); background:transparent; }
   .app-check:hover { border-color:var(--accent); background:var(--accent-light); }
   .app-check.checked { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
   .app-check input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; flex-shrink:0; }
@@ -490,11 +492,14 @@
       div.className = `app-check ${checkedApps.has(name)?'checked':''}`
       div.innerHTML = `<input type="checkbox" ${checkedApps.has(name)?'checked':''}><div class="app-logo">${logo}</div><span>${name}</span>`
       const cb = div.querySelector('input')
-      cb.addEventListener('change', ()=>{
+      const toggle = () => {
+        if (guardActive) return
+        cb.checked = !cb.checked
         if (cb.checked) { checkedApps.add(name); div.classList.add('checked') }
         else            { checkedApps.delete(name); div.classList.remove('checked') }
         csSetJSON('guardAllowed', [...checkedApps])
-      })
+      }
+      div.addEventListener('click', e => { e.preventDefault(); toggle() })
       grid.appendChild(div)
     })
   }
@@ -533,6 +538,7 @@
     guardLabel.textContent = `On · ${allowed.length} app${allowed.length!==1?'s':''} allowed`
     guardStartBtn.disabled = true
     guardStopBtn.disabled  = false
+    document.getElementById('appGrid').classList.add('locked')
   }
 
   function _stopGuard() {
@@ -542,6 +548,7 @@
     guardLabel.textContent = 'Off'
     guardStartBtn.disabled = false
     guardStopBtn.disabled  = true
+    document.getElementById('appGrid').classList.remove('locked')
   }
 
   guardStartBtn.addEventListener('click', _startGuard)
