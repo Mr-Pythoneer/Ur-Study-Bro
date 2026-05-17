@@ -1,0 +1,819 @@
+<style>
+  /* ── Tabs ─────────────────────────────────────────────────── */
+  .page-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:4px; margin-bottom:20px; }
+  .page-tab { flex:1; padding:8px 14px; border:none; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
+  .page-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.10); }
+
+  /* ── Records tab ──────────────────────────────────────────── */
+  .filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+  .filter-bar input, .filter-bar select { padding:7px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:var(--font); font-size:13px; outline:none; }
+  .filter-bar input:focus, .filter-bar select:focus { border-color:var(--accent); }
+  .filter-bar input[type="text"] { flex:1; min-width:160px; }
+  .rating-stars { color:#f59e0b; font-size:13px; }
+  .record-source { font-size:11px; color:var(--text-secondary); background:#f3f4f6; border-radius:4px; padding:2px 6px; }
+  .record-source.timer { background:var(--accent-light); color:var(--accent); }
+  .empty-state { text-align:center; padding:40px 20px; color:var(--text-secondary); }
+  .empty-state .empty-icon { font-size:40px; margin-bottom:12px; }
+  .summary-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+
+  /* ── Recording tab ────────────────────────────────────────── */
+  .rec-layout { display:flex; gap:20px; align-items:flex-start; }
+  .rec-controls { flex:1; min-width:0; }
+  .rec-list-panel { width:280px; flex-shrink:0; }
+
+  .source-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-top:10px; }
+  .source-card { border:2px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; cursor:pointer; transition:border-color .15s; }
+  .source-card:hover { border-color:var(--accent); }
+  .source-card.selected { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light); }
+  .source-thumb { width:100%; aspect-ratio:16/9; object-fit:cover; background:#1e2228; display:block; }
+  .source-name { font-size:11px; font-weight:600; padding:5px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .rec-indicator { display:inline-flex; align-items:center; gap:8px; }
+  .rec-dot { width:10px; height:10px; border-radius:50%; background:#ef4444; animation:blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .rec-preview { width:100%; border-radius:var(--radius-sm); background:#1e2228; aspect-ratio:16/9; margin-top:12px; display:none; }
+  .rec-preview.visible { display:block; }
+
+  .summary-box { background:#f9fafb; border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; font-size:13px; color:var(--text-primary); line-height:1.6; margin-top:12px; white-space:pre-wrap; }
+
+  .rec-file-list { display:flex; flex-direction:column; gap:8px; }
+  .rec-file-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; }
+  .rec-file-name { font-size:12px; font-weight:600; color:var(--text-primary); word-break:break-all; margin-bottom:4px; }
+  .rec-file-meta { font-size:11px; color:var(--text-secondary); margin-bottom:8px; }
+  .rec-file-actions { display:flex; gap:6px; }
+  .rec-file-actions button { font-size:11px; padding:4px 10px; }
+
+  .bitrate-row { display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; }
+  .bitrate-row input[type=range] { flex:1; accent-color:var(--accent); }
+  .bitrate-label { font-weight:600; color:var(--accent); min-width:70px; }
+
+  .compress-info { font-size:12px; color:var(--text-secondary); margin-top:4px; }
+
+  /* ── Meeting Notes tab ────────────────────────────────────── */
+  .notes-layout { display:flex; gap:20px; align-items:flex-start; }
+  .notes-editor-col { flex:1; min-width:0; }
+  .notes-history-col { width:260px; flex-shrink:0; }
+
+  .rte-toolbar { display:flex; gap:4px; flex-wrap:wrap; padding:8px 10px; background:#f9fafb; border:1.5px solid var(--border); border-bottom:none; border-radius:var(--radius-sm) var(--radius-sm) 0 0; }
+  .rte-btn { width:32px; height:32px; border:1.5px solid var(--border); border-radius:6px; background:#fff; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; transition:all .12s; font-family:var(--font); color:var(--text-primary); }
+  .rte-btn:hover { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+  .rte-btn.active { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+  .rte-sep { width:1px; background:var(--border); margin:4px 2px; align-self:stretch; }
+
+  .rte-body {
+    min-height:280px; max-height:480px; overflow-y:auto;
+    padding:16px; border:1.5px solid var(--border); border-radius:0 0 var(--radius-sm) var(--radius-sm);
+    font-family:var(--font); font-size:14px; line-height:1.7; color:var(--text-primary);
+    outline:none; background:#fff;
+  }
+  .rte-body:focus { border-color:var(--accent); }
+  .rte-body:empty::before { content:attr(data-placeholder); color:#9ca3af; pointer-events:none; }
+  .rte-body h1,.rte-body h2,.rte-body h3 { margin:.4em 0; }
+  .rte-body ul,.rte-body ol { padding-left:1.5em; margin:.4em 0; }
+  .rte-body blockquote { border-left:3px solid var(--accent); margin:.4em 0; padding:.3em .8em; color:var(--text-secondary); background:var(--accent-light); border-radius:0 4px 4px 0; }
+
+  .notes-meta-row { display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+  .notes-meta-row select, .notes-meta-row input { flex:1; min-width:160px; }
+
+  .sync-btn { display:flex; align-items:center; gap:8px; padding:10px 20px; background:#1c1c1e; color:#fff; border:none; border-radius:var(--radius-sm); font-family:var(--font); font-size:14px; font-weight:600; cursor:pointer; transition:opacity .15s; white-space:nowrap; }
+  .sync-btn:hover { opacity:.85; }
+  .sync-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .sync-status { font-size:13px; margin-top:10px; font-weight:500; }
+  .sync-status.ok  { color:var(--accent); }
+  .sync-status.err { color:#ef4444; }
+
+  .note-history-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:8px; cursor:pointer; transition:border-color .12s; }
+  .note-history-card:hover { border-color:var(--accent); }
+  .note-history-title { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .note-history-meta  { font-size:11px; color:var(--text-secondary); }
+</style>
+
+<div class="page-header">
+  <div class="page-title">Meeting Records</div>
+  <div class="page-subtitle">Log sessions, record your screen, and review your notes.</div>
+</div>
+
+<div class="page-tabs">
+  <button class="page-tab active" id="tab-records" onclick="showTab('records')">📋 Session Log</button>
+  <button class="page-tab"        id="tab-record"  onclick="showTab('record')">🔴 Screen Record</button>
+  <button class="page-tab"        id="tab-notes"   onclick="showTab('notes')">✏️ Meeting Notes</button>
+</div>
+
+<!-- ══════ TAB: SESSION LOG ══════════════════════════════════════ -->
+<div id="pane-records">
+  <div class="summary-strip" id="summaryStrip"></div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Log a Session Manually</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-group" style="margin:0;"><label>Date</label><input type="date" id="meetDate" /></div>
+      <div class="input-group" style="margin:0;"><label>Duration (min)</label><input type="number" id="meetDuration" placeholder="60" min="5" /></div>
+      <div class="input-group" style="margin:0;"><label>Subject</label>
+        <select id="meetSubjectSel"><option value="">— select —</option></select></div>
+      <div class="input-group" style="margin:0;"><label>Or custom subject</label><input type="text" id="meetSubjectCustom" placeholder="Custom subject…" /></div>
+      <div class="input-group" style="margin:0;"><label>Rating</label>
+        <select id="meetRating">
+          <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+          <option value="4">⭐⭐⭐⭐ Good</option>
+          <option value="3">⭐⭐⭐ OK</option>
+          <option value="2">⭐⭐ Struggled</option>
+          <option value="1">⭐ Rough</option>
+        </select></div>
+      <div class="input-group" style="margin:0;"><label>Notes</label><input type="text" id="meetNotes" placeholder="What did you cover?" /></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-primary" id="addRecordBtn">+ Add Record</button>
+      <div id="meetError" style="color:#ef4444;font-size:13px;align-self:center;"></div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="🔍  Search subject or notes…" />
+    <select id="filterSubject"><option value="">All subjects</option></select>
+    <select id="filterRating">
+      <option value="">All ratings</option>
+      <option value="5">⭐⭐⭐⭐⭐</option><option value="4">⭐⭐⭐⭐</option>
+      <option value="3">⭐⭐⭐</option><option value="2">⭐⭐</option><option value="1">⭐</option>
+    </select>
+    <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px;" id="clearFiltersBtn">Clear</button>
+  </div>
+
+  <div class="card">
+    <table class="data-table" id="recordsTable">
+      <thead><tr>
+        <th style="cursor:pointer;" data-sort="date">Date ↕</th>
+        <th>Subject</th>
+        <th style="cursor:pointer;" data-sort="duration">Duration ↕</th>
+        <th>Rating</th><th>Notes</th><th>Source</th><th></th>
+      </tr></thead>
+      <tbody id="recordsList"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════ TAB: SCREEN RECORD ════════════════════════════════════ -->
+<div id="pane-record" style="display:none;">
+  <div class="rec-layout">
+
+    <!-- Left: controls -->
+    <div class="rec-controls">
+
+      <div class="card">
+        <div class="card-title">Session Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="input-group" style="margin:0;"><label>Subject</label>
+            <select id="recSubjectSel"><option value="">— select —</option></select></div>
+          <div class="input-group" style="margin:0;"><label>Custom subject</label>
+            <input type="text" id="recSubjectCustom" placeholder="or type here…" /></div>
+        </div>
+        <div class="input-group" style="margin-top:12px;margin-bottom:0;"><label>Session Notes (optional)</label>
+          <input type="text" id="recNotes" placeholder="What will you be studying?" /></div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Quality &amp; Compression</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Lower bitrate = smaller file size with less detail.</div>
+        <div class="bitrate-row">
+          <span>Low</span>
+          <input type="range" id="bitrateSlider" min="300" max="3000" step="100" value="800" />
+          <span>High</span>
+          <span class="bitrate-label" id="bitrateLabel">800 kbps</span>
+        </div>
+        <div class="compress-info" id="compressInfo">At 800 kbps · 1 hr ≈ 360 MB</div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Screen Source</div>
+        <button class="btn btn-ghost" style="font-size:13px;padding:7px 14px;" id="refreshSourcesBtn">↺ Refresh Sources</button>
+        <div class="source-grid" id="sourceGrid">
+          <div style="color:var(--text-secondary);font-size:13px;padding:16px 0;grid-column:1/-1;">Click Refresh Sources to load screens &amp; windows.</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin:0;">Recording</div>
+          <div class="rec-indicator" id="recIndicator" style="display:none;">
+            <div class="rec-dot"></div>
+            <span style="font-size:13px;font-weight:600;color:#ef4444;" id="recTimer">00:00</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-primary" id="recStartBtn">🔴 Start Recording</button>
+          <button class="btn btn-ghost"   id="recStopBtn" disabled>⏹ Stop &amp; Save</button>
+        </div>
+        <video id="recPreview" class="rec-preview" muted autoplay></video>
+      </div>
+
+      <div class="card" id="summaryCard" style="margin-top:16px;display:none;">
+        <div class="card-title">📝 Session Summary</div>
+        <div class="summary-box" id="summaryContent"></div>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button class="btn btn-primary" id="saveSummaryBtn">Save to Log</button>
+          <button class="btn btn-ghost"   id="dismissSummaryBtn">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: saved recordings -->
+    <div class="rec-list-panel">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin:0;">Saved Recordings</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 10px;" id="refreshListBtn">↺</button>
+        </div>
+        <div class="rec-file-list" id="recFileList">
+          <div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px 0;">No recordings yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TAB: MEETING NOTES ════════════════════════════════════ -->
+<div id="pane-notes" style="display:none;">
+  <div class="notes-layout">
+
+    <!-- Left: editor -->
+    <div class="notes-editor-col">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px;">✏️ Live Note Editor</div>
+
+        <!-- Toolbar -->
+        <div class="rte-toolbar" id="rteToolbar">
+          <button class="rte-btn" data-cmd="bold"          title="Bold"><b>B</b></button>
+          <button class="rte-btn" data-cmd="italic"        title="Italic"><i>I</i></button>
+          <button class="rte-btn" data-cmd="underline"     title="Underline"><u>U</u></button>
+          <div class="rte-sep"></div>
+          <button class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">• ≡</button>
+          <button class="rte-btn" data-cmd="insertOrderedList"   title="Numbered list">1 ≡</button>
+          <button class="rte-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝</button>
+          <div class="rte-sep"></div>
+          <button class="rte-btn" data-cmd="formatBlock" data-val="h2" title="Heading">H</button>
+          <button class="rte-btn" data-cmd="removeFormat" title="Clear format">✕</button>
+          <div class="rte-sep"></div>
+          <button class="rte-btn" id="rteClearBtn" title="Clear all" style="color:#ef4444;">🗑</button>
+        </div>
+
+        <!-- Editable body -->
+        <div class="rte-body" id="rteBody" contenteditable="true"
+          data-placeholder="Start typing your meeting notes here…&#10;&#10;Use the toolbar to format: bold, bullets, headings, quotes."></div>
+
+        <!-- Meta row: title + subject -->
+        <div class="notes-meta-row" style="margin-top:14px;">
+          <input type="text" id="noteTitleInput" placeholder="Note title (e.g. 'Week 3 Lecture')" style="flex:2;" />
+          <select id="noteSubjectSel" style="flex:1;">
+            <option value="">— No folder —</option>
+          </select>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;">
+          <button class="sync-btn" id="syncNotesBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Sync to Apple Notes
+          </button>
+          <button class="btn btn-ghost" id="saveNoteLocalBtn">💾 Save Locally</button>
+          <div id="syncStatus" class="sync-status"></div>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">
+          Syncing opens Apple Notes and creates a new note in the selected folder. Requires Notes.app access.
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: saved notes history -->
+    <div class="notes-history-col">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin:0;">Saved Notes</div>
+          <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" id="clearAllNotesBtn">Clear All</button>
+        </div>
+        <div id="noteHistoryList">
+          <div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:24px 0;">No notes saved yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ── Tab switching ─────────────────────────────────────────── */
+  function showTab(name) {
+    document.getElementById('pane-records').style.display = name==='records' ? '' : 'none'
+    document.getElementById('pane-record').style.display  = name==='record'  ? '' : 'none'
+    document.getElementById('pane-notes').style.display   = name==='notes'   ? '' : 'none'
+    document.getElementById('tab-records').classList.toggle('active', name==='records')
+    document.getElementById('tab-record').classList.toggle('active',  name==='record')
+    document.getElementById('tab-notes').classList.toggle('active',   name==='notes')
+    if (name==='record') loadRecordingsList()
+    if (name==='notes')  renderNoteHistory()
+  }
+  window.showTab = showTab
+
+  /* ── HTML escape ───────────────────────────────────────────── */
+  function esc(s) {
+    return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  }
+
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+  /* ── SESSION LOG TAB ───────────────────────────────────────── */
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+
+  let sortField='date', sortAsc=false, filterText='', filterSubject='', filterRating=''
+  const subjects = csGetJSON('subjects', [])
+
+  // Populate subject selects
+  ;[document.getElementById('meetSubjectSel'), document.getElementById('filterSubject')].forEach(sel => {
+    subjects.forEach(s => { const o=document.createElement('option'); o.textContent=s; o.value=s; sel.appendChild(o) })
+  })
+  document.getElementById('meetDate').value = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
+
+  document.getElementById('addRecordBtn').addEventListener('click', () => {
+    const date     = document.getElementById('meetDate').value
+    const duration = parseInt(document.getElementById('meetDuration').value)
+    const subSel   = document.getElementById('meetSubjectSel').value
+    const subCustom= document.getElementById('meetSubjectCustom').value.trim()
+    const subject  = subCustom || subSel
+    const rating   = parseInt(document.getElementById('meetRating').value)
+    const notes    = document.getElementById('meetNotes').value.trim()
+    const errEl    = document.getElementById('meetError')
+    if (!date)    return (errEl.textContent='Date required.')
+    if (!subject) return (errEl.textContent='Subject required.')
+    if (!duration||duration<5) return (errEl.textContent='Duration must be ≥ 5 min.')
+    errEl.textContent=''
+    const records = csGetJSON('records',[])
+    records.push({id:Date.now().toString(),date,subject,duration,rating,notes,source:'manual'})
+    csSetJSON('records',records)
+    document.getElementById('meetDuration').value=''
+    document.getElementById('meetSubjectCustom').value=''
+    document.getElementById('meetNotes').value=''
+    renderAll()
+  })
+
+  window._deleteRecord = (id) => {
+    if (!confirm('Delete this session record?')) return
+    csSetJSON('records', csGetJSON('records',[]).filter(r=>r.id!==id))
+    renderAll()
+  }
+
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      sortAsc = sortField===th.dataset.sort ? !sortAsc : false
+      sortField = th.dataset.sort
+      renderAll()
+    })
+  })
+  document.getElementById('searchInput').addEventListener('input', e=>{filterText=e.target.value.toLowerCase();renderAll()})
+  document.getElementById('filterSubject').addEventListener('change', e=>{filterSubject=e.target.value;renderAll()})
+  document.getElementById('filterRating').addEventListener('change',  e=>{filterRating=e.target.value;renderAll()})
+  document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+    filterText='';filterSubject='';filterRating=''
+    document.getElementById('searchInput').value=''
+    document.getElementById('filterSubject').value=''
+    document.getElementById('filterRating').value=''
+    renderAll()
+  })
+
+  function renderAll() {
+    let records = csGetJSON('records',[])
+    if (filterText)    records=records.filter(r=>(r.subject+r.notes).toLowerCase().includes(filterText))
+    if (filterSubject) records=records.filter(r=>r.subject===filterSubject)
+    if (filterRating)  records=records.filter(r=>r.rating===parseInt(filterRating))
+    records.sort((a,b)=>{
+      const va=sortField==='duration'?a.duration:a.date
+      const vb=sortField==='duration'?b.duration:b.date
+      return sortAsc?(va<vb?-1:1):(va>vb?-1:1)
+    })
+    const all=csGetJSON('records',[])
+    const totalMins=all.reduce((a,r)=>a+r.duration,0)
+    const avgRating=all.length?(all.reduce((a,r)=>a+r.rating,0)/all.length).toFixed(1):'—'
+    document.getElementById('summaryStrip').innerHTML=`
+      <div class="stat-tile"><div class="stat-value">${all.length}</div><div class="stat-label">Total Sessions</div></div>
+      <div class="stat-tile"><div class="stat-value">${Math.round(totalMins/60*10)/10}</div><div class="stat-label">Hours Logged</div></div>
+      <div class="stat-tile"><div class="stat-value">${avgRating}</div><div class="stat-label">Avg Rating</div></div>
+      <div class="stat-tile"><div class="stat-value">${all.filter(r=>r.source==='timer').length}</div><div class="stat-label">Timer Sessions</div></div>`
+    const tbody=document.getElementById('recordsList')
+    if(!records.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🗒️</div>No sessions found.</div></td></tr>`;return}
+    tbody.innerHTML=records.map(r=>`
+      <tr>
+        <td>${esc(r.date)}</td>
+        <td>${esc(r.subject)}</td>
+        <td>${esc(r.duration)} min</td>
+        <td><span class="rating-stars">${'⭐'.repeat(Math.max(0,Math.min(5,r.rating||0)))}</span></td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.notes||'—')}</td>
+        <td><span class="record-source ${r.source==='timer'?'timer':''}">${r.source==='timer'?'⏱ Timer':'✏️ Manual'}</span></td>
+        <td><button class="btn-icon" title="Delete" onclick="window._deleteRecord('${esc(r.id)}')">🗑️</button></td>
+      </tr>`).join('')
+  }
+  renderAll()
+
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+  /* ── SCREEN RECORD TAB ─────────────────────────────────────── */
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+
+  // Populate recording subject selects
+  subjects.forEach(s => {
+    const o=document.createElement('option'); o.textContent=s; o.value=s
+    document.getElementById('recSubjectSel').appendChild(o)
+  })
+
+  /* ── Bitrate slider ──────────────────────────────────────── */
+  const bitrateSlider = document.getElementById('bitrateSlider')
+  const bitrateLabel  = document.getElementById('bitrateLabel')
+  const compressInfo  = document.getElementById('compressInfo')
+  bitrateSlider.addEventListener('input', () => {
+    const kbps = parseInt(bitrateSlider.value)
+    bitrateLabel.textContent = `${kbps} kbps`
+    const mbPerHour = Math.round(kbps * 3600 / 8 / 1024)
+    compressInfo.textContent = `At ${kbps} kbps · 1 hr ≈ ${mbPerHour} MB`
+  })
+
+  /* ── Source picker ───────────────────────────────────────── */
+  let selectedSourceId = null
+  document.getElementById('refreshSourcesBtn').addEventListener('click', loadSources)
+
+  async function loadSources() {
+    const grid = document.getElementById('sourceGrid')
+    grid.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;grid-column:1/-1;">Loading…</div>'
+    try {
+      const sources = await window.api.getSources()
+      if (!sources.length) { grid.innerHTML='<div style="color:var(--text-secondary);font-size:13px;grid-column:1/-1;">No sources found.</div>'; return }
+      grid.innerHTML = sources.map(s=>`
+        <div class="source-card ${s.id===selectedSourceId?'selected':''}" data-id="${esc(s.id)}">
+          <img class="source-thumb" src="${s.thumbnail}" alt="${esc(s.name)}" />
+          <div class="source-name">${esc(s.name)}</div>
+        </div>`).join('')
+      grid.querySelectorAll('.source-card').forEach(card=>{
+        card.addEventListener('click',()=>{
+          selectedSourceId=card.dataset.id
+          grid.querySelectorAll('.source-card').forEach(c=>c.classList.remove('selected'))
+          card.classList.add('selected')
+        })
+      })
+    } catch(e) {
+      grid.innerHTML=`<div style="color:#ef4444;font-size:13px;grid-column:1/-1;">Error loading sources: ${esc(e.message)}</div>`
+    }
+  }
+
+  /* ── Recording state ─────────────────────────────────────── */
+  let mediaRecorder  = null
+  let recordedChunks = []
+  let recStream      = null
+  let recTimerInterval = null
+  let recSeconds     = 0
+  let lastSavedFilepath = null
+  let lastSessionMeta = null
+
+  const startBtn  = document.getElementById('recStartBtn')
+  const stopBtn   = document.getElementById('recStopBtn')
+  const preview   = document.getElementById('recPreview')
+  const indicator = document.getElementById('recIndicator')
+  const recTimerEl= document.getElementById('recTimer')
+
+  startBtn.addEventListener('click', startRecording)
+  stopBtn.addEventListener('click',  stopRecording)
+
+  async function startRecording() {
+    if (!selectedSourceId) { alert('Please select a screen or window source first.'); return }
+    try {
+      recStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: 'desktop',
+            chromeMediaSourceId: selectedSourceId,
+            maxWidth: 1920, maxHeight: 1080,
+          }
+        }
+      })
+      preview.srcObject = recStream
+      preview.classList.add('visible')
+
+      const kbps = parseInt(bitrateSlider.value)
+      recordedChunks = []
+      mediaRecorder = new MediaRecorder(recStream, {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: kbps * 1000,
+      })
+      mediaRecorder.ondataavailable = e => { if (e.data.size>0) recordedChunks.push(e.data) }
+      mediaRecorder.onstop = finalizeRecording
+      mediaRecorder.start(1000)
+
+      startBtn.disabled = true
+      stopBtn.disabled  = false
+      indicator.style.display = 'inline-flex'
+      recSeconds = 0
+      recTimerInterval = setInterval(()=>{
+        recSeconds++
+        const m=Math.floor(recSeconds/60), s=recSeconds%60
+        recTimerEl.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      }, 1000)
+    } catch(e) {
+      alert('Could not start recording: '+e.message+'\n\nMake sure Ur Study Bro has Screen Recording permission in System Settings → Privacy & Security.')
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state!=='inactive') mediaRecorder.stop()
+    if (recStream) recStream.getTracks().forEach(t=>t.stop())
+    clearInterval(recTimerInterval)
+    startBtn.disabled = false
+    stopBtn.disabled  = true
+    indicator.style.display = 'none'
+    preview.srcObject = null
+    preview.classList.remove('visible')
+  }
+
+  async function finalizeRecording() {
+    const blob = new Blob(recordedChunks, {type:'video/webm'})
+    const buffer = await blob.arrayBuffer()
+
+    const subject = document.getElementById('recSubjectCustom').value.trim()
+               || document.getElementById('recSubjectSel').value
+               || 'Session'
+    const notes   = document.getElementById('recNotes').value.trim()
+    const duration = recSeconds
+    const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)
+    const filename = `${ts}_${subject.replace(/[^a-z0-9]/gi,'_').slice(0,30)}.webm`
+
+    try {
+      const {filepath, size} = await window.api.saveRecording(new Uint8Array(buffer), filename)
+      lastSavedFilepath = filepath
+      lastSessionMeta = {subject, notes, duration, size}
+      buildSummary(subject, notes, duration, size, filepath)
+      loadRecordingsList()
+    } catch(e) {
+      alert('Error saving recording: '+e.message)
+    }
+  }
+
+  /* ── Auto-generate summary ───────────────────────────────── */
+  function buildSummary(subject, notes, durationSecs, fileSizeBytes, filepath) {
+    const mins     = Math.round(durationSecs/60)
+    const sizeMB   = (fileSizeBytes/1024/1024).toFixed(1)
+    const kbps     = parseInt(bitrateSlider.value)
+    const rawMB    = Math.round(kbps*3*durationSecs/8/1024*10)/10
+    const saved    = rawMB>fileSizeBytes/1024/1024 ? `(saved ~${Math.round((rawMB-fileSizeBytes/1024/1024))}MB vs high-quality)` : ''
+    const lines = [
+      `📚 Subject:    ${subject}`,
+      `⏱ Duration:   ${mins} min${mins!==1?'s':''} (${Math.floor(durationSecs/60)}:${String(durationSecs%60).padStart(2,'0')})`,
+      `📁 File size:  ${sizeMB} MB ${saved}`,
+      `🎞 Quality:    ${kbps} kbps VP9`,
+      ``,
+      notes ? `📝 Notes:\n${notes}` : `📝 Notes:   (none entered)`,
+      ``,
+      `📂 Saved to:  ${filepath}`,
+    ]
+    document.getElementById('summaryContent').textContent = lines.join('\n')
+    document.getElementById('summaryCard').style.display = ''
+  }
+
+  document.getElementById('saveSummaryBtn').addEventListener('click', () => {
+    if (!lastSessionMeta) return
+    const {subject, notes, duration} = lastSessionMeta
+    const mins = Math.max(1, Math.round(duration/60))
+    const records = csGetJSON('records',[])
+    records.push({
+      id: Date.now().toString(),
+      date: (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })(),
+      subject: subject||'Screen Recording',
+      duration: mins, rating:3, notes, source:'recording'
+    })
+    csSetJSON('records', records)
+    renderAll()
+    document.getElementById('summaryCard').style.display='none'
+    showTab('records')
+  })
+
+  document.getElementById('dismissSummaryBtn').addEventListener('click', ()=>{
+    document.getElementById('summaryCard').style.display='none'
+  })
+
+  /* ── Recordings file list ────────────────────────────────── */
+  async function loadRecordingsList() {
+    const list = document.getElementById('recFileList')
+    try {
+      const recs = await window.api.listRecordings()
+      if (!recs.length) { list.innerHTML='<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px 0;">No recordings yet.</div>'; return }
+      list.innerHTML = recs.map(r=>`
+        <div class="rec-file-card">
+          <div class="rec-file-name">${esc(r.name)}</div>
+          <div class="rec-file-meta">${(r.size/1024/1024).toFixed(1)} MB · ${new Date(r.mtime).toLocaleDateString()}</div>
+          <div class="rec-file-actions">
+            <button class="btn btn-ghost" onclick="window._openRec('${esc(r.filepath)}')">▶ Open</button>
+            <button class="btn" style="background:#fef2f2;color:#b91c1c;" onclick="window._deleteRec('${esc(r.filepath)}')">🗑</button>
+          </div>
+        </div>`).join('')
+    } catch(e) {
+      list.innerHTML='<div style="color:#ef4444;font-size:13px;">Error loading list.</div>'
+    }
+  }
+
+  window._openRec   = fp => window.api.openRecording(fp)
+  window._deleteRec = async fp => {
+    if (!confirm('Delete this recording? This cannot be undone.')) return
+    await window.api.deleteRecording(fp)
+    loadRecordingsList()
+  }
+
+  document.getElementById('refreshListBtn').addEventListener('click', loadRecordingsList)
+
+  // Cleanup: stop recording on page navigation
+  window._pageCleanup = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop()
+    if (recStream) recStream.getTracks().forEach(t=>t.stop())
+    clearInterval(recTimerInterval)
+  }
+
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+  /* ── MEETING NOTES TAB ─────────────────────────────────────── */
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+
+  // Populate subject dropdown
+  const noteSubjectSel = document.getElementById('noteSubjectSel')
+  subjects.forEach(s => {
+    const o = document.createElement('option'); o.value = s; o.textContent = s
+    noteSubjectSel.appendChild(o)
+  })
+
+  // Rich-text toolbar
+  document.getElementById('rteToolbar').addEventListener('click', e => {
+    const btn = e.target.closest('.rte-btn[data-cmd]')
+    if (!btn) return
+    e.preventDefault()
+    const cmd = btn.dataset.cmd
+    const val = btn.dataset.val || null
+    document.getElementById('rteBody').focus()
+    document.execCommand(cmd, false, val)
+    updateToolbarState()
+  })
+
+  document.getElementById('rteClearBtn').addEventListener('click', () => {
+    if (!confirm('Clear the editor?')) return
+    document.getElementById('rteBody').innerHTML = ''
+    document.getElementById('rteBody').focus()
+  })
+
+  function updateToolbarState() {
+    ['bold','italic','underline'].forEach(cmd => {
+      const btn = document.querySelector(`.rte-btn[data-cmd="${cmd}"]`)
+      if (btn) btn.classList.toggle('active', document.queryCommandState(cmd))
+    })
+  }
+
+  document.getElementById('rteBody').addEventListener('keyup', updateToolbarState)
+  document.getElementById('rteBody').addEventListener('mouseup', updateToolbarState)
+  document.getElementById('rteBody').addEventListener('selectionchange', updateToolbarState)
+
+  // Tab key → indent instead of focus-jump
+  document.getElementById('rteBody').addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;')
+    }
+  })
+
+  /* ── Pre-fill from calendar "Join & Take Notes" ──────────── */
+  function checkPendingNote() {
+    const note = window._pendingMeetingNote
+    if (!note) return
+    window._pendingMeetingNote = null   // consume it
+
+    // Format date/time for display inside the editor
+    const dateObj   = note.date ? new Date(note.date + 'T12:00:00') : new Date()
+    const dateFmt   = dateObj.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+    const timeRange = (note.start && note.end) ? `${fmt12(note.start)} – ${fmt12(note.end)}` : ''
+    const linkLine  = note.link
+      ? `<p>🔗 <a href="${escAttr(note.link)}">${escAttr(note.linkLabel || note.linkType || 'Meeting Link')}</a> — <em>click to rejoin</em></p>`
+      : ''
+
+    const prefilledHtml = [
+      `<h2>${escHtml(note.title)}</h2>`,
+      `<p>📅 ${escHtml(dateFmt)}${timeRange ? ' &nbsp;·&nbsp; 🕐 ' + escHtml(timeRange) : ''}</p>`,
+      linkLine,
+      `<hr>`,
+      `<p><br></p>`,
+      `<p><strong>Agenda / Topics:</strong></p>`,
+      `<ul><li><br></li></ul>`,
+      `<p><br></p>`,
+      `<p><strong>Action Items:</strong></p>`,
+      `<ul><li><br></li></ul>`,
+    ].join('\n')
+
+    // Switch to Notes tab and populate
+    showTab('notes')
+    document.getElementById('rteBody').innerHTML = prefilledHtml
+    document.getElementById('noteTitleInput').value = note.title || ''
+
+    // Try to match subject to dropdown (fuzzy: first option that contains any word)
+    if (note.title) {
+      const words = note.title.toLowerCase().split(/\s+/)
+      const opts  = [...noteSubjectSel.options]
+      const match = opts.find(o => o.value && words.some(w => o.value.toLowerCase().includes(w)))
+      if (match) noteSubjectSel.value = match.value
+    }
+
+    // Place cursor at first editable spot after the header
+    document.getElementById('rteBody').focus()
+  }
+
+  // Tiny helpers for safe HTML construction in the prefill block
+  function escHtml(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+  function escAttr(s) { return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;') }
+  function fmt12(t) {
+    if (!t) return ''
+    const [h,m] = t.split(':').map(Number)
+    const ampm = h < 12 ? 'AM' : 'PM'
+    return `${h%12||12}:${String(m).padStart(2,'0')} ${ampm}`
+  }
+
+  checkPendingNote()
+
+  /* ── Save locally ─────────────────────────────────────────── */
+  function renderNoteHistory() {
+    const notes = csGetJSON('meetingNotes', [])
+    const list  = document.getElementById('noteHistoryList')
+    if (!notes.length) {
+      list.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:24px 0;">No notes saved yet.</div>'
+      return
+    }
+    list.innerHTML = notes.slice().reverse().map((n, ri) => {
+      const i = notes.length - 1 - ri
+      return `<div class="note-history-card" onclick="window._loadNote(${i})">
+        <div class="note-history-title">${esc(n.title || 'Untitled Note')}</div>
+        <div class="note-history-meta">${esc(n.subject || 'No folder')} · ${esc(n.date)}</div>
+      </div>`
+    }).join('')
+  }
+
+  window._loadNote = (i) => {
+    const notes = csGetJSON('meetingNotes', [])
+    const n = notes[i]; if (!n) return
+    document.getElementById('rteBody').innerHTML = n.html || ''
+    document.getElementById('noteTitleInput').value = n.title || ''
+    noteSubjectSel.value = n.subject || ''
+    document.getElementById('syncStatus').textContent = ''
+  }
+
+  document.getElementById('saveNoteLocalBtn').addEventListener('click', () => {
+    const html    = document.getElementById('rteBody').innerHTML.trim()
+    const title   = document.getElementById('noteTitleInput').value.trim() || 'Untitled Note'
+    const subject = noteSubjectSel.value
+    if (!html || html === '<br>') { setSyncStatus('Nothing to save.', false); return }
+    const notes = csGetJSON('meetingNotes', [])
+    const dateStr = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
+    notes.push({ title, subject, html, date: dateStr, synced: false })
+    csSetJSON('meetingNotes', notes)
+    renderNoteHistory()
+    setSyncStatus('Saved locally ✓', true)
+  })
+
+  /* ── Sync to Apple Notes ──────────────────────────────────── */
+  document.getElementById('syncNotesBtn').addEventListener('click', async () => {
+    const html    = document.getElementById('rteBody').innerHTML.trim()
+    const title   = document.getElementById('noteTitleInput').value.trim() || 'Untitled Note'
+    const subject = noteSubjectSel.value
+    if (!html || html === '<br>') { setSyncStatus('Write something first.', false); return }
+
+    const btn = document.getElementById('syncNotesBtn')
+    btn.disabled = true
+    btn.textContent = 'Syncing…'
+    setSyncStatus('', true)
+
+    try {
+      const result = await window.api.syncToNotes({ title, html, folder: subject })
+      if (result && result.error) throw new Error(result.error)
+      setSyncStatus('✓ Synced to Apple Notes!', true)
+      // also save locally with synced flag
+      const notes = csGetJSON('meetingNotes', [])
+      const dateStr = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
+      notes.push({ title, subject, html, date: dateStr, synced: true })
+      csSetJSON('meetingNotes', notes)
+      renderNoteHistory()
+    } catch(e) {
+      setSyncStatus('Error: ' + e.message, false)
+    } finally {
+      btn.disabled = false
+      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Sync to Apple Notes`
+    }
+  })
+
+  function setSyncStatus(msg, ok) {
+    const el = document.getElementById('syncStatus')
+    el.textContent = msg
+    el.className = 'sync-status ' + (ok ? 'ok' : 'err')
+  }
+
+  document.getElementById('clearAllNotesBtn').addEventListener('click', () => {
+    if (!confirm('Delete all locally saved notes? This cannot be undone.')) return
+    csSetJSON('meetingNotes', [])
+    renderNoteHistory()
+  })
+
+  renderNoteHistory()
+})()
+</script>

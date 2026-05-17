@@ -1,0 +1,36 @@
+{
+  "name": "clever-snail",
+  "version": "1.0.0",
+  "description": "A macOS study partner desktop app",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.cleversnail.app",
+    "productName": "Ur Study Bro",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*"
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.education",
+      "target": [
+        { "target": "dir", "arch": ["arm64"] }
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "author": "",
+  "license": "MIT"
+}

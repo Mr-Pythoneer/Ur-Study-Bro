@@ -1,0 +1,637 @@
+<style>
+  /* ── Tabs ──────────────────────────────────────────────────── */
+  .page-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:4px; margin-bottom:20px; }
+  .page-tab  { flex:1; padding:8px 14px; border:none; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
+  .page-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.10); }
+
+  /* ── Stats tab ─────────────────────────────────────────────── */
+  .rewards-header-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  .badge-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
+  .badge { display:flex; flex-direction:column; align-items:center; gap:8px; padding:20px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); transition:transform .15s; }
+  .badge:hover { transform:translateY(-2px); }
+  .badge-icon { font-size:36px; }
+  .badge-name { font-size:13px; font-weight:700; color:var(--text-primary); text-align:center; }
+  .badge-desc { font-size:11px; color:var(--text-secondary); text-align:center; line-height:1.4; }
+  .badge-earned { border-color:var(--accent); background:var(--accent-light); }
+  .badge.locked { opacity:.38; filter:grayscale(1); }
+  .badge-earned .badge-name { color:var(--accent); }
+  .weekly-card { margin-bottom:20px; }
+  .goal-row { display:flex; justify-content:space-between; font-size:13px; color:var(--text-secondary); margin-bottom:6px; }
+  .subject-breakdown { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .subject-bar-row { display:flex; align-items:center; gap:10px; font-size:13px; }
+  .subject-bar-label { width:130px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .subject-bar-wrap { flex:1; background:var(--border); border-radius:99px; height:8px; }
+  .subject-bar-fill { height:100%; background:var(--accent); border-radius:99px; }
+  .subject-bar-count { width:50px; text-align:right; color:var(--text-secondary); }
+  .no-goal-msg { font-size:13px; color:var(--text-secondary); font-style:italic; }
+
+  /* ── Shop tab ──────────────────────────────────────────────── */
+  .points-hero {
+    background:linear-gradient(135deg,#1e3a2f 0%,#2d6a4f 60%,#1a5276 100%);
+    border-radius:var(--radius); padding:28px 32px; margin-bottom:20px;
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    flex-wrap:wrap;
+  }
+  .points-hero-balance { display:flex; align-items:baseline; gap:10px; }
+  .points-value { font-size:56px; font-weight:900; color:#fff; line-height:1; font-variant-numeric:tabular-nums; }
+  .points-unit  { font-size:20px; font-weight:700; color:#6ee7b7; }
+  .points-sub   { font-size:13px; color:rgba(255,255,255,.55); margin-top:6px; }
+  .points-earn-tip {
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+    border-radius:10px; padding:14px 18px; color:rgba(255,255,255,.8); font-size:13px; line-height:1.6;
+  }
+  .points-earn-tip strong { color:#6ee7b7; }
+
+  .shop-layout { display:flex; gap:20px; align-items:flex-start; }
+  .shop-main { flex:1; min-width:0; }
+  .shop-sidebar { width:280px; flex-shrink:0; }
+
+  .reward-create-form { display:grid; grid-template-columns:60px 1fr 90px auto; gap:8px; align-items:end; margin-top:12px; }
+  .reward-create-form input[type=text], .reward-create-form input[type=number] {
+    padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
+    font-family:var(--font); font-size:13px; outline:none; width:100%;
+  }
+  .reward-create-form input:focus { border-color:var(--accent); }
+  .reward-emoji-input { text-align:center; font-size:22px; }
+
+  .shop-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-top:16px; }
+  .reward-card {
+    background:var(--bg-card); border:1.5px solid var(--border); border-radius:var(--radius);
+    padding:20px 16px; display:flex; flex-direction:column; align-items:center; gap:10px;
+    text-align:center; position:relative; transition:border-color .15s, box-shadow .15s;
+  }
+  .reward-card:hover { border-color:var(--accent); box-shadow:0 4px 16px rgba(52,168,83,.12); }
+  .reward-card.cannot-afford { opacity:.6; }
+  .reward-card-icon { font-size:40px; line-height:1; }
+  .reward-card-name { font-size:14px; font-weight:700; color:var(--text-primary); line-height:1.3; }
+  .reward-card-cost {
+    display:inline-flex; align-items:center; gap:5px;
+    background:#fef9c3; border:1px solid #fde68a; border-radius:99px;
+    padding:4px 12px; font-size:12px; font-weight:700; color:#92400e;
+  }
+  .reward-card-cost .star { font-size:14px; }
+  .unlock-btn {
+    width:100%; padding:9px; border:none; border-radius:var(--radius-sm);
+    font-family:var(--font); font-size:13px; font-weight:700; cursor:pointer;
+    background:var(--accent); color:#fff; transition:opacity .15s;
+  }
+  .unlock-btn:hover { opacity:.85; }
+  .unlock-btn:disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
+  .reward-delete-btn {
+    position:absolute; top:8px; right:8px; background:none; border:none;
+    font-size:14px; cursor:pointer; opacity:.35; transition:opacity .15s; padding:2px;
+  }
+  .reward-delete-btn:hover { opacity:1; }
+
+  .unlock-flash {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#1e3a2f; color:#6ee7b7; border-radius:16px;
+    padding:24px 40px; font-size:22px; font-weight:800;
+    text-align:center; z-index:9999; pointer-events:none;
+    animation:flashIn .25s ease, flashOut .4s ease 1.4s forwards;
+  }
+  @keyframes flashIn  { from{opacity:0;transform:translate(-50%,-50%) scale(.8)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+  @keyframes flashOut { from{opacity:1} to{opacity:0} }
+
+  .history-list { display:flex; flex-direction:column; gap:8px; }
+  .history-row {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px; background:#f9fafb; border:1px solid var(--border); border-radius:var(--radius-sm);
+    font-size:13px;
+  }
+  .history-icon { font-size:22px; flex-shrink:0; }
+  .history-name { font-weight:600; color:var(--text-primary); flex:1; }
+  .history-cost { color:#92400e; font-weight:700; font-size:12px; background:#fef9c3; border-radius:99px; padding:2px 10px; }
+  .history-date { color:var(--text-secondary); font-size:11px; }
+
+  .empty-shop { text-align:center; padding:40px 20px; color:var(--text-secondary); }
+  .empty-shop .ei { font-size:40px; margin-bottom:12px; }
+
+  /* ── Wishlist ──────────────────────────────────────────────── */
+  .wishlist-form { display:grid; grid-template-columns:60px 1fr 120px auto; gap:8px; align-items:end; margin-top:12px; }
+  .wishlist-form input[type=text], .wishlist-form input[type=number] {
+    padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
+    font-family:var(--font); font-size:13px; outline:none; width:100%;
+  }
+  .wishlist-form input:focus { border-color:var(--accent); }
+  .wishlist-pt-preview {
+    margin-top:10px; font-size:13px; color:var(--text-secondary);
+    min-height:20px; display:flex; align-items:center; gap:6px;
+  }
+  .wishlist-pt-preview .pts-pill {
+    background:#fef9c3; border:1px solid #fde68a; border-radius:99px;
+    padding:2px 10px; font-size:12px; font-weight:700; color:#92400e;
+  }
+  .wishlist-list { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .wishlist-item {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 16px; background:#f9fafb; border:1.5px solid var(--border);
+    border-radius:var(--radius); position:relative; transition:border-color .15s;
+  }
+  .wishlist-item:hover { border-color:var(--accent); }
+  .wishlist-item-icon { font-size:28px; flex-shrink:0; }
+  .wishlist-item-info { flex:1; min-width:0; }
+  .wishlist-item-name { font-size:14px; font-weight:700; color:var(--text-primary); }
+  .wishlist-item-price { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  .wishlist-progress-wrap { flex:1; max-width:160px; }
+  .wishlist-progress-bar { height:8px; background:var(--border); border-radius:99px; overflow:hidden; margin-bottom:4px; }
+  .wishlist-progress-fill { height:100%; background:var(--accent); border-radius:99px; transition:width .4s; }
+  .wishlist-progress-label { font-size:11px; color:var(--text-secondary); text-align:right; }
+  .wishlist-add-shop-btn {
+    padding:7px 14px; border:none; border-radius:var(--radius-sm);
+    font-family:var(--font); font-size:12px; font-weight:700; cursor:pointer;
+    background:var(--accent); color:#fff; white-space:nowrap; flex-shrink:0;
+    transition:opacity .15s;
+  }
+  .wishlist-add-shop-btn:hover { opacity:.85; }
+  .wishlist-delete-btn {
+    position:absolute; top:8px; right:8px; background:none; border:none;
+    font-size:13px; cursor:pointer; opacity:.3; transition:opacity .15s; padding:2px;
+  }
+  .wishlist-delete-btn:hover { opacity:1; }
+</style>
+
+<div class="page-header">
+  <div class="page-title">Rewards</div>
+  <div class="page-subtitle">Every Pomodoro earns points — spend them on yourself.</div>
+</div>
+
+<div class="page-tabs">
+  <button class="page-tab active" id="tab-shop"  onclick="showTab('shop')">Points Shop</button>
+  <button class="page-tab"        id="tab-stats" onclick="showTab('stats')">Stats &amp; Badges</button>
+</div>
+
+<!-- ══════ TAB: POINTS SHOP ══════════════════════════════════════ -->
+<div id="pane-shop">
+
+  <!-- Balance hero -->
+  <div class="points-hero">
+    <div>
+      <div class="points-hero-balance">
+        <div class="points-value" id="heroPoints">0</div>
+        <div class="points-unit">Study Points</div>
+      </div>
+      <div class="points-sub" id="heroSub">Complete Pomodoros to earn points</div>
+    </div>
+    <div class="points-earn-tip">
+      <strong>+10 pts</strong> for every 25-min Pomodoro finished<br>
+      Define your own rewards below and unlock them<br>
+      when you've earned enough.
+    </div>
+  </div>
+
+  <div class="shop-layout">
+    <div class="shop-main">
+
+      <!-- Wishlist -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Wishlist — Work for Real Things</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Enter an item and its real price — we'll auto-calculate the points needed. Add it to your shop when ready.</div>
+        <div class="wishlist-form">
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">Icon</label>
+            <input class="reward-emoji-input" type="text" id="wlIcon" maxlength="2" placeholder="🎁" value="🛍️" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">Item Name</label>
+            <input type="text" id="wlName" placeholder="e.g. New headphones" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">Price ($)</label>
+            <input type="number" id="wlPrice" placeholder="79.99" min="0.01" step="0.01" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">&nbsp;</label>
+            <button class="btn btn-primary" id="addWishlistBtn">Add →</button>
+          </div>
+        </div>
+        <div class="wishlist-pt-preview" id="wlPreview"></div>
+        <div id="wlErr" style="color:#ef4444;font-size:12px;margin-top:4px;"></div>
+        <div class="wishlist-list" id="wishlistList"></div>
+      </div>
+
+      <!-- Create a reward -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">+ Define a New Reward</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Set any reward you want — then unlock it when you've earned the points.</div>
+        <div class="reward-create-form">
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">Icon</label>
+            <input class="reward-emoji-input" type="text" id="rewardIcon" maxlength="2" placeholder="🎮" value="🎁" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">Reward Name</label>
+            <input type="text" id="rewardName" placeholder="e.g. 1 hour of gaming" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">Point Cost</label>
+            <input type="number" id="rewardCost" placeholder="50" min="1" max="9999" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:11px;">&nbsp;</label>
+            <button class="btn btn-primary" id="addRewardBtn">Add →</button>
+          </div>
+        </div>
+        <div id="rewardCreateErr" style="color:#ef4444;font-size:12px;margin-top:6px;"></div>
+      </div>
+
+      <!-- Shop grid -->
+      <div class="card-title" style="padding:0 0 10px;">Your Rewards</div>
+      <div class="shop-grid" id="shopGrid"></div>
+
+    </div>
+
+    <!-- Sidebar: unlock history -->
+    <div class="shop-sidebar">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin:0;">Unlock History</div>
+          <div id="historyTotal" style="font-size:12px;color:var(--text-secondary);"></div>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TAB: STATS & BADGES ══════════════════════════════════ -->
+<div id="pane-stats" style="display:none;">
+
+  <div class="rewards-header-grid" id="statsGrid"></div>
+  <div class="card weekly-card" id="weeklyCard"></div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title">Subject Breakdown</div>
+    <div class="subject-breakdown" id="subjectBreakdown"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Badges</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Earn badges by hitting study milestones.</div>
+    <div class="badge-grid" id="badgeGrid"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ── Tab switching ─────────────────────────────────────────── */
+  function showTab(name) {
+    document.getElementById('pane-shop').style.display  = name==='shop'  ? '' : 'none'
+    document.getElementById('pane-stats').style.display = name==='stats' ? '' : 'none'
+    document.getElementById('tab-shop').classList.toggle('active',  name==='shop')
+    document.getElementById('tab-stats').classList.toggle('active', name==='stats')
+    if (name==='stats') renderStats()
+  }
+  window.showTab = showTab
+
+  /* ── Points helpers ────────────────────────────────────────── */
+  function getPoints()     { return parseInt(csGet('studyPoints') || '0') }
+  function setPoints(n)    { csSet('studyPoints', String(Math.max(0, n))) }
+
+  function getRewards()    { return csGetJSON('shopRewards', []) }
+  function setRewards(arr) { csSetJSON('shopRewards', arr) }
+
+  function getHistory()    { return csGetJSON('unlockHistory', []) }
+  function setHistory(arr) { csSetJSON('unlockHistory', arr) }
+
+  function localDateStr()  {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+
+  /* ── Shop render ───────────────────────────────────────────── */
+  function renderShop() {
+    const pts     = getPoints()
+    const rewards = getRewards()
+    const history = getHistory()
+
+    // Hero balance
+    document.getElementById('heroPoints').textContent = pts
+    const earned = history.reduce((a,h) => a + h.cost, 0)
+    document.getElementById('heroSub').textContent =
+      earned > 0
+        ? `${history.length} reward${history.length!==1?'s':''} unlocked · ${earned} pts spent`
+        : 'Complete Pomodoros to earn points'
+
+    // Shop grid
+    const grid = document.getElementById('shopGrid')
+    if (!rewards.length) {
+      grid.innerHTML = `<div class="empty-shop" style="grid-column:1/-1;">
+        <div>No rewards yet — add one above!</div>
+      </div>`
+    } else {
+      grid.innerHTML = rewards.map((r,i) => {
+        const canAfford = pts >= r.cost
+        return `<div class="reward-card ${canAfford?'':'cannot-afford'}">
+          <button class="reward-delete-btn" onclick="window._deleteReward(${i})" title="Remove reward">✕</button>
+          <div class="reward-card-icon">${esc(r.icon||'🎁')}</div>
+          <div class="reward-card-name">${esc(r.name)}</div>
+          <div class="reward-card-cost"><span class="star">★</span>${esc(String(r.cost))} pts</div>
+          <button class="unlock-btn" ${canAfford?'':'disabled'} onclick="window._unlockReward(${i})">
+            ${canAfford ? '🔓 Unlock' : `Need ${r.cost - pts} more pts`}
+          </button>
+        </div>`
+      }).join('')
+    }
+
+    // History
+    const histEl = document.getElementById('historyList')
+    const spent  = history.reduce((a,h)=>a+h.cost,0)
+    document.getElementById('historyTotal').textContent = spent ? `${spent} pts spent` : ''
+    if (!history.length) {
+      histEl.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px 0;">No unlocks yet.</div>'
+    } else {
+      histEl.innerHTML = history.slice().reverse().map(h => `
+        <div class="history-row">
+          <div class="history-icon">${esc(h.icon||'🎁')}</div>
+          <div class="history-name">${esc(h.name)}</div>
+          <div>
+            <div class="history-cost">★${esc(String(h.cost))}</div>
+            <div class="history-date">${esc(h.date)}</div>
+          </div>
+        </div>`).join('')
+    }
+  }
+
+  /* ── Add reward ────────────────────────────────────────────── */
+  document.getElementById('addRewardBtn').addEventListener('click', () => {
+    const icon = document.getElementById('rewardIcon').value.trim() || '🎁'
+    const name = document.getElementById('rewardName').value.trim()
+    const cost = parseInt(document.getElementById('rewardCost').value)
+    const err  = document.getElementById('rewardCreateErr')
+    if (!name)       { err.textContent = 'Reward name is required.'; return }
+    if (!cost||cost<1){ err.textContent = 'Point cost must be at least 1.'; return }
+    err.textContent = ''
+    const rewards = getRewards()
+    rewards.push({ id: Date.now().toString(), icon, name, cost })
+    setRewards(rewards)
+    document.getElementById('rewardName').value = ''
+    document.getElementById('rewardCost').value = ''
+    document.getElementById('rewardIcon').value = '🎁'
+    renderShop()
+  })
+  document.getElementById('rewardName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('addRewardBtn').click()
+  })
+
+  /* ── Delete reward ─────────────────────────────────────────── */
+  window._deleteReward = (i) => {
+    if (!confirm('Remove this reward?')) return
+    const rewards = getRewards()
+    rewards.splice(i, 1)
+    setRewards(rewards)
+    renderShop()
+  }
+
+  /* ── Unlock reward ─────────────────────────────────────────── */
+  window._unlockReward = (i) => {
+    const rewards = getRewards()
+    const reward  = rewards[i]
+    if (!reward) return
+    const pts = getPoints()
+    if (pts < reward.cost) return
+
+    if (!confirm(`Unlock "${reward.name}" for ${reward.cost} Study Points?`)) return
+
+    setPoints(pts - reward.cost)
+
+    const history = getHistory()
+    history.push({ id: Date.now().toString(), icon: reward.icon, name: reward.name, cost: reward.cost, date: localDateStr() })
+    setHistory(history)
+
+    // Celebration flash
+    const flash = document.createElement('div')
+    flash.className = 'unlock-flash'
+    flash.innerHTML = `${reward.icon||'🎁'}<br><span style="font-size:16px;">${reward.name}</span><br><span style="font-size:14px;opacity:.7;">Unlocked! −${reward.cost} pts</span>`
+    document.body.appendChild(flash)
+    setTimeout(() => flash.remove(), 1900)
+
+    renderShop()
+  }
+
+  /* ── HTML escape ───────────────────────────────────────────── */
+  function esc(s) {
+    return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  }
+
+  /* ── Stats & Badges ────────────────────────────────────────── */
+  const BADGES = [
+    { icon:'🌱', name:'First Step',   desc:'Complete your first session',    req:s => s.sessions >= 1   },
+    { icon:'🍅', name:'Pomodoro Pro', desc:'Complete 5 Pomodoros',           req:s => s.pomodoros >= 5  },
+    { icon:'🔥', name:'On Fire',      desc:'3 sessions in a single day',     req:s => s.maxInDay >= 3   },
+    { icon:'⏱️', name:'Hour Power',   desc:'Study for 1 hour total',         req:s => s.hours >= 1      },
+    { icon:'📅', name:'Week Warrior', desc:'5 sessions in any week',         req:s => s.sessions >= 5   },
+    { icon:'🚀', name:'Lift Off',     desc:'10 sessions completed',          req:s => s.sessions >= 10  },
+    { icon:'💡', name:'Deep Thinker', desc:'Log 10 hours of study',          req:s => s.hours >= 10     },
+    { icon:'🎯', name:'Goal Getter',  desc:'Reach your daily goal 3 days',   req:s => s.goalDays >= 3   },
+    { icon:'🏅', name:'Consistent',   desc:'Sessions on 7 different days',   req:s => s.uniqueDays >= 7 },
+    { icon:'📚', name:'Bookworm',     desc:'Study 3 different subjects',     req:s => s.uniqueSubjects >= 3 },
+    { icon:'⭐', name:'Top Rated',    desc:'Log 5 sessions rated Excellent', req:s => s.excellentCount >= 5 },
+    { icon:'🎓', name:'Scholar',      desc:'25 sessions completed',          req:s => s.sessions >= 25  },
+    { icon:'💰', name:'Point Hoarder',desc:'Earn 100 Study Points total',    req:s => s.totalEarned >= 100 },
+    { icon:'💎', name:'Diamond Mind', desc:'50 hours of total study time',   req:s => s.hours >= 50     },
+  ]
+
+  function computeStats() {
+    const records    = csGetJSON('records', [])
+    const dailyGoal  = parseFloat(csGet('dailyGoalHours') || '0')
+    const sessions   = records.length
+    const totalMins  = records.reduce((a,r) => a + r.duration, 0)
+    const hours      = Math.round(totalMins / 60 * 10) / 10
+    const pomodoros  = records.filter(r => r.source === 'timer').length
+
+    const perDay = {}
+    records.forEach(r => { perDay[r.date] = (perDay[r.date]||0) + 1 })
+    const maxInDay   = Math.max(0, ...Object.values(perDay))
+    const uniqueDays = Object.keys(perDay).length
+
+    const minsPerDay = {}
+    records.forEach(r => { minsPerDay[r.date] = (minsPerDay[r.date]||0) + r.duration })
+    const goalDays = dailyGoal > 0 ? Object.values(minsPerDay).filter(m => m >= dailyGoal*60).length : 0
+
+    const uniqueSubjects = new Set(records.map(r => r.subject)).size
+    const excellentCount = records.filter(r => r.rating === 5).length
+    const totalEarned    = parseInt(csGet('studyPoints')||'0') + getHistory().reduce((a,h)=>a+h.cost,0)
+
+    const weekAgo   = new Date(); weekAgo.setDate(weekAgo.getDate() - 6)
+    const weekStr   = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth()+1).padStart(2,'0')}-${String(weekAgo.getDate()).padStart(2,'0')}`
+    const weekMins  = records.filter(r => r.date >= weekStr).reduce((a,r) => a + r.duration, 0)
+
+    const subjectMins = {}
+    records.forEach(r => { subjectMins[r.subject] = (subjectMins[r.subject]||0) + r.duration })
+
+    return { sessions, hours, totalMins, maxInDay, uniqueDays, goalDays, uniqueSubjects, excellentCount, dailyGoal, weekMins, subjectMins, pomodoros, totalEarned }
+  }
+
+  function renderStats() {
+    const s = computeStats()
+
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-tile"><div class="stat-value">${s.sessions}</div><div class="stat-label">Total Sessions</div></div>
+      <div class="stat-tile"><div class="stat-value">${s.hours}</div><div class="stat-label">Hours Studied</div></div>
+      <div class="stat-tile"><div class="stat-value">${s.pomodoros}</div><div class="stat-label">Pomodoros</div></div>
+      <div class="stat-tile"><div class="stat-value">${getPoints()}</div><div class="stat-label">Study Points</div></div>`
+
+    const weekCard = document.getElementById('weeklyCard')
+    if (s.dailyGoal > 0) {
+      const weekTarget = s.dailyGoal * 7 * 60
+      const pct = Math.min(100, Math.round(s.weekMins / weekTarget * 100))
+      const weekHours   = Math.round(s.weekMins/60*10)/10
+      const targetHours = Math.round(weekTarget/60*10)/10
+      weekCard.innerHTML = `
+        <div class="card-title">Weekly Goal Progress</div>
+        <div class="goal-row">
+          <span>${weekHours} of ${targetHours} hrs this week</span>
+          <span style="font-weight:700;color:var(--accent);">${pct}%</span>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text-secondary);">
+          ${pct >= 100 ? 'Weekly goal reached! Amazing work.' : `${Math.round((weekTarget-s.weekMins)/60*10)/10} hrs remaining`}
+        </div>`
+    } else {
+      weekCard.innerHTML = `<div class="card-title">Weekly Goal Progress</div>
+        <div class="no-goal-msg">Set a daily goal in Welcome → Setup to track weekly progress.</div>
+        <button class="btn btn-ghost" style="margin-top:12px;" onclick="window.navigateTo('welcome')">Go to Setup →</button>`
+    }
+
+    const breakdown = document.getElementById('subjectBreakdown')
+    const subjectEntries = Object.entries(s.subjectMins).sort((a,b) => b[1]-a[1])
+    const maxMins = subjectEntries[0]?.[1] || 1
+    breakdown.innerHTML = subjectEntries.length
+      ? subjectEntries.map(([sub,mins]) => `
+          <div class="subject-bar-row">
+            <div class="subject-bar-label">${sub}</div>
+            <div class="subject-bar-wrap"><div class="subject-bar-fill" style="width:${Math.round(mins/maxMins*100)}%;"></div></div>
+            <div class="subject-bar-count">${Math.round(mins/60*10)/10}h</div>
+          </div>`).join('')
+      : '<div style="color:var(--text-secondary);font-size:13px;">No sessions logged yet.</div>'
+
+    document.getElementById('badgeGrid').innerHTML = BADGES.map(b => {
+      const earned = b.req(s)
+      return `<div class="badge ${earned?'badge-earned':'locked'}">
+        <div class="badge-icon">${b.icon}</div>
+        <div class="badge-name">${b.name}</div>
+        <div class="badge-desc">${b.desc}</div>
+        ${earned ? '<div style="font-size:11px;color:var(--accent);font-weight:700;">EARNED ✓</div>' : ''}
+      </div>`
+    }).join('')
+  }
+
+  /* ── Wishlist helpers ──────────────────────────────────────── */
+  function getWishlist()    { return csGetJSON('wishlist', []) }
+  function setWishlist(arr) { csSetJSON('wishlist', arr) }
+
+  /* ── AI-style point assignment ─────────────────────────────────
+     Categories carry a "study-worthiness" multiplier:
+     luxury/tech = harder to earn (higher pts/$), food/snacks = easier.
+     This mimics AI reasoning: the system weighs the item's value to
+     your future self against how much study effort it should take.   */
+  const CATEGORIES = [
+    { keys:['laptop','macbook','computer','pc','desktop','monitor','tablet','ipad'],      mult:1.8, label:'Tech gear' },
+    { keys:['phone','iphone','airpods','headphones','earbuds','speaker'],                 mult:1.6, label:'Electronics' },
+    { keys:['keyboard','mouse','controller','console','playstation','xbox','nintendo'],   mult:1.4, label:'Gaming/peripherals' },
+    { keys:['shoes','sneakers','jordans','yeezys','boots','cleats'],                      mult:1.5, label:'Footwear' },
+    { keys:['hoodie','jacket','coat','clothes','shirt','pants','jeans','dress'],          mult:1.2, label:'Clothing' },
+    { keys:['game','steam','playstation','xbox','switch','minecraft'],                    mult:1.1, label:'Gaming' },
+    { keys:['ticket','concert','event','festival','trip','vacation','travel'],            mult:1.3, label:'Experience' },
+    { keys:['book','textbook','course','class','subscription'],                           mult:0.7, label:'Learning' },
+    { keys:['boba','bubble tea','coffee','starbucks','drink','smoothie'],                 mult:0.5, label:'Drink' },
+    { keys:['pizza','burger','fries','food','meal','sushi','ramen','taco','chipotle'],   mult:0.5, label:'Food' },
+    { keys:['candy','snack','chips','ice cream','dessert','cookie'],                      mult:0.4, label:'Snack' },
+    { keys:['movie','netflix','spotify','disney','hulu','streaming'],                     mult:0.6, label:'Entertainment' },
+  ]
+
+  function aiAssignPoints(name, price) {
+    const lower = name.toLowerCase()
+    let match = null
+    for (const cat of CATEGORIES) {
+      if (cat.keys.some(k => lower.includes(k))) { match = cat; break }
+    }
+    const mult  = match ? match.mult : 1.0
+    const label = match ? match.label : 'Item'
+    // Base: $1 = 8 pts, scaled by category multiplier, then rounded to nearest 5
+    const raw = parseFloat(price) * 8 * mult
+    const pts = Math.max(5, Math.round(raw / 5) * 5)
+    return { pts, label, mult }
+  }
+
+  function renderWishlist() {
+    const pts   = getPoints()
+    const items = getWishlist()
+    const el    = document.getElementById('wishlistList')
+    if (!items.length) { el.innerHTML = ''; return }
+    el.innerHTML = items.map((item, i) => {
+      const pct     = Math.min(100, Math.round(pts / item.cost * 100))
+      const canAdd  = true
+      return `<div class="wishlist-item">
+        <button class="wishlist-delete-btn" onclick="window._deleteWishlist(${i})" title="Remove">✕</button>
+        <div class="wishlist-item-icon">${esc(item.icon||'🛍️')}</div>
+        <div class="wishlist-item-info">
+          <div class="wishlist-item-name">${esc(item.name)}</div>
+          <div class="wishlist-item-price">$${esc(String(item.price.toFixed(2)))} → <strong>${esc(String(item.cost))} pts</strong></div>
+        </div>
+        <div class="wishlist-progress-wrap">
+          <div class="wishlist-progress-bar"><div class="wishlist-progress-fill" style="width:${pct}%;"></div></div>
+          <div class="wishlist-progress-label">${pts} / ${item.cost} pts (${pct}%)</div>
+        </div>
+        <button class="wishlist-add-shop-btn" onclick="window._wishlistToShop(${i})">＋ Add to Shop</button>
+      </div>`
+    }).join('')
+  }
+
+  // Live point preview as user types price or name
+  function updateWlPreview() {
+    const price = parseFloat(document.getElementById('wlPrice').value)
+    const name  = document.getElementById('wlName').value.trim()
+    const el    = document.getElementById('wlPreview')
+    if (!price || price <= 0) { el.innerHTML = ''; return }
+    const { pts, label, mult } = aiAssignPoints(name || '', price)
+    const why = mult > 1.1 ? `(${label} takes more study effort to earn)` : mult < 0.8 ? `(${label} is an easy treat)` : `(${label})`
+    el.innerHTML = `<span>Assigned</span> <span class="pts-pill">★ ${pts} pts</span> <span style="color:var(--text-secondary);">≈ ${Math.ceil(pts/10)} Pomodoros &nbsp;${why}</span>`
+  }
+  document.getElementById('wlPrice').addEventListener('input', updateWlPreview)
+  document.getElementById('wlName').addEventListener('input',  updateWlPreview)
+
+  document.getElementById('addWishlistBtn').addEventListener('click', () => {
+    const icon  = document.getElementById('wlIcon').value.trim() || '🛍️'
+    const name  = document.getElementById('wlName').value.trim()
+    const price = parseFloat(document.getElementById('wlPrice').value)
+    const err   = document.getElementById('wlErr')
+    if (!name)           { err.textContent = 'Item name is required.'; return }
+    if (!price||price<=0){ err.textContent = 'Enter a valid price.'; return }
+    err.textContent = ''
+    const { pts } = aiAssignPoints(name, price)
+    const list = getWishlist()
+    list.push({ id: Date.now().toString(), icon, name, price, cost: pts })
+    setWishlist(list)
+    document.getElementById('wlName').value  = ''
+    document.getElementById('wlPrice').value = ''
+    document.getElementById('wlIcon').value  = '🛍️'
+    document.getElementById('wlPreview').innerHTML = ''
+    renderWishlist()
+  })
+  document.getElementById('wlName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('addWishlistBtn').click()
+  })
+
+  window._deleteWishlist = (i) => {
+    const list = getWishlist(); list.splice(i, 1); setWishlist(list); renderWishlist()
+  }
+
+  window._wishlistToShop = (i) => {
+    const item = getWishlist()[i]
+    if (!item) return
+    const rewards = getRewards()
+    rewards.push({ id: Date.now().toString(), icon: item.icon, name: item.name, cost: item.cost })
+    setRewards(rewards)
+    // Remove from wishlist
+    const list = getWishlist(); list.splice(i, 1); setWishlist(list)
+    renderWishlist()
+    renderShop()
+  }
+
+  // Boot on Points Shop tab (default)
+  renderShop()
+  renderWishlist()
+})()
+</script>

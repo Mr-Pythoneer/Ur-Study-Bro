@@ -1,0 +1,266 @@
+<style>
+  .onboarding-wrap { display:flex; flex-direction:column; align-items:center; padding:16px 0 40px; }
+  .onboarding-hero { text-align:center; margin-bottom:36px; }
+  .onboarding-snail { font-size:72px; line-height:1; margin-bottom:16px; animation:bob 3s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .onboarding-headline { font-size:30px; font-weight:800; color:var(--text-primary); letter-spacing:-0.8px; margin-bottom:8px; }
+  .onboarding-tagline { font-size:15px; color:var(--text-secondary); max-width:400px; line-height:1.6; }
+  .onboarding-form { width:100%; max-width:560px; display:flex; flex-direction:column; gap:20px; }
+  .form-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-sm); }
+  .form-card-title { font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; }
+  .subject-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; min-height:32px; }
+  .subject-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:var(--accent-light); color:var(--accent); border-radius:99px; font-size:13px; font-weight:500; }
+  .subject-chip button { background:none; border:none; cursor:pointer; color:var(--accent); font-size:14px; padding:0; line-height:1; opacity:0.7; }
+  .subject-chip button:hover { opacity:1; }
+  .subject-input-row { display:flex; gap:8px; }
+  .subject-input-row input { flex:1; }
+  .goal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .goal-option { border:2px solid var(--border); border-radius:var(--radius-sm); padding:14px 12px; cursor:pointer; text-align:center; transition:all .15s; background:var(--bg-card); }
+  .goal-option:hover { border-color:var(--accent); background:var(--accent-light); }
+  .goal-option.selected { border-color:var(--accent); background:var(--accent-light); }
+  .goal-option .goal-hours { font-size:22px; font-weight:700; color:var(--accent); }
+  .goal-option .goal-desc { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  .custom-goal-row { display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .custom-goal-row input { width:80px; text-align:center; }
+  .custom-goal-row span { font-size:14px; color:var(--text-secondary); }
+  .save-btn-wrap { text-align:center; }
+  .save-btn-wrap .btn { min-width:180px; font-size:15px; padding:12px 28px; }
+  .greeting-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 14px; background:var(--accent-light); color:var(--accent); border-radius:99px; font-size:13px; font-weight:600; margin-bottom:12px; }
+
+  /* Account settings section */
+  .settings-section { border-top:1px solid var(--border); margin-top:8px; padding-top:20px; }
+  .settings-section-title { font-size:13px; font-weight:700; color:#ef4444; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; }
+  .change-pw-row { display:flex; flex-direction:column; gap:10px; }
+  .inline-success { color:var(--accent); font-size:13px; font-weight:500; margin-top:4px; display:none; }
+  .inline-success.visible { display:block; }
+  .inline-error { color:#ef4444; font-size:13px; font-weight:500; margin-top:4px; display:none; }
+  .inline-error.visible { display:block; }
+</style>
+
+<div class="onboarding-wrap">
+  <div class="onboarding-hero">
+    <div class="onboarding-snail">🐌</div>
+    <div class="greeting-badge" id="greetingBadge">Welcome!</div>
+    <div class="onboarding-headline" id="headline">Let's get you set up</div>
+    <div class="onboarding-tagline">Ur Study Bro helps you and your study partner stay on track — slow and steady wins the race.</div>
+  </div>
+
+  <div class="onboarding-form">
+
+    <!-- Name -->
+    <div class="form-card">
+      <div class="form-card-title">01 — Your Display Name</div>
+      <div class="input-group" style="margin:0;">
+        <label>What should we call you?</label>
+        <input type="text" id="displayName" placeholder="e.g. Alex" />
+      </div>
+    </div>
+
+    <!-- Subjects -->
+    <div class="form-card">
+      <div class="form-card-title">02 — Subjects &amp; Courses</div>
+      <div class="input-group" style="margin-bottom:10px;">
+        <label>Add the subjects or courses you're studying</label>
+        <div class="subject-input-row">
+          <input type="text" id="subjectInput" placeholder="e.g. Calculus, History…" />
+          <button class="btn btn-ghost" id="addSubjectBtn" style="padding:9px 14px;">+ Add</button>
+        </div>
+      </div>
+      <div class="subject-list" id="subjectList"></div>
+    </div>
+
+    <!-- Daily goal -->
+    <div class="form-card">
+      <div class="form-card-title">03 — Daily Study Goal</div>
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">How many hours do you want to study each day?</div>
+      <div class="goal-grid">
+        <div class="goal-option" data-hours="1" id="goal-1"><div class="goal-hours">1 hr</div><div class="goal-desc">Light maintenance</div></div>
+        <div class="goal-option" data-hours="2" id="goal-2"><div class="goal-hours">2 hrs</div><div class="goal-desc">Steady progress</div></div>
+        <div class="goal-option" data-hours="3" id="goal-3"><div class="goal-hours">3 hrs</div><div class="goal-desc">Focused effort</div></div>
+        <div class="goal-option" data-hours="4" id="goal-4"><div class="goal-hours">4+ hrs</div><div class="goal-desc">Exam crunch mode</div></div>
+      </div>
+      <div class="custom-goal-row">
+        <span>Or set a custom goal:</span>
+        <input type="number" id="customHours" placeholder="hrs" min="0.5" max="16" step="0.5" />
+        <span>hours / day</span>
+      </div>
+    </div>
+
+    <!-- Save -->
+    <div class="save-btn-wrap">
+      <button class="btn btn-primary" id="saveProfileBtn">✓ Save Profile</button>
+    </div>
+    <div id="profileSuccess" class="inline-success" style="text-align:center;">✓ Profile saved!</div>
+
+    <!-- Account settings -->
+    <div class="form-card">
+      <div class="form-card-title">Account Settings</div>
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Signed in as <strong id="accountUsername"></strong></div>
+
+      <div class="settings-section">
+        <div class="settings-section-title" style="color:var(--text-secondary);">Change Password</div>
+        <div class="change-pw-row">
+          <div class="input-group" style="margin:0;"><label>Current Password</label><input type="password" id="curPass" placeholder="••••••••" /></div>
+          <div class="input-group" style="margin:0;"><label>New Password</label><input type="password" id="newPass" placeholder="at least 4 characters" /></div>
+          <div class="input-group" style="margin:0;"><label>Confirm New Password</label><input type="password" id="newPass2" placeholder="repeat new password" /></div>
+          <button class="btn btn-ghost" id="changePassBtn">Update Password</button>
+          <div id="pwSuccess" class="inline-success">✓ Password updated successfully!</div>
+          <div id="pwError" class="inline-error"></div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Danger Zone</div>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Permanently delete this account and all its study data.</p>
+        <button class="btn" style="background:#ef4444; color:#fff;" id="deleteAccountBtn">🗑️ Delete My Account</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  let subjects = csGetJSON('subjects', [])
+  let selectedGoalHours = null
+
+  // ── Restore ───────────────────────────────────────────────────
+  const savedName = csGet('displayName') || currentUser()
+  const savedGoal = csGet('dailyGoalHours')
+
+  document.getElementById('displayName').value = savedName || ''
+  document.getElementById('accountUsername').textContent = currentUser()
+  document.getElementById('greetingBadge').textContent = `👋 Hey, ${savedName || currentUser()}!`
+  document.getElementById('headline').textContent = savedName ? `Welcome back, ${savedName}!` : `Let's get you set up`
+
+  if (savedGoal) {
+    const h = parseFloat(savedGoal)
+    const preset = document.getElementById(`goal-${h}`)
+    if (preset) { preset.classList.add('selected'); selectedGoalHours = h }
+    else { document.getElementById('customHours').value = h; selectedGoalHours = h }
+  }
+
+  renderSubjects()
+
+  // ── Subjects ──────────────────────────────────────────────────
+  function addSubject() {
+    const inp = document.getElementById('subjectInput')
+    const val = inp.value.trim()
+    if (!val) return
+    val.split(',').forEach(s => { const t = s.trim(); if (t && !subjects.includes(t)) subjects.push(t) })
+    inp.value = ''
+    renderSubjects()
+  }
+
+  document.getElementById('addSubjectBtn').addEventListener('click', addSubject)
+  document.getElementById('subjectInput').addEventListener('keydown', e => { if (e.key === 'Enter') addSubject() })
+
+  function removeSubject(idx) { subjects.splice(idx, 1); renderSubjects() }
+
+  function renderSubjects() {
+    const list = document.getElementById('subjectList')
+    list.innerHTML = ''
+    if (!subjects.length) {
+      list.innerHTML = '<span style="font-size:13px;color:var(--text-secondary);">No subjects added yet.</span>'
+      return
+    }
+    subjects.forEach((s, i) => {
+      const chip = document.createElement('div')
+      chip.className = 'subject-chip'
+      // Use textContent to safely set subject name (no XSS)
+      const label = document.createTextNode(s)
+      const btn = document.createElement('button')
+      btn.title = 'Remove'
+      btn.textContent = '✕'
+      btn.addEventListener('click', () => removeSubject(i))
+      chip.appendChild(label)
+      chip.appendChild(btn)
+      list.appendChild(chip)
+    })
+  }
+
+  // ── Goal tiles ────────────────────────────────────────────────
+  document.querySelectorAll('.goal-option').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.goal-option').forEach(o => o.classList.remove('selected'))
+      el.classList.add('selected')
+      selectedGoalHours = parseFloat(el.dataset.hours)
+      document.getElementById('customHours').value = ''
+    })
+  })
+  document.getElementById('customHours').addEventListener('input', () => {
+    document.querySelectorAll('.goal-option').forEach(o => o.classList.remove('selected'))
+    selectedGoalHours = parseFloat(document.getElementById('customHours').value) || null
+  })
+
+  // ── Save profile ──────────────────────────────────────────────
+  document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    const name = document.getElementById('displayName').value.trim()
+    const custom = document.getElementById('customHours').value
+    const goalHours = custom ? parseFloat(custom) : selectedGoalHours
+
+    if (!name) { document.getElementById('displayName').focus(); return }
+    if (subjects.length === 0) { document.getElementById('subjectInput').focus(); return }
+    if (!goalHours || goalHours <= 0) { document.getElementById('customHours').focus(); return }
+
+    csSet('displayName', name)
+    csSetJSON('subjects', subjects)
+    csSet('dailyGoalHours', goalHours)
+
+    document.getElementById('greetingBadge').textContent = `👋 Hey, ${name}!`
+    document.getElementById('headline').textContent = `Welcome back, ${name}!`
+    document.getElementById('topbar-username').textContent = currentUser()
+
+    const ok = document.getElementById('profileSuccess')
+    ok.classList.add('visible')
+    setTimeout(() => ok.classList.remove('visible'), 3000)
+  })
+
+  // ── Change password ───────────────────────────────────────────
+  document.getElementById('changePassBtn').addEventListener('click', async () => {
+    const cur = document.getElementById('curPass').value
+    const nw = document.getElementById('newPass').value
+    const nw2 = document.getElementById('newPass2').value
+    const errEl = document.getElementById('pwError')
+    const okEl = document.getElementById('pwSuccess')
+    errEl.classList.remove('visible'); okEl.classList.remove('visible')
+
+    if (!cur || !nw || !nw2) return showInline(errEl, 'Fill in all password fields.')
+    if (nw.length < 4) return showInline(errEl, 'New password must be at least 4 characters.')
+    if (nw !== nw2) return showInline(errEl, 'New passwords do not match.')
+
+    const accounts = JSON.parse(localStorage.getItem('cs_accounts') || '[]')
+    const account = accounts.find(a => a.username === currentUser())
+    if (!account) return showInline(errEl, 'Account not found.')
+
+    const curHash = await hashPassword(cur)
+    if (curHash !== account.passwordHash) return showInline(errEl, 'Current password is incorrect.')
+
+    account.passwordHash = await hashPassword(nw)
+    localStorage.setItem('cs_accounts', JSON.stringify(accounts))
+
+    document.getElementById('curPass').value = ''
+    document.getElementById('newPass').value = ''
+    document.getElementById('newPass2').value = ''
+    okEl.classList.add('visible')
+    setTimeout(() => okEl.classList.remove('visible'), 3000)
+  })
+
+  // ── Delete account ────────────────────────────────────────────
+  document.getElementById('deleteAccountBtn').addEventListener('click', () => {
+    const user = currentUser()
+    if (!confirm(`Delete account "${user}"?\n\nThis will permanently remove all your study data. This cannot be undone.`)) return
+
+    // Remove account record
+    const accounts = JSON.parse(localStorage.getItem('cs_accounts') || '[]').filter(a => a.username !== user)
+    localStorage.setItem('cs_accounts', JSON.stringify(accounts))
+
+    // Wipe all data keys for this user
+    Object.keys(localStorage).filter(k => k.startsWith(`cs_${user}_`)).forEach(k => localStorage.removeItem(k))
+
+    doSignOut()
+  })
+
+  function showInline(el, msg) { el.textContent = msg; el.classList.add('visible'); setTimeout(() => el.classList.remove('visible'), 3500) }
+})()
+</script>

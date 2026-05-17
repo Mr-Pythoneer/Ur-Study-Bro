@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+  <title>Ur Study Bro</title>
+  <link rel="stylesheet" href="styles/main.css" />
+  <style>
+    /* ── Auth overlay ──────────────────────────────────────────── */
+    #auth-overlay {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #1e2228 0%, #2e4a3a 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+      -webkit-app-region: drag;
+    }
+    #auth-overlay.hidden { display: none; }
+
+    .auth-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 44px;
+      width: 420px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.35);
+      -webkit-app-region: no-drag;
+    }
+
+    .auth-logo { font-size: 52px; text-align: center; margin-bottom: 8px; }
+    .auth-app-name {
+      text-align: center; font-size: 22px; font-weight: 800;
+      color: var(--text-primary); letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+    .auth-tagline {
+      text-align: center; font-size: 13px; color: var(--text-secondary); margin-bottom: 28px;
+    }
+
+    .auth-tabs {
+      display: flex; gap: 4px;
+      background: #f3f4f6; border-radius: 10px; padding: 4px;
+      margin-bottom: 24px;
+    }
+    .auth-tab {
+      flex: 1; padding: 8px; border: none; border-radius: 8px;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
+      cursor: pointer; background: transparent; color: var(--text-secondary);
+      transition: all .15s;
+    }
+    .auth-tab.active { background: #fff; color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+    .auth-panel { display: none; }
+    .auth-panel.active { display: block; }
+
+    .auth-input-group { margin-bottom: 14px; }
+    .auth-input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; }
+    .auth-input-group input {
+      width: 100%; padding: 10px 13px; border: 1.5px solid var(--border);
+      border-radius: 9px; font-family: var(--font); font-size: 14px;
+      color: var(--text-primary); outline: none; transition: border-color .15s;
+    }
+    .auth-input-group input:focus { border-color: var(--accent); }
+
+    .auth-btn {
+      width: 100%; padding: 11px; border: none; border-radius: 10px;
+      font-family: var(--font); font-size: 14px; font-weight: 700;
+      cursor: pointer; background: var(--accent); color: #fff;
+      transition: opacity .15s; margin-top: 4px;
+    }
+    .auth-btn:hover { opacity: .88; }
+    .auth-btn.ghost {
+      background: transparent; color: var(--accent);
+      border: 1.5px solid var(--accent); margin-top: 8px;
+    }
+
+    .auth-error {
+      background: #fef2f2; border: 1px solid #fca5a5;
+      color: #b91c1c; border-radius: 8px; padding: 9px 12px;
+      font-size: 13px; margin-bottom: 12px; display: none;
+    }
+    .auth-error.visible { display: block; }
+
+    .account-list { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+    .account-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border: 1.5px solid var(--border);
+      border-radius: 10px; cursor: pointer; transition: border-color .15s;
+    }
+    .account-row:hover { border-color: var(--accent); }
+    .account-row-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .account-row-meta { font-size: 12px; color: var(--text-secondary); }
+    .account-row-actions { display: flex; gap: 6px; }
+    .btn-icon {
+      background: none; border: none; cursor: pointer;
+      font-size: 16px; padding: 2px 6px; border-radius: 6px;
+      transition: background .15s;
+    }
+    .btn-icon:hover { background: #fee2e2; }
+    .btn-icon.select:hover { background: var(--accent-light); }
+
+    .no-accounts {
+      text-align: center; color: var(--text-secondary); font-size: 13px; padding: 20px 0;
+    }
+
+    /* ── Topbar user badge ─────────────────────────────────────── */
+    .topbar {
+      position: fixed; top: 0; right: 0; left: var(--sidebar-width);
+      height: 44px; display: flex; align-items: center; justify-content: flex-end;
+      padding: 0 24px; z-index: 100;
+      -webkit-app-region: drag;
+    }
+    .user-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
+      border: 1px solid var(--border); border-radius: 99px;
+      padding: 4px 14px 4px 10px; cursor: pointer;
+      font-size: 13px; font-weight: 600; color: var(--text-primary);
+      transition: box-shadow .15s;
+      -webkit-app-region: no-drag;
+    }
+    .user-badge:hover { box-shadow: var(--shadow-md); }
+    .user-avatar { font-size: 18px; }
+
+    /* ── Sign-out dropdown ─────────────────────────────────────── */
+    .user-menu {
+      position: absolute; top: 50px; right: 24px;
+      background: #fff; border: 1px solid var(--border); border-radius: 12px;
+      box-shadow: var(--shadow-md); padding: 8px; min-width: 180px;
+      display: none; z-index: 200;
+    }
+    .user-menu.open { display: block; }
+    .user-menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 500; color: var(--text-primary);
+      transition: background .12s; border: none; background: none;
+      width: 100%; text-align: left; font-family: var(--font);
+    }
+    .user-menu-item:hover { background: #f3f4f6; }
+    .user-menu-item.danger:hover { background: #fee2e2; color: #b91c1c; }
+    .user-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* push content below topbar */
+    .content-area { padding-top: 60px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════ AUTH OVERLAY ══════════════════════════ -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="16" fill="#2e7d5e"/><rect x="13" y="18" width="16" height="28" rx="3" fill="white" opacity="0.9"/><rect x="35" y="18" width="16" height="28" rx="3" fill="white" opacity="0.7"/><rect x="29" y="16" width="6" height="32" rx="3" fill="#2e7d5e"/><rect x="30.5" y="16" width="3" height="32" rx="1.5" fill="white" opacity="0.5"/></svg></div>
+    <div class="auth-app-name">Ur Study Bro</div>
+    <div class="auth-tagline">Your study partner, always ready.</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('signin')">Sign In</button>
+      <button class="auth-tab"        onclick="switchAuthTab('create')">Create Account</button>
+      <button class="auth-tab"        onclick="switchAuthTab('manage')">Manage</button>
+    </div>
+
+    <!-- Sign In -->
+    <div class="auth-panel active" id="panel-signin">
+      <div class="auth-error" id="signin-error"></div>
+      <div class="auth-input-group">
+        <label>USERNAME</label>
+        <input type="text" id="signin-user" placeholder="your username" autocomplete="off" />
+      </div>
+      <div class="auth-input-group">
+        <label>PASSWORD</label>
+        <input type="password" id="signin-pass" placeholder="••••••••" />
+      </div>
+      <button class="auth-btn" onclick="doSignIn()">Sign In →</button>
+    </div>
+
+    <!-- Create Account -->
+    <div class="auth-panel" id="panel-create">
+      <div class="auth-error" id="create-error"></div>
+      <div class="auth-input-group">
+        <label>USERNAME</label>
+        <input type="text" id="create-user" placeholder="choose a username" autocomplete="off" />
+      </div>
+      <div class="auth-input-group">
+        <label>PASSWORD</label>
+        <input type="password" id="create-pass" placeholder="at least 4 characters" />
+      </div>
+      <div class="auth-input-group">
+        <label>CONFIRM PASSWORD</label>
+        <input type="password" id="create-pass2" placeholder="repeat password" />
+      </div>
+      <button class="auth-btn" onclick="doCreateAccount()">Create &amp; Sign In →</button>
+    </div>
+
+    <!-- Manage Accounts -->
+    <div class="auth-panel" id="panel-manage">
+      <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:10px;">ACCOUNTS ON THIS DEVICE</div>
+      <div class="account-list" id="manage-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN APP ══════════════════════════════ -->
+<div id="app-shell" class="app-shell" style="display:none;">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="user-badge" onclick="toggleUserMenu()">
+      <span class="user-avatar"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect width="22" height="22" rx="6" fill="#2e7d5e"/><rect x="4" y="6" width="5.5" height="10" rx="1.5" fill="white" opacity="0.9"/><rect x="12.5" y="6" width="5.5" height="10" rx="1.5" fill="white" opacity="0.7"/><rect x="10" y="5" width="2" height="12" rx="1" fill="#2e7d5e"/><rect x="10.5" y="5" width="1" height="12" rx="0.5" fill="white" opacity="0.5"/></svg></span>
+      <span id="topbar-username">—</span>
+      <span style="color:var(--text-secondary); font-weight:400;"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3.5l3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </div>
+    <div class="user-menu" id="user-menu">
+      <button class="user-menu-item" onclick="goToSettings()">Account Settings</button>
+      <div class="user-menu-divider"></div>
+      <button class="user-menu-item danger" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="app-logo"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="7" fill="#2e7d5e"/><rect x="5" y="7.5" width="8" height="13" rx="2" fill="white" opacity="0.9"/><rect x="15" y="7.5" width="8" height="13" rx="2" fill="white" opacity="0.7"/><rect x="13" y="6.5" width="2" height="15" rx="1" fill="#2e7d5e"/><rect x="13.5" y="6.5" width="1" height="15" rx="0.5" fill="white" opacity="0.5"/></svg></div>
+      <div class="app-name">Ur Study Bro</div>
+    </div>
+    <nav class="nav-menu">
+      <button class="nav-item active" data-page="welcome">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5L10 4l7 6.5"/><path d="M5 9v7h3.5v-4H11.5v4H15V9" stroke-linejoin="round"/></svg></span><span class="nav-label">Welcome</span>
+      </button>
+      <button class="nav-item" data-page="calendar">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2v4M13 2v4" stroke-linecap="round"/></svg></span><span class="nav-label">Calendar</span>
+      </button>
+      <button class="nav-item" data-page="study">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="11" r="7"/><path d="M10 7v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 2.5h5" stroke-linecap="round"/></svg></span><span class="nav-label">Study Mode</span>
+      </button>
+      <button class="nav-item" data-page="meetings">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 2h7l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4" stroke-linecap="round"/></svg></span><span class="nav-label">Meeting Records</span>
+      </button>
+      <button class="nav-item" data-page="rewards">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2l2.4 5H18l-4.4 3.2 1.7 5.3L10 12.5l-5.3 3 1.7-5.3L2 7h5.6z" stroke-linejoin="round"/></svg></span><span class="nav-label">Rewards</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer"><div class="version">v1.0.0</div></div>
+  </aside>
+
+  <!-- Content -->
+  <main class="content-area">
+    <div id="content"></div>
+  </main>
+</div>
+
+<script>
+// ── Crypto helpers ────────────────────────────────────────────────
+async function hashPassword(password) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+// ── Account storage helpers ───────────────────────────────────────
+function getAccounts() {
+  return JSON.parse(localStorage.getItem('cs_accounts') || '[]')
+}
+function saveAccounts(accounts) {
+  localStorage.setItem('cs_accounts', JSON.stringify(accounts))
+}
+
+// ── Per-account data key helper (used by all pages) ───────────────
+window.csKey = (key) => `cs_${sessionStorage.getItem('cs_currentUser')}_${key}`
+window.csGet = (key) => localStorage.getItem(window.csKey(key))
+window.csSet = (key, val) => localStorage.setItem(window.csKey(key), val)
+window.csGetJSON = (key, fallback = []) => JSON.parse(window.csGet(key) || JSON.stringify(fallback))
+window.csSetJSON = (key, val) => window.csSet(key, JSON.stringify(val))
+
+// ── Current user ──────────────────────────────────────────────────
+function currentUser() { return sessionStorage.getItem('cs_currentUser') }
+
+// ── Auth tab switching ────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['signin','create','manage'][i] === tab)
+  })
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'))
+  document.getElementById(`panel-${tab}`).classList.add('active')
+  if (tab === 'manage') renderManageList()
+}
+
+// ── Sign In ───────────────────────────────────────────────────────
+async function doSignIn() {
+  const username = document.getElementById('signin-user').value.trim().toLowerCase()
+  const password = document.getElementById('signin-pass').value
+  const errEl = document.getElementById('signin-error')
+
+  if (!username || !password) return showAuthError(errEl, 'Please fill in all fields.')
+
+  const accounts = getAccounts()
+  const account = accounts.find(a => a.username === username)
+  if (!account) return showAuthError(errEl, 'No account found with that username.')
+
+  const hash = await hashPassword(password)
+  if (hash !== account.passwordHash) return showAuthError(errEl, 'Incorrect password.')
+
+  launchApp(username)
+}
+
+// ── Create Account ────────────────────────────────────────────────
+async function doCreateAccount() {
+  const username = document.getElementById('create-user').value.trim().toLowerCase()
+  const password = document.getElementById('create-pass').value
+  const password2 = document.getElementById('create-pass2').value
+  const errEl = document.getElementById('create-error')
+
+  if (!username || !password) return showAuthError(errEl, 'Please fill in all fields.')
+  if (username.length < 2) return showAuthError(errEl, 'Username must be at least 2 characters.')
+  if (!/^[a-z0-9_]+$/.test(username)) return showAuthError(errEl, 'Username: letters, numbers, _ only.')
+  if (password.length < 4) return showAuthError(errEl, 'Password must be at least 4 characters.')
+  if (password !== password2) return showAuthError(errEl, 'Passwords do not match.')
+
+  const accounts = getAccounts()
+  if (accounts.find(a => a.username === username)) return showAuthError(errEl, 'That username is already taken.')
+
+  const passwordHash = await hashPassword(password)
+  accounts.push({ username, passwordHash, created: new Date().toISOString() })
+  saveAccounts(accounts)
+
+  launchApp(username)
+}
+
+// ── Delete Account ────────────────────────────────────────────────
+function promptDeleteAccount(username) {
+  if (!confirm(`Delete account "${username}"?\n\nAll study data for this account will be permanently removed.`)) return
+  const accounts = getAccounts().filter(a => a.username !== username)
+  saveAccounts(accounts)
+  // Wipe account data keys
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(`cs_${username}_`))
+    .forEach(k => localStorage.removeItem(k))
+  renderManageList()
+}
+
+function renderManageList() {
+  const accounts = getAccounts()
+  const list = document.getElementById('manage-list')
+  if (accounts.length === 0) {
+    list.innerHTML = '<div class="no-accounts">No accounts yet. Create one!</div>'
+    return
+  }
+  list.innerHTML = accounts.map(a => `
+    <div class="account-row">
+      <div>
+        <div class="account-row-name">${a.username}</div>
+        <div class="account-row-meta">Created ${new Date(a.created).toLocaleDateString()}</div>
+      </div>
+      <div class="account-row-actions">
+        <button class="btn-icon select" title="Sign in" onclick="quickSignIn('${a.username}')">→</button>
+        <button class="btn-icon" title="Delete account" onclick="promptDeleteAccount('${a.username}')">×</button>
+      </div>
+    </div>
+  `).join('')
+}
+
+// Quick sign-in from manage tab (shows password prompt)
+function quickSignIn(username) {
+  switchAuthTab('signin')
+  document.getElementById('signin-user').value = username
+  document.getElementById('signin-pass').focus()
+}
+
+// ── Auth error helper ─────────────────────────────────────────────
+function showAuthError(el, msg) {
+  el.textContent = msg
+  el.classList.add('visible')
+  setTimeout(() => el.classList.remove('visible'), 3500)
+}
+
+// ── Launch app after auth ─────────────────────────────────────────
+function launchApp(username) {
+  sessionStorage.setItem('cs_currentUser', username)
+  document.getElementById('auth-overlay').classList.add('hidden')
+  document.getElementById('app-shell').style.display = 'flex'
+  document.getElementById('topbar-username').textContent = username
+  loadPage('welcome')
+  startScheduler()
+}
+
+// ── Sign Out ──────────────────────────────────────────────────────
+function doSignOut() {
+  stopScheduler()
+  _notifiedEvents.clear()
+  sessionStorage.removeItem('cs_currentUser')
+  document.getElementById('auth-overlay').classList.remove('hidden')
+  document.getElementById('app-shell').style.display = 'none'
+  document.getElementById('content').innerHTML = ''
+  ;['signin-user','signin-pass','create-user','create-pass','create-pass2']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = '' })
+  switchAuthTab('signin')
+  closeUserMenu()
+}
+
+// ── User menu ─────────────────────────────────────────────────────
+function toggleUserMenu() {
+  document.getElementById('user-menu').classList.toggle('open')
+}
+function closeUserMenu() {
+  document.getElementById('user-menu').classList.remove('open')
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-badge') && !e.target.closest('.user-menu')) closeUserMenu()
+})
+function goToSettings() {
+  closeUserMenu()
+  loadPage('welcome')
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === 'welcome'))
+}
+
+// ── Keyboard shortcuts for auth ───────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('auth-overlay').classList.contains('hidden')) {
+    const active = document.querySelector('.auth-panel.active').id
+    if (active === 'panel-signin') doSignIn()
+    else if (active === 'panel-create') doCreateAccount()
+  }
+})
+
+// ── Page navigation ───────────────────────────────────────────────
+const PAGES = {
+  welcome: 'pages/welcome.html',
+  calendar: 'pages/calendar.html',
+  study:    'pages/study.html',
+  meetings: 'pages/meetings.html',
+  rewards:  'pages/rewards.html',
+}
+
+let _navVersion = 0
+
+async function loadPage(name) {
+  const version = ++_navVersion
+
+  // Give any running page a chance to clean up (e.g. clear timer intervals)
+  if (typeof window._pageCleanup === 'function') {
+    window._pageCleanup()
+    window._pageCleanup = null
+  }
+
+  const res = await fetch(PAGES[name])
+  const html = await res.text()
+
+  // Abort if the user navigated again before this fetch completed
+  if (version !== _navVersion) return
+
+  document.getElementById('content').innerHTML = html
+  document.getElementById('content').querySelectorAll('script').forEach(old => {
+    const s = document.createElement('script')
+    s.textContent = old.textContent
+    old.replaceWith(s)
+  })
+}
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    loadPage(btn.dataset.page)
+  })
+})
+
+// expose for page partials to navigate
+window.navigateTo = (page) => {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page))
+  loadPage(page)
+}
+
+// ── Open external links via shell (Electron) ──────────────────────
+// Intercepts any <a target="_blank"> clicks inside #content
+document.getElementById('content').addEventListener('click', e => {
+  const a = e.target.closest('a[href]')
+  if (!a) return
+  const href = a.getAttribute('href')
+  if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+    e.preventDefault()
+    if (window.api && window.api.openExternal) {
+      window.api.openExternal(href)
+    }
+  }
+})
+
+// ── Background event notification scheduler ───────────────────────
+const _notifiedEvents = new Set()  // event IDs fired this session
+let _schedulerInterval = null
+
+function startScheduler() {
+  if (_schedulerInterval) return
+  _schedulerInterval = setInterval(checkUpcomingEvents, 30_000)
+  checkUpcomingEvents()  // check immediately on sign-in
+}
+
+function stopScheduler() {
+  clearInterval(_schedulerInterval)
+  _schedulerInterval = null
+}
+
+function checkUpcomingEvents() {
+  if (!currentUser()) return
+
+  const events = csGetJSON('calEvents', [])
+  const now = new Date()
+
+  events.forEach(ev => {
+    if (_notifiedEvents.has(ev.id)) return
+    if (!ev.date || !ev.start) return
+
+    const evDate = new Date(`${ev.date}T${ev.start}:00`)
+    const minsAway = (evDate - now) / 60_000
+
+    // Notify when the event is between 4.5 and 5.5 minutes away
+    if (minsAway >= 4.5 && minsAway <= 5.5) {
+      _notifiedEvents.add(ev.id)
+      fireNotification(ev)
+    }
+  })
+}
+
+function fireNotification(ev) {
+  // Send to main process — Electron's Notification class supports
+  // macOS native action buttons ("Join Meeting") that the Web API cannot
+  if (window.api && window.api.scheduleNotify) {
+    window.api.scheduleNotify({
+      title:      ev.title,
+      start:      ev.start,
+      startLabel: fmt12Time(ev.start),
+      link:       ev.link      || '',
+      linkLabel:  ev.linkLabel || 'Open meeting',
+      linkType:   ev.linkType  || 'other',
+    })
+  }
+}
+
+function fmt12Time(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+</script>
+</body>
+</html>

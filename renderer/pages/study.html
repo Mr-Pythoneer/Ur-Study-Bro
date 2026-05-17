@@ -1,0 +1,521 @@
+<style>
+  /* ── Timer ────────────────────────────────────────────────── */
+  .timer-mode-tabs { display:flex; gap:6px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
+  .timer-tab { padding:7px 16px; border:1.5px solid var(--border); border-radius:99px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
+  .timer-tab.active { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+  .timer-tab.pomodoro.active { border-color:#ef4444; background:#fef2f2; color:#ef4444; }
+  .timer-display { font-size:54px; font-weight:800; letter-spacing:-2px; color:var(--text-primary); text-align:center; font-variant-numeric:tabular-nums; transition:color .3s; line-height:1; }
+  .timer-display.running { color:var(--accent); }
+  .timer-display.break-running { color:#f59e0b; }
+  .timer-display.finished { color:#ef4444; }
+  .timer-ring { width:260px; height:260px; margin:0 auto; position:relative; }
+  .timer-ring svg { transform:rotate(-90deg); width:260px; height:260px; display:block; }
+  .timer-ring-bg   { fill:none; stroke:#e5e7eb; stroke-width:10; }
+  .timer-ring-fill { fill:none; stroke:var(--accent); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .9s linear; }
+  .timer-ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+  .timer-controls { display:flex; justify-content:center; gap:12px; margin-top:20px; }
+  .session-complete-banner { background:var(--accent-light); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:14px 18px; text-align:center; display:none; margin-top:16px; }
+  .session-complete-banner.visible { display:block; }
+
+  /* ── Break overlay ────────────────────────────────────────── */
+  .break-overlay {
+    position:fixed; inset:0; z-index:8000;
+    background:linear-gradient(135deg,#0f4c3a 0%,#1a6b52 40%,#0d3d5c 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .5s ease;
+  }
+  .break-overlay.visible { opacity:1; pointer-events:all; }
+  .break-ring svg { transform:rotate(-90deg); }
+  .break-ring-bg   { fill:none; stroke:rgba(255,255,255,.15); stroke-width:8; }
+  .break-ring-fill { fill:none; stroke:#6ee7b7; stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset 1s linear; }
+  .break-display { font-size:60px; font-weight:800; color:#fff; font-variant-numeric:tabular-nums; letter-spacing:-2px; }
+  .break-label { font-size:16px; color:rgba(255,255,255,.7); font-weight:500; margin-top:6px; }
+  .break-tip { font-size:14px; color:rgba(255,255,255,.55); max-width:340px; text-align:center; margin-top:28px; line-height:1.6; }
+  .break-actions { display:flex; gap:12px; margin-top:36px; }
+  .break-btn-next { background:#6ee7b7; color:#0f4c3a; border:none; border-radius:99px; padding:13px 32px; font-size:15px; font-weight:700; cursor:pointer; font-family:var(--font); transition:transform .1s; }
+  .break-btn-next:hover { transform:scale(1.04); }
+  .break-btn-skip { background:rgba(255,255,255,.12); color:rgba(255,255,255,.8); border:1.5px solid rgba(255,255,255,.2); border-radius:99px; padding:13px 24px; font-size:14px; font-weight:600; cursor:pointer; font-family:var(--font); }
+  .break-btn-skip:hover { background:rgba(255,255,255,.2); }
+  .pomodoro-count { font-size:13px; color:rgba(255,255,255,.5); margin-top:16px; }
+
+  /* ── Focus Guard ──────────────────────────────────────────── */
+  .guard-status { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:99px; font-size:13px; font-weight:600; }
+  .guard-status.off  { background:#f3f4f6; color:var(--text-secondary); }
+  .guard-status.on   { background:var(--accent-light); color:var(--accent); }
+  .guard-status-dot  { width:8px; height:8px; border-radius:50%; background:currentColor; }
+  .guard-status.on .guard-status-dot { animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .app-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:8px; margin-top:12px; }
+  .app-check { display:flex; align-items:center; gap:9px; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:all .15s; font-size:13px; font-weight:500; user-select:none; }
+  .app-check:hover { border-color:var(--accent); background:var(--accent-light); }
+  .app-check.checked { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+  .app-check input[type=checkbox] { accent-color:var(--accent); width:14px; height:14px; flex-shrink:0; }
+  .app-logo { width:22px; height:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .app-logo svg, .app-logo img { width:22px; height:22px; border-radius:4px; display:block; }
+
+  .custom-app-row { display:flex; gap:8px; margin-top:10px; }
+  .custom-app-row input { flex:1; }
+
+  .nudge-toast { position:fixed; bottom:24px; right:24px; background:#1e2228; color:#fff; border-radius:12px; padding:14px 20px; font-size:13px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,.3); z-index:9000; display:none; max-width:300px; }
+  .nudge-toast.visible { display:block; animation:slideUp .3s ease; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+</style>
+
+<!-- Break overlay -->
+<div class="break-overlay" id="breakOverlay">
+  <div style="font-size:32px;margin-bottom:12px;"></div>
+  <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;">Break Time!</div>
+  <div style="font-size:14px;color:rgba(255,255,255,.6);margin-bottom:32px;">You crushed that Pomodoro. Rest up.</div>
+
+  <div class="break-ring" style="position:relative;width:200px;height:200px;">
+    <svg viewBox="0 0 200 200" width="200" height="200">
+      <circle class="break-ring-bg"   cx="100" cy="100" r="88"/>
+      <circle class="break-ring-fill" id="breakRingFill" cx="100" cy="100" r="88"
+        stroke-dasharray="553" stroke-dashoffset="0"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div class="break-display" id="breakDisplay">5:00</div>
+      <div class="break-label" id="breakStatusLabel">Break ends in…</div>
+    </div>
+  </div>
+
+  <div class="break-tip" id="breakTip"></div>
+  <div class="pomodoro-count" id="pomodoroCount"></div>
+
+  <div class="break-actions">
+    <button class="break-btn-next" id="nextPomodoroBtn">Start Next Pomodoro</button>
+    <button class="break-btn-skip" id="skipBreakBtn">Skip Break</button>
+  </div>
+</div>
+
+<!-- Nudge toast -->
+<div class="nudge-toast" id="nudgeToast"></div>
+
+<div class="page-header">
+  <div class="page-title">Study Mode</div>
+  <div class="page-subtitle">Focus up. Your partner is counting on you.</div>
+</div>
+
+<!-- ── Timer ───────────────────────────────────────────────────── -->
+<div class="card" style="text-align:center;">
+  <div class="timer-mode-tabs">
+    <button class="timer-tab pomodoro active" data-mins="25" data-type="pomodoro">Pomodoro 25</button>
+    <button class="timer-tab" data-mins="45"  data-type="focus">Focus 45</button>
+    <button class="timer-tab" data-mins="60"  data-type="focus">Deep Work 60</button>
+    <button class="timer-tab" data-mins="90"  data-type="focus">Marathon 90</button>
+  </div>
+
+  <div class="timer-ring">
+    <svg viewBox="0 0 260 260" width="260" height="260">
+      <circle class="timer-ring-bg" cx="130" cy="130" r="115"/>
+      <circle class="timer-ring-fill" id="ringFill" cx="130" cy="130" r="115"
+        stroke-dasharray="723" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-ring-label">
+      <div class="timer-display" id="timerDisplay">25:00</div>
+      <div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:4px;" id="timerStatus">Ready</div>
+    </div>
+  </div>
+
+  <div id="pomodoroHint" style="font-size:12px;color:#ef4444;font-weight:600;margin-top:14px;margin-bottom:4px;text-align:center;">Pomodoro: 25 min focus → 5 min break · Focus Guard auto-enables</div>
+
+  <div class="timer-controls">
+    <button class="btn btn-primary" id="startBtn" style="min-width:110px;">▶ Start</button>
+    <button class="btn btn-ghost"   id="resetBtn">↺ Reset</button>
+  </div>
+
+  <div class="session-complete-banner" id="completeBanner">
+    Session complete! Great work — it's been saved to your records.
+    <br><button class="btn btn-primary" style="margin-top:10px;" id="viewRecordsBtn">View Records →</button>
+  </div>
+</div>
+
+<!-- ── Session Details ─────────────────────────────────────────── -->
+<div class="card" style="margin-top:16px;">
+  <div class="card-title">Session Details</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="input-group" style="margin:0;"><label>Subject</label>
+      <select id="subjectSelect"><option value="">— select a subject —</option></select></div>
+    <div class="input-group" style="margin:0;"><label>Or type a custom subject</label>
+      <input type="text" id="customSubject" placeholder="e.g. Practice problems" /></div>
+  </div>
+  <div class="input-group" style="margin-top:12px;margin-bottom:0;"><label>Session Notes (optional)</label>
+    <input type="text" id="sessionNotes" placeholder="What are you working on today?" /></div>
+</div>
+
+<!-- ── Today's Stats ───────────────────────────────────────────── -->
+<div class="card" style="margin-top:16px;">
+  <div class="card-title">Today's Progress</div>
+  <div class="card-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="stat-tile"><div class="stat-value" id="sessionsToday">0</div><div class="stat-label">Sessions Today</div></div>
+    <div class="stat-tile"><div class="stat-value" id="minsToday">0</div><div class="stat-label">Minutes Today</div></div>
+    <div class="stat-tile"><div class="stat-value" id="pomodorosToday">0</div><div class="stat-label">Pomodoros Today</div></div>
+    <div class="stat-tile"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">All-Time Sessions</div></div>
+  </div>
+</div>
+
+<!-- ── Focus Guard ─────────────────────────────────────────────── -->
+<div class="card" style="margin-top:16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div>
+      <div class="card-title" style="margin-bottom:4px;">Focus Guard</div>
+      <div style="font-size:13px;color:var(--text-secondary);">Automatically refocus this app if a non-allowed window comes to the front.</div>
+    </div>
+    <div class="guard-status off" id="guardStatus">
+      <div class="guard-status-dot"></div>
+      <span id="guardStatusLabel">Off</span>
+    </div>
+  </div>
+
+  <div style="font-size:12px;font-weight:700;color:var(--text-secondary);letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;">Allowed Applications</div>
+  <div class="app-grid" id="appGrid"></div>
+
+  <div class="custom-app-row">
+    <input type="text" id="customAppInput" placeholder="Add custom app name (e.g. Figma)" />
+    <button class="btn btn-ghost" id="addCustomAppBtn" style="padding:9px 14px;">+ Add</button>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="btn btn-primary" id="guardStartBtn">Start Guard</button>
+    <button class="btn btn-ghost"   id="guardStopBtn" disabled>Stop Guard</button>
+  </div>
+
+  <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">
+    ⚠️ Requires <strong>Accessibility</strong> permission. If the guard doesn't work, go to
+    <strong>System Settings → Privacy &amp; Security → Accessibility</strong> and enable Ur Study Bro.
+  </div>
+</div>
+
+<script>
+(function() {
+  const CIRCUMFERENCE      = 2 * Math.PI * 115   // study ring ≈ 723
+  const BREAK_CIRCUMFERENCE = 2 * Math.PI * 88   // break ring ≈ 553
+  const BREAK_SECS = 5 * 60
+
+  const BREAK_TIPS = [
+    'Stand up and stretch — your back will thank you.',
+    'Grab some water and look away from the screen for 20 seconds.',
+    'Take three slow deep breaths. You earned this.',
+    'A quick walk around the room boosts memory consolidation.',
+    'Close your eyes for 60 seconds — it resets your focus.',
+    'Drink water, check posture, roll your shoulders.',
+  ]
+
+  let totalSecs   = 25 * 60
+  let remaining   = totalSecs
+  let interval    = null
+  let running     = false
+  let isPomodoro  = true
+  let pomodoroN   = 0   // completed pomodoros this session
+
+  // break state
+  let breakInterval  = null
+  let breakRemaining = BREAK_SECS
+  let inBreak        = false
+
+  window._pageCleanup = () => {
+    clearInterval(interval);   interval = null;   running = false
+    clearInterval(breakInterval); breakInterval = null; inBreak = false
+    if (window.api) window.api.stopGuard()
+  }
+
+  const display  = document.getElementById('timerDisplay')
+  const status   = document.getElementById('timerStatus')
+  const ring     = document.getElementById('ringFill')
+  const startBtn = document.getElementById('startBtn')
+  const resetBtn = document.getElementById('resetBtn')
+  const banner   = document.getElementById('completeBanner')
+  const hint     = document.getElementById('pomodoroHint')
+
+  const breakOverlay  = document.getElementById('breakOverlay')
+  const breakDisplay  = document.getElementById('breakDisplay')
+  const breakRingFill = document.getElementById('breakRingFill')
+  const breakLabel    = document.getElementById('breakStatusLabel')
+  const breakTip      = document.getElementById('breakTip')
+  const pomodoroCount = document.getElementById('pomodoroCount')
+
+  ring.style.strokeDasharray       = CIRCUMFERENCE
+  breakRingFill.style.strokeDasharray = BREAK_CIRCUMFERENCE
+
+  /* ── Subject dropdown ────────────────────────────────────── */
+  const subjects = csGetJSON('subjects', [])
+  subjects.forEach(s => {
+    const o=document.createElement('option'); o.textContent=s; o.value=s
+    document.getElementById('subjectSelect').appendChild(o)
+  })
+
+  /* ── Stats ───────────────────────────────────────────────── */
+  const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
+  function getToday()  { return csGetJSON(`today_${todayKey}`,{sessions:0,mins:0,pomodoros:0}) }
+  function saveToday(d){ csSetJSON(`today_${todayKey}`,d) }
+
+  function refreshStats() {
+    const t = getToday()
+    const all = csGetJSON('records',[])
+    document.getElementById('sessionsToday').textContent  = t.sessions
+    document.getElementById('minsToday').textContent      = t.mins
+    document.getElementById('pomodorosToday').textContent = t.pomodoros || 0
+    document.getElementById('totalSessions').textContent  = all.length
+  }
+  refreshStats()
+
+  /* ── Timer utils ─────────────────────────────────────────── */
+  function fmt(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}` }
+  function updateRing() { ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - remaining/totalSecs) }
+  function setDisplay() { display.textContent=fmt(remaining); updateRing() }
+
+  document.querySelectorAll('.timer-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (running || inBreak) return
+      document.querySelectorAll('.timer-tab').forEach(t=>t.classList.remove('active'))
+      tab.classList.add('active')
+      isPomodoro = tab.dataset.type === 'pomodoro'
+      hint.style.display = isPomodoro ? '' : 'none'
+      totalSecs=parseInt(tab.dataset.mins)*60; remaining=totalSecs
+      display.className='timer-display'; status.textContent='Ready'
+      banner.classList.remove('visible')
+      ring.style.stroke = isPomodoro ? '#ef4444' : 'var(--accent)'
+      setDisplay()
+    })
+  })
+  // init ring color for pomodoro
+  ring.style.stroke = '#ef4444'
+
+  startBtn.addEventListener('click', () => {
+    if (running) {
+      clearInterval(interval); running=false
+      startBtn.textContent='▶ Resume'; display.classList.remove('running')
+      status.textContent='Paused'
+    } else {
+      running=true; startBtn.textContent='⏸ Pause'
+      display.classList.add('running'); status.textContent='Focusing…'
+      // auto-start guard for pomodoro if apps are checked
+      if (isPomodoro && checkedApps.size > 0 && !guardActive) _startGuard()
+      interval = setInterval(()=>{
+        remaining--; setDisplay()
+        if (remaining<=0) {
+          clearInterval(interval); running=false
+          startBtn.textContent='▶ Start'
+          display.className='timer-display finished'; status.textContent='Done!'
+          completeSession()
+        }
+      }, 1000)
+    }
+  })
+
+  resetBtn.addEventListener('click', () => {
+    clearInterval(interval); running=false; remaining=totalSecs
+    startBtn.textContent='▶ Start'; display.className='timer-display'
+    status.textContent='Ready'; banner.classList.remove('visible')
+    if (guardActive) _stopGuard()
+    setDisplay()
+  })
+
+  function completeSession() {
+    const subjectSel = document.getElementById('subjectSelect').value
+    const customSub  = document.getElementById('customSubject').value.trim()
+    const subject    = customSub||subjectSel||'General Study'
+    const notes      = document.getElementById('sessionNotes').value.trim()
+    const mins       = Math.round(totalSecs/60)
+    const dateStr    = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
+    const timeStr    = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+    const records    = csGetJSON('records',[])
+    records.push({id:Date.now().toString(),date:dateStr,time:timeStr,subject,duration:mins,rating:5,notes,source:'timer'})
+    csSetJSON('records',records)
+    const today=getToday(); today.sessions++; today.mins+=mins
+    if (isPomodoro) {
+      pomodoroN++
+      today.pomodoros = (today.pomodoros||0) + 1
+      // Award 10 Study Points for every completed Pomodoro
+      const prevPts = parseInt(csGet('studyPoints') || '0')
+      csSet('studyPoints', String(prevPts + 10))
+      showNudge('+10 Study Points earned!')
+    }
+    saveToday(today)
+    refreshStats()
+    document.getElementById('sessionNotes').value=''
+
+    if (isPomodoro) {
+      startBreak()
+    } else {
+      banner.classList.add('visible')
+    }
+  }
+
+  document.getElementById('viewRecordsBtn').addEventListener('click', ()=>window.navigateTo('meetings'))
+
+  /* ─────────────────────────────────────────────────────────── */
+  /* ── BREAK PHASE ─────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────── */
+
+  function startBreak() {
+    // Stop guard during break
+    if (guardActive) _stopGuard()
+
+    // Native notification
+    if (window.api && window.api.scheduleNotify) {
+      window.api.scheduleNotify({
+        title: 'Break Time!',
+        startLabel: '5-minute break started',
+        link: null,
+      })
+    }
+
+    inBreak = true
+    breakRemaining = BREAK_SECS
+    breakTip.textContent = BREAK_TIPS[Math.floor(Math.random()*BREAK_TIPS.length)]
+    pomodoroCount.textContent = `${pomodoroN} Pomodoro${pomodoroN!==1?'s':''} completed today`
+
+    breakRingFill.style.strokeDashoffset = 0
+    breakDisplay.textContent = fmt(BREAK_SECS)
+    breakLabel.textContent = 'Break ends in…'
+
+    breakOverlay.classList.add('visible')
+
+    breakInterval = setInterval(() => {
+      breakRemaining--
+      breakDisplay.textContent = fmt(breakRemaining)
+      breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - breakRemaining/BREAK_SECS)
+      if (breakRemaining <= 0) {
+        clearInterval(breakInterval)
+        breakDisplay.textContent = '0:00'
+        breakLabel.textContent = 'Break over — let\'s go!'
+        if (window.api && window.api.scheduleNotify) {
+          window.api.scheduleNotify({ title: 'Break Over!', startLabel: 'Time to focus again', link: null })
+        }
+      }
+    }, 1000)
+  }
+
+  function endBreak() {
+    clearInterval(breakInterval); breakInterval=null; inBreak=false
+    breakOverlay.classList.remove('visible')
+    // Reset study timer
+    remaining=totalSecs; setDisplay()
+    display.className='timer-display'; status.textContent='Ready'
+    startBtn.textContent='▶ Start'; startBtn.disabled=false
+  }
+
+  document.getElementById('nextPomodoroBtn').addEventListener('click', () => {
+    endBreak()
+  })
+  document.getElementById('skipBreakBtn').addEventListener('click', () => {
+    endBreak()
+  })
+
+  setDisplay()
+
+  /* ─────────────────────────────────────────────────────────── */
+  /* ── FOCUS GUARD ─────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────── */
+
+  const LOGOS = {
+    'Notion': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#fff" stroke="#e5e7eb" stroke-width="1"/><path d="M8 8.8C8 7.8 8.7 7 9.9 6.9l13.2-1c1.5-.1 2.2.7 2.2 1.8v16.5c0 .9-.3 1.7-1.6 1.8L10 27c-1.4.1-2-.6-2-1.8V8.8z" fill="#fff"/><path d="M22 8.5L11 9.3v14.4l11-.8V8.5zM13 11l6.5-.5v1.5L13 12.5V11zm0 3.5l6.5-.4v1.4L13 16v-1.5zm0 3.5l4-.3v1.3l-4 .3v-1.3z" fill="#1a1a1a"/><path d="M9.5 8.5l1.5-.1 9 12V9.5l1.5-.1v16L20 25.5 11 13.5v11.8l-1.5.1V8.5z" fill="#1a1a1a"/></svg>`,
+    'Xcode': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="xc" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1d8cf8"/><stop offset="100%" stop-color="#0052cc"/></linearGradient></defs><rect width="32" height="32" rx="7" fill="url(#xc)"/><path d="M10 22l4.5-6L10 10h3l3 4 3-4h3l-4.5 6 4.5 6h-3l-3-4-3 4h-3z" fill="white"/></svg>`,
+    'VS Code': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#0078d4"/><path d="M22.5 6l-9 8.3-4-3.3-2 1.5 4.5 3.5-4.5 3.5 2 1.5 4-3.3 9 8.3 2-1V7l-2-1zm0 4.5v11l-6.5-5.5 6.5-5.5z" fill="white"/></svg>`,
+    'Terminal': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#1e1e1e"/><path d="M7 11l6 5-6 5" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M15 21h10" stroke="#4ade80" stroke-width="2.2" stroke-linecap="round"/></svg>`,
+    'Safari': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#34aadc"/><stop offset="100%" stop-color="#1a7abf"/></linearGradient></defs><circle cx="16" cy="16" r="15" fill="url(#sf)"/><circle cx="16" cy="16" r="11" fill="white" opacity=".15"/><polygon points="16,7 19,16 16,25 13,16" fill="white" opacity=".9"/><polygon points="7,16 16,13 25,16 16,19" fill="#ff3b30" opacity=".9"/><circle cx="16" cy="16" r="2" fill="white"/></svg>`,
+    'Chrome': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="15" fill="#fff"/><path d="M16 7a9 9 0 0 1 7.8 4.5H16a4.5 4.5 0 0 0 0 9 4.5 4.5 0 0 0 4.4-3.5l4.4 7.6A9 9 0 1 1 16 7z" fill="#ea4335"/><path d="M23.8 11.5H16a4.5 4.5 0 0 1 4.4 5.5l4.4 7.6A9 9 0 0 0 25 16a9 9 0 0 0-1.2-4.5z" fill="#fbbc05"/><path d="M20.4 17a4.5 4.5 0 0 1-8.8 1l-4.4-7.6A9 9 0 0 0 24.6 24L20.4 17z" fill="#34a853"/><circle cx="16" cy="16" r="4.5" fill="#4285f4"/><circle cx="16" cy="16" r="3" fill="#fff"/></svg>`,
+    'Firefox': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="15" fill="#0060df"/><path d="M26 14c0-5.5-4.5-10-10-10-1.5 0-3 .3-4.3.9C14.2 6 16.5 7 17 9c.3 1-.2 2.2-1 3 2 .5 3.5 2 3.8 4 .3 2-1 3.8-2.8 4.5 1 1.5 1 3.5 0 5 3.5-1.5 6-5 6-8.5.3-.7.5-1.9 3-3z" fill="#ff9400"/><path d="M16 6C10 6 5.5 10.5 5.5 16.5c0 3.5 1.7 6.5 4.3 8.4.5-1.5.4-3.2-.5-4.6 1.8-.7 3-2.5 2.8-4.5-.3-2-1.8-3.5-3.8-4 .8-.8 1.3-2 1-3C8 7.6 6.3 7 5 6.9A10.5 10.5 0 0 0 5.5 16.5 10.5 10.5 0 0 0 16 27a10.5 10.5 0 0 0 7-2.7c1-1.5 1-3.5 0-5-3.7.1-5-3-3-5.3-2 0-3.7-1.7-4-3.5-.4-2.2 1.5-4 3.5-4 .8 0 1.7.2 2.3.6A10.5 10.5 0 0 0 16 6z" fill="#ff0039" opacity=".85"/></svg>`,
+    'Slack': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1"/><rect x="7" y="13" width="5" height="5" rx="2.5" fill="#36c5f0"/><rect x="7" y="7" width="5" height="5" rx="2.5" fill="#36c5f0"/><rect x="13" y="7" width="5" height="5" rx="2.5" fill="#36c5f0" opacity=".4"/><rect x="20" y="13" width="5" height="5" rx="2.5" fill="#ecb22e"/><rect x="20" y="20" width="5" height="5" rx="2.5" fill="#ecb22e"/><rect x="13" y="20" width="5" height="5" rx="2.5" fill="#ecb22e" opacity=".4"/><rect x="13" y="13" width="5" height="5" rx="2.5" fill="#2eb67d"/><rect x="7" y="20" width="5" height="5" rx="2.5" fill="#e01e5a"/></svg>`,
+    'Discord': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="7" fill="#5865f2"/><path d="M22 11a16 16 0 0 0-4-.8l-.2.4c1.4.3 2.7.8 3.9 1.5a13 13 0 0 0-11.4 0C11.4 11.4 12.7 11 14 10.6l-.2-.4a16 16 0 0 0-4 .8C7.3 14.8 6.7 19 7 22.7c1.4 1 2.9 1.8 4.5 2.3l1-1.3a9.5 9.5 0 0 1-1.6-.8l.4-.3a9.2 9.2 0 0 0 9.4 0l.4.3c-.5.3-1 .6-1.6.8l1 1.3c1.6-.5 3.1-1.3 4.5-2.3.3-4.4-.8-8.6-3.1-11.7zm-9.5 9.3c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.9.9 1.8 2-.8 2-1.8 2zm6.9 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z" fill="white"/></svg>`,
+    'Figma': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="white" stroke="#e5e7eb" stroke-width="1"/><rect x="10" y="5" width="6" height="6" rx="3" fill="#ff7262"/><rect x="16" y="5" width="6" height="6" rx="3" fill="#ff7262" opacity=".6"/><rect x="10" y="11" width="6" height="6" rx="3" fill="#a259ff"/><circle cx="19" cy="14" r="3" fill="#1abcfe"/><rect x="10" y="17" width="6" height="6" rx="3" fill="#0acf83"/></svg>`,
+    'Word': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#2b579a"/><path d="M8 9h10v14H8z" fill="#41a5ee" opacity=".3"/><path d="M8 10l4 12 4-8 4 8 4-12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`,
+    'Excel': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#217346"/><path d="M8 10l5 6-5 6h3l3.5-4.5L18 22h3l-5-6 5-6h-3l-3.5 4.5L11 10H8z" fill="white"/><rect x="18" y="10" width="7" height="3" rx="1" fill="white" opacity=".5"/><rect x="18" y="14.5" width="7" height="3" rx="1" fill="white" opacity=".5"/><rect x="18" y="19" width="7" height="3" rx="1" fill="white" opacity=".5"/></svg>`,
+    'Notes': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#ffde00"/><rect x="7" y="8" width="18" height="16" rx="2" fill="white"/><line x1="10" y1="12" x2="22" y2="12" stroke="#d1d5db" stroke-width="1.5"/><line x1="10" y1="15.5" x2="22" y2="15.5" stroke="#d1d5db" stroke-width="1.5"/><line x1="10" y1="19" x2="18" y2="19" stroke="#d1d5db" stroke-width="1.5"/></svg>`,
+    'Preview': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#67c3f3"/><stop offset="100%" stop-color="#4a90d9"/></linearGradient></defs><rect width="32" height="32" rx="6" fill="url(#pv)"/><rect x="6" y="8" width="20" height="16" rx="2" fill="white" opacity=".9"/><polygon points="8,22 14,14 18,18 21,15 26,22" fill="#4a90d9" opacity=".7"/><circle cx="12" cy="13" r="2" fill="#f59e0b" opacity=".8"/></svg>`,
+  }
+
+  const PRESET_APPS = [
+    {name:'Notion'}, {name:'Xcode'}, {name:'VS Code'}, {name:'Terminal'},
+    {name:'Safari'}, {name:'Chrome'}, {name:'Firefox'}, {name:'Slack'},
+    {name:'Discord'}, {name:'Figma'}, {name:'Word'}, {name:'Excel'},
+    {name:'Notes'}, {name:'Preview'},
+  ]
+
+  let checkedApps = new Set(csGetJSON('guardAllowed',[]))
+  let customApps  = csGetJSON('guardCustom',[])
+  let guardActive = false
+
+  const GENERIC_LOGO = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#6b7280"/><rect x="7" y="10" width="18" height="12" rx="2" fill="white" opacity=".8"/><rect x="9" y="24" width="14" height="2" rx="1" fill="white" opacity=".5"/></svg>`
+
+  function renderAppGrid() {
+    const grid = document.getElementById('appGrid')
+    const allApps = [...PRESET_APPS, ...customApps.map(n=>({name:n}))]
+    grid.innerHTML = ''
+    allApps.forEach(({name}) => {
+      const logo = LOGOS[name] || GENERIC_LOGO
+      const div = document.createElement('div')
+      div.className = `app-check ${checkedApps.has(name)?'checked':''}`
+      div.innerHTML = `<input type="checkbox" ${checkedApps.has(name)?'checked':''}><div class="app-logo">${logo}</div><span>${name}</span>`
+      const cb = div.querySelector('input')
+      cb.addEventListener('change', ()=>{
+        if (cb.checked) { checkedApps.add(name); div.classList.add('checked') }
+        else            { checkedApps.delete(name); div.classList.remove('checked') }
+        csSetJSON('guardAllowed', [...checkedApps])
+      })
+      grid.appendChild(div)
+    })
+  }
+  renderAppGrid()
+
+  document.getElementById('addCustomAppBtn').addEventListener('click', () => {
+    const inp = document.getElementById('customAppInput')
+    const val = inp.value.trim()
+    if (!val || customApps.includes(val)) { inp.value=''; return }
+    customApps.push(val)
+    csSetJSON('guardCustom', customApps)
+    checkedApps.add(val)
+    csSetJSON('guardAllowed', [...checkedApps])
+    inp.value=''
+    renderAppGrid()
+  })
+  document.getElementById('customAppInput').addEventListener('keydown', e=>{
+    if (e.key==='Enter') document.getElementById('addCustomAppBtn').click()
+  })
+
+  const guardStartBtn  = document.getElementById('guardStartBtn')
+  const guardStopBtn   = document.getElementById('guardStopBtn')
+  const guardStatusEl  = document.getElementById('guardStatus')
+  const guardLabel     = document.getElementById('guardStatusLabel')
+
+  function _startGuard() {
+    const allowed = [...checkedApps]
+    if (!window.api) return
+    if (allowed.length === 0) {
+      showNudge('Select at least one allowed app before starting.')
+      return
+    }
+    window.api.startGuard(allowed)
+    guardActive = true
+    guardStatusEl.className = 'guard-status on'
+    guardLabel.textContent = `On · ${allowed.length} app${allowed.length!==1?'s':''} allowed`
+    guardStartBtn.disabled = true
+    guardStopBtn.disabled  = false
+  }
+
+  function _stopGuard() {
+    if (window.api) window.api.stopGuard()
+    guardActive = false
+    guardStatusEl.className = 'guard-status off'
+    guardLabel.textContent = 'Off'
+    guardStartBtn.disabled = false
+    guardStopBtn.disabled  = true
+  }
+
+  guardStartBtn.addEventListener('click', _startGuard)
+  guardStopBtn.addEventListener('click',  _stopGuard)
+
+  function showNudge(msg) {
+    const toast = document.getElementById('nudgeToast')
+    toast.textContent = msg
+    toast.classList.add('visible')
+    setTimeout(()=>toast.classList.remove('visible'), 3500)
+  }
+
+  if (window.api && window.api.onGuardNudge) {
+    window.api.onGuardNudge(appName => showNudge(`"${appName}" isn't in your allowed list — stay focused!`))
+  }
+})()
+</script>

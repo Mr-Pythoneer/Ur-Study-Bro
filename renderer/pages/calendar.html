@@ -1,0 +1,653 @@
+<style>
+  /* ── Layout ───────────────────────────────────────────────── */
+  .cal-wrap { display:flex; gap:20px; align-items:flex-start; }
+  .cal-main { flex:1; min-width:0; }
+  .cal-sidebar { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+
+  /* ── View toggle ──────────────────────────────────────────── */
+  .view-toggle { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:4px; }
+  .view-btn { flex:1; padding:7px; border:none; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
+  .view-btn.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.1); }
+
+  /* ── Month header ─────────────────────────────────────────── */
+  .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .cal-nav-title { font-size:18px; font-weight:700; color:var(--text-primary); }
+  .cal-nav-btns { display:flex; gap:6px; }
+  .cal-nav-btn { padding:6px 14px; font-size:15px; }
+
+  /* ── Month grid ───────────────────────────────────────────── */
+  .month-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .month-header-cell { background:#f9fafb; padding:8px 4px; text-align:center; font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:.4px; border-bottom:1px solid var(--border); }
+  .month-cell { min-height:90px; padding:6px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); cursor:pointer; transition:background .12s; position:relative; vertical-align:top; }
+  .month-cell:nth-child(7n) { border-right:none; }
+  .month-cell:hover { background:#f0fdf7; }
+  .month-cell.other-month { background:#f9fafb; }
+  .month-cell.other-month .day-num { color:#d1d5db; }
+  .month-cell.today { background:#f0fdf7; }
+  .month-cell.today .day-num { background:var(--accent); color:#fff; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
+  .day-num { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:4px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
+  .day-events { display:flex; flex-direction:column; gap:2px; }
+  .event-pill { font-size:10px; font-weight:600; border-radius:4px; padding:2px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  .event-pill.zoom    { background:#e8f0ff; color:#1a56db; }
+  .event-pill.meet    { background:#fce8ff; color:#7c3aed; }
+  .event-pill.teams   { background:#e8f5ff; color:#0369a1; }
+  .event-pill.other   { background:var(--accent-light); color:var(--accent); }
+  .more-label { font-size:10px; color:var(--text-secondary); padding:1px 5px; cursor:pointer; }
+
+  /* ── Week grid ────────────────────────────────────────────── */
+  .week-grid { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .week-header-row { display:grid; grid-template-columns:60px repeat(7,1fr); background:#f9fafb; border-bottom:1px solid var(--border); }
+  .week-header-cell { padding:8px 6px; text-align:center; font-size:11px; font-weight:700; color:var(--text-secondary); }
+  .week-header-cell.today-col { color:var(--accent); }
+  .week-body { display:grid; grid-template-columns:60px repeat(7,1fr); max-height:520px; overflow-y:auto; }
+  .week-time-label { font-size:10px; color:var(--text-secondary); padding:4px 6px 0; text-align:right; height:40px; border-bottom:1px solid #f3f4f6; }
+  .week-day-col { border-left:1px solid var(--border); border-bottom:1px solid #f3f4f6; height:40px; position:relative; cursor:pointer; transition:background .12s; }
+  .week-day-col:hover { background:#f0fdf7; }
+  .week-event-block { position:absolute; left:2px; right:2px; border-radius:5px; padding:2px 5px; font-size:10px; font-weight:600; overflow:hidden; cursor:pointer; z-index:1; }
+
+  /* ── List view ────────────────────────────────────────────── */
+  .list-group { margin-bottom:16px; }
+  .list-group-label { font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:.5px; margin-bottom:8px; text-transform:uppercase; }
+  .list-event-card { display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:8px; transition:box-shadow .15s; }
+  .list-event-card:hover { box-shadow:var(--shadow-md); }
+  .list-event-time { width:80px; flex-shrink:0; }
+  .list-event-time-start { font-size:14px; font-weight:700; color:var(--text-primary); }
+  .list-event-time-end   { font-size:12px; color:var(--text-secondary); }
+  .list-event-body { flex:1; min-width:0; }
+  .list-event-title { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:2px; }
+  .list-event-meta  { font-size:12px; color:var(--text-secondary); }
+  .list-event-link  { display:inline-flex; align-items:center; gap:5px; margin-top:6px; font-size:12px; font-weight:600; text-decoration:none; padding:4px 10px; border-radius:6px; transition:opacity .15s; }
+  .list-event-link:hover { opacity:.8; }
+  .list-event-link.zoom  { background:#e8f0ff; color:#1a56db; }
+  .list-event-link.meet  { background:#fce8ff; color:#7c3aed; }
+  .list-event-link.teams { background:#e8f5ff; color:#0369a1; }
+  .list-event-link.other { background:var(--accent-light); color:var(--accent); }
+  .event-type-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+
+  /* ── Sidebar event form ───────────────────────────────────── */
+  .form-section-label { font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px; }
+  .url-parse-feedback { font-size:12px; margin-top:5px; padding:6px 10px; border-radius:6px; display:none; }
+  .url-parse-feedback.zoom  { background:#e8f0ff; color:#1a56db; display:block; }
+  .url-parse-feedback.meet  { background:#fce8ff; color:#7c3aed; display:block; }
+  .url-parse-feedback.teams { background:#e8f5ff; color:#0369a1; display:block; }
+  .url-parse-feedback.other { background:var(--accent-light); color:var(--accent); display:block; }
+  .url-parse-feedback.error { background:#fef2f2; color:#b91c1c; display:block; }
+  .form-error { color:#ef4444; font-size:12px; margin-top:6px; display:none; }
+  .form-error.visible { display:block; }
+
+  /* ── Event detail modal ───────────────────────────────────── */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:500; display:flex; align-items:center; justify-content:center; }
+  .modal { background:#fff; border-radius:var(--radius); padding:28px; width:460px; box-shadow:var(--shadow-md); max-height:90vh; overflow-y:auto; }
+  .modal-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; }
+  .modal-title { font-size:18px; font-weight:700; color:var(--text-primary); }
+  .modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary); padding:0; line-height:1; }
+  .modal-detail-row { display:flex; gap:10px; align-items:flex-start; margin-bottom:12px; font-size:14px; }
+  .modal-detail-icon { width:20px; flex-shrink:0; text-align:center; }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; border-top:1px solid var(--border); padding-top:16px; }
+
+  .empty-cal { text-align:center; padding:48px 20px; color:var(--text-secondary); }
+  .empty-cal-icon { font-size:40px; margin-bottom:12px; }
+</style>
+
+<div class="page-header">
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <div class="page-title">Calendar</div>
+      <div class="page-subtitle">Manage your study sessions, classes, and meetings.</div>
+    </div>
+    <div class="view-toggle">
+      <button class="view-btn active" data-view="month">Month</button>
+      <button class="view-btn" data-view="week">Week</button>
+      <button class="view-btn" data-view="list">List</button>
+    </div>
+  </div>
+</div>
+
+<div class="cal-wrap">
+  <!-- Left: calendar view -->
+  <div class="cal-main">
+    <div class="cal-nav">
+      <div class="cal-nav-title" id="calNavTitle"></div>
+      <div class="cal-nav-btns">
+        <button class="btn btn-ghost cal-nav-btn" id="calPrev">‹</button>
+        <button class="btn btn-ghost cal-nav-btn" id="calToday" style="font-size:13px;padding:6px 12px;">Today</button>
+        <button class="btn btn-ghost cal-nav-btn" id="calNext">›</button>
+      </div>
+    </div>
+    <div id="calView"></div>
+  </div>
+
+  <!-- Right: add event form + upcoming -->
+  <div class="cal-sidebar">
+
+    <!-- Add Event Form -->
+    <div class="card">
+      <div class="form-section-label">Add Event</div>
+
+      <div class="input-group">
+        <label>Event Title *</label>
+        <input type="text" id="evTitle" placeholder="e.g. Calc Study Session" />
+      </div>
+
+      <div class="input-group">
+        <label>Date *</label>
+        <input type="date" id="evDate" />
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="input-group" style="margin:0;">
+          <label>Start Time *</label>
+          <input type="time" id="evStart" />
+        </div>
+        <div class="input-group" style="margin:0;">
+          <label>End Time *</label>
+          <input type="time" id="evEnd" />
+        </div>
+      </div>
+
+      <div class="input-group" style="margin-top:12px;">
+        <label>Meeting Link (Zoom, Google Meet, Teams…)</label>
+        <input type="url" id="evLink" placeholder="https://zoom.us/j/… or meet.google.com/…" />
+        <div class="url-parse-feedback" id="linkFeedback"></div>
+      </div>
+
+      <div class="form-error" id="evError"></div>
+      <button class="btn btn-primary" style="width:100%; margin-top:4px;" id="addEvBtn">+ Add Event</button>
+    </div>
+
+    <!-- Upcoming events mini-list -->
+    <div class="card">
+      <div class="form-section-label">Upcoming (Next 7 Days)</div>
+      <div id="upcomingMini"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ── Data helpers ─────────────────────────────────────────── */
+  function getEvents() { return csGetJSON('calEvents', []) }
+  function saveEvents(e) { csSetJSON('calEvents', e) }
+
+  /* ── URL parser ───────────────────────────────────────────── */
+  function parseLink(raw) {
+    if (!raw || !raw.trim()) return { url: '', type: 'none', label: '', valid: true }
+    let url = raw.trim()
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+
+    try {
+      const u = new URL(url)
+      const host = u.hostname.toLowerCase()
+
+      // Zoom: zoom.us/j/MEETINGID or zoom.us/my/VANITY
+      if (host.includes('zoom.us') || host.includes('zoom.com')) {
+        const match = u.pathname.match(/\/(j|my|wc)\/([^/?]+)/)
+        const id = match ? match[2].replace(/\D/g,'') : null
+        const canonical = id
+          ? `https://zoom.us/j/${id}${u.search}`
+          : url
+        return { url: canonical, type: 'zoom', label: `Zoom${id ? ` · ID ${id}` : ''}`, valid: true }
+      }
+
+      // Google Meet: meet.google.com/xxx-xxxx-xxx
+      if (host === 'meet.google.com') {
+        const code = u.pathname.replace('/', '').trim()
+        const valid = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i.test(code)
+        return {
+          url: `https://meet.google.com/${code}`,
+          type: 'meet',
+          label: valid ? `Google Meet · ${code.toUpperCase()}` : 'Google Meet (check code format)',
+          valid: true
+        }
+      }
+
+      // Microsoft Teams
+      if (host.includes('teams.microsoft.com') || host.includes('teams.live.com')) {
+        return { url, type: 'teams', label: 'Microsoft Teams', valid: true }
+      }
+
+      // Generic https link
+      if (u.protocol === 'https:' || u.protocol === 'http:') {
+        return { url, type: 'other', label: `Link · ${u.hostname}`, valid: true }
+      }
+
+      return { url: '', type: 'error', label: 'Invalid URL — must start with https://', valid: false }
+    } catch {
+      return { url: '', type: 'error', label: 'Could not parse URL — please check the link.', valid: false }
+    }
+  }
+
+  /* ── Live URL feedback ────────────────────────────────────── */
+  const linkInput = document.getElementById('evLink')
+  const linkFeedback = document.getElementById('linkFeedback')
+  const TYPE_ICONS = { zoom:'🎥', meet:'📹', teams:'💼', other:'🔗', error:'⚠️' }
+
+  linkInput.addEventListener('input', () => {
+    const val = linkInput.value.trim()
+    if (!val) { linkFeedback.className = 'url-parse-feedback'; return }
+    const parsed = parseLink(val)
+    if (parsed.type === 'none') { linkFeedback.className = 'url-parse-feedback'; return }
+    linkFeedback.textContent = `${TYPE_ICONS[parsed.type] || '🔗'} ${parsed.label}`
+    linkFeedback.className = `url-parse-feedback ${parsed.type}`
+  })
+
+  /* ── HTML escape helper ───────────────────────────────────── */
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  }
+  function localDateStr(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+
+  /* ── View state ───────────────────────────────────────────── */
+  let currentView = 'month'
+  let cursor = new Date()
+  cursor.setDate(1)
+
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      currentView = btn.dataset.view
+      if (currentView === 'week') cursor = new Date()  // reset to this week
+      render()
+    })
+  })
+
+  document.getElementById('calPrev').addEventListener('click', () => {
+    if (currentView === 'month') cursor.setMonth(cursor.getMonth() - 1)
+    else if (currentView === 'week') cursor.setDate(cursor.getDate() - 7)
+    else cursor.setDate(cursor.getDate() - 30)
+    render()
+  })
+  document.getElementById('calNext').addEventListener('click', () => {
+    if (currentView === 'month') cursor.setMonth(cursor.getMonth() + 1)
+    else if (currentView === 'week') cursor.setDate(cursor.getDate() + 7)
+    else cursor.setDate(cursor.getDate() + 30)
+    render()
+  })
+  document.getElementById('calToday').addEventListener('click', () => {
+    cursor = new Date()
+    if (currentView === 'month') cursor.setDate(1)
+    render()
+  })
+
+  /* ── Add event ────────────────────────────────────────────── */
+  document.getElementById('addEvBtn').addEventListener('click', addEvent)
+  document.getElementById('evTitle').addEventListener('keydown', e => { if (e.key==='Enter') addEvent() })
+
+  // Default date to today
+  document.getElementById('evDate').value = localDateStr()
+
+  function addEvent() {
+    const title = document.getElementById('evTitle').value.trim()
+    const date  = document.getElementById('evDate').value
+    const start = document.getElementById('evStart').value
+    const end   = document.getElementById('evEnd').value
+    const rawLink = document.getElementById('evLink').value.trim()
+    const errEl = document.getElementById('evError')
+    errEl.classList.remove('visible')
+
+    if (!title) return showErr(errEl, 'Event title is required.')
+    if (!date)  return showErr(errEl, 'Date is required.')
+    if (!start) return showErr(errEl, 'Start time is required.')
+    if (!end)   return showErr(errEl, 'End time is required.')
+    if (end <= start) return showErr(errEl, 'End time must be after start time.')
+
+    const parsed = parseLink(rawLink)
+    if (rawLink && !parsed.valid) return showErr(errEl, parsed.label)
+
+    const events = getEvents()
+    events.push({
+      id: Date.now().toString(),
+      title,
+      date,
+      start,
+      end,
+      link: parsed.url,
+      linkType: parsed.type,
+      linkLabel: parsed.label,
+    })
+    saveEvents(events)
+
+    // Reset form (keep date)
+    document.getElementById('evTitle').value = ''
+    document.getElementById('evStart').value = ''
+    document.getElementById('evEnd').value   = ''
+    document.getElementById('evLink').value  = ''
+    linkFeedback.className = 'url-parse-feedback'
+
+    render()
+  }
+
+  function showErr(el, msg) { el.textContent = msg; el.classList.add('visible'); setTimeout(() => el.classList.remove('visible'), 3500) }
+
+  /* ── Delete event ─────────────────────────────────────────── */
+  window._calDelete = (id) => {
+    if (!confirm('Delete this event?')) return
+    saveEvents(getEvents().filter(e => e.id !== id))
+    render()
+    // Close modal if open
+    document.querySelectorAll('.modal-backdrop').forEach(m => m.remove())
+  }
+
+  /* ── Event detail modal ───────────────────────────────────── */
+  function openEventModal(ev) {
+    const linkHtml = ev.link
+      ? `<a class="list-event-link ${esc(ev.linkType)}" href="${esc(ev.link)}" target="_blank">
+           ${TYPE_ICONS[ev.linkType]||'🔗'} ${esc(ev.linkLabel || 'Open Link')}
+         </a>`
+      : '<span style="color:var(--text-secondary);font-size:13px;">No meeting link</span>'
+
+    const joinNotesBtn = ev.link
+      ? `<button class="btn btn-primary" id="mJoinNotes" style="background:#5b21b6;">📝 Join &amp; Take Notes</button>`
+      : ''
+
+    const modal = document.createElement('div')
+    modal.className = 'modal-backdrop'
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${esc(ev.title)}</div>
+          <button class="modal-close" id="mClose">✕</button>
+        </div>
+        <div class="modal-detail-row"><div class="modal-detail-icon">📅</div><div>${formatDate(ev.date)}</div></div>
+        <div class="modal-detail-row"><div class="modal-detail-icon">🕐</div><div>${fmt12(ev.start)} – ${fmt12(ev.end)} (${duration(ev.start, ev.end)})</div></div>
+        <div class="modal-detail-row"><div class="modal-detail-icon">🔗</div><div>${linkHtml}</div></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" style="color:#ef4444;border-color:#ef4444;" onclick="window._calDelete('${esc(ev.id)}')">🗑️ Delete</button>
+          ${joinNotesBtn}
+          <button class="btn btn-primary" id="mDone">Done</button>
+        </div>
+      </div>`
+
+    document.body.appendChild(modal)
+    modal.querySelector('#mClose').addEventListener('click', () => modal.remove())
+    modal.querySelector('#mDone').addEventListener('click',  () => modal.remove())
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove() })
+
+    if (ev.link) {
+      modal.querySelector('#mJoinNotes').addEventListener('click', () => {
+        // Open the meeting URL in the default browser
+        if (window.api) window.api.openExternal(ev.link)
+
+        // Package event data so meetings.html can pre-fill the notes editor
+        window._pendingMeetingNote = {
+          title:    ev.title,
+          date:     ev.date,
+          start:    ev.start,
+          end:      ev.end,
+          link:     ev.link,
+          linkType: ev.linkType || 'other',
+          linkLabel:ev.linkLabel || 'Meeting Link',
+        }
+
+        modal.remove()
+        window.navigateTo('meetings')
+      })
+    }
+  }
+
+  /* ── Render dispatcher ────────────────────────────────────── */
+  function render() {
+    if (currentView === 'month') renderMonth()
+    else if (currentView === 'week') renderWeek()
+    else renderList()
+    renderUpcomingMini()
+  }
+
+  /* ── Month view ───────────────────────────────────────────── */
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+  function renderMonth() {
+    const year = cursor.getFullYear(), month = cursor.getMonth()
+    document.getElementById('calNavTitle').textContent = `${MONTHS[month]} ${year}`
+
+    const events = getEvents()
+    const today  = new Date()
+    const firstDow = new Date(year, month, 1).getDay()
+    const daysInMonth = new Date(year, month+1, 0).getDate()
+    const daysInPrev  = new Date(year, month, 0).getDate()
+    const totalCells  = Math.ceil((firstDow + daysInMonth) / 7) * 7
+
+    let html = `<div class="month-grid">`
+    DAYS.forEach(d => html += `<div class="month-header-cell">${d}</div>`)
+
+    for (let i = 0; i < totalCells; i++) {
+      let day, monthOffset = 0
+      if (i < firstDow) { day = daysInPrev - firstDow + i + 1; monthOffset = -1 }
+      else if (i >= firstDow + daysInMonth) { day = i - firstDow - daysInMonth + 1; monthOffset = 1 }
+      else { day = i - firstDow + 1 }
+
+      const cellMonth = month + monthOffset
+      const cellYear  = cellMonth < 0 ? year-1 : cellMonth > 11 ? year+1 : year
+      const cm        = ((cellMonth % 12) + 12) % 12
+      const dateStr   = `${cellYear}-${String(cm+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+      const isToday   = day===today.getDate() && cm===today.getMonth() && cellYear===today.getFullYear()
+      const isOther   = monthOffset !== 0
+
+      const dayEvs = events.filter(e => e.date === dateStr).sort((a,b) => a.start.localeCompare(b.start))
+      const maxShow = 3
+      const shown   = dayEvs.slice(0, maxShow)
+      const extra   = dayEvs.length - maxShow
+
+      html += `<div class="month-cell${isOther?' other-month':''}${isToday?' today':''}" data-date="${dateStr}">`
+      html += `<div class="day-num">${day}</div>`
+      html += `<div class="day-events">`
+      shown.forEach(ev => {
+        html += `<div class="event-pill ${esc(ev.linkType||'other')}" data-id="${esc(ev.id)}" title="${esc(ev.title+' '+ev.start+'–'+ev.end)}">${ev.start ? fmt12short(ev.start)+' ' : ''}${esc(ev.title)}</div>`
+      })
+      if (extra > 0) html += `<div class="more-label">+${extra} more</div>`
+      html += `</div></div>`
+    }
+
+    html += '</div>'
+    document.getElementById('calView').innerHTML = html
+
+    // Wire month cell clicks
+    document.querySelectorAll('.month-cell').forEach(cell => {
+      cell.addEventListener('click', e => {
+        if (e.target.closest('.event-pill')) return  // pill handles itself
+        document.getElementById('evDate').value = cell.dataset.date
+      })
+    })
+    document.querySelectorAll('.event-pill').forEach(pill => {
+      pill.addEventListener('click', e => {
+        e.stopPropagation()
+        const ev = getEvents().find(e => e.id === pill.dataset.id)
+        if (ev) openEventModal(ev)
+      })
+    })
+  }
+
+  /* ── Week view ────────────────────────────────────────────── */
+  function renderWeek() {
+    const today = new Date()
+    const startOfWeek = new Date(cursor)
+    const dow = startOfWeek.getDay()
+    startOfWeek.setDate(startOfWeek.getDate() - dow)
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(endOfWeek.getDate() + 6)
+
+    const startLabel = `${MONTHS[startOfWeek.getMonth()].slice(0,3)} ${startOfWeek.getDate()}`
+    const endLabel   = `${MONTHS[endOfWeek.getMonth()].slice(0,3)} ${endOfWeek.getDate()}, ${endOfWeek.getFullYear()}`
+    document.getElementById('calNavTitle').textContent = `${startLabel} – ${endLabel}`
+
+    const events = getEvents()
+    const hours = Array.from({length:24}, (_,i) => i)
+    const weekDays = Array.from({length:7}, (_,i) => {
+      const d = new Date(startOfWeek)
+      d.setDate(d.getDate() + i)
+      return d
+    })
+
+    let html = `<div class="week-grid">
+      <div class="week-header-row">
+        <div class="week-header-cell"></div>`
+    weekDays.forEach(d => {
+      const isToday = d.toDateString() === today.toDateString()
+      html += `<div class="week-header-cell${isToday?' today-col':''}">${DAYS[d.getDay()]}<br><strong>${d.getDate()}</strong></div>`
+    })
+    html += `</div><div class="week-body">`
+
+    hours.forEach(h => {
+      const label = h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h-12} PM`
+      html += `<div class="week-time-label">${label}</div>`
+      weekDays.forEach(d => {
+        const ds = localDateStr(d)
+        const hourEvs = events.filter(ev => {
+          if (ev.date !== ds) return false
+          const startH = parseInt(ev.start.split(':')[0])
+          return startH === h
+        })
+        html += `<div class="week-day-col" data-date="${ds}" data-hour="${h}">`
+        hourEvs.forEach(ev => {
+          const startM = parseInt(ev.start.split(':')[1])
+          const topPct = (startM / 60) * 100
+          html += `<div class="week-event-block ${esc(ev.linkType||'other')}" style="top:${topPct}%;" data-id="${esc(ev.id)}">${esc(ev.title)}</div>`
+        })
+        html += '</div>'
+      })
+    })
+    html += '</div></div>'
+    document.getElementById('calView').innerHTML = html
+
+    document.querySelectorAll('.week-event-block').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation()
+        const ev = getEvents().find(e => e.id === el.dataset.id)
+        if (ev) openEventModal(ev)
+      })
+    })
+    document.querySelectorAll('.week-day-col').forEach(col => {
+      col.addEventListener('click', e => {
+        if (e.target.closest('.week-event-block')) return
+        document.getElementById('evDate').value = col.dataset.date
+        const h = parseInt(col.dataset.hour)
+        document.getElementById('evStart').value = `${String(h).padStart(2,'0')}:00`
+        document.getElementById('evEnd').value   = `${String(Math.min(h+1,23)).padStart(2,'0')}:00`
+      })
+    })
+  }
+
+  /* ── List view ────────────────────────────────────────────── */
+  function renderList() {
+    const today = localDateStr()
+    const events = getEvents().sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start))
+    document.getElementById('calNavTitle').textContent = 'All Events'
+
+    if (!events.length) {
+      document.getElementById('calView').innerHTML = `<div class="empty-cal"><div class="empty-cal-icon">📭</div>No events yet. Add one using the form →</div>`
+      return
+    }
+
+    // Group by date
+    const groups = {}
+    events.forEach(ev => {
+      if (!groups[ev.date]) groups[ev.date] = []
+      groups[ev.date].push(ev)
+    })
+
+    let html = ''
+    Object.entries(groups).sort().forEach(([date, evs]) => {
+      const isPast = date < today
+      const label  = date === today ? 'Today' : formatDate(date)
+      html += `<div class="list-group${isPast?' style="opacity:.6"':''}"><div class="list-group-label">${label}</div>`
+      evs.forEach(ev => {
+        const linkHtml = ev.link
+          ? `<a class="list-event-link ${esc(ev.linkType)}" href="${esc(ev.link)}" target="_blank">${TYPE_ICONS[ev.linkType]||'🔗'} ${esc(ev.linkLabel||'Open')}</a>`
+          : ''
+        html += `
+          <div class="list-event-card">
+            <div class="event-type-dot" style="background:${dotColor(ev.linkType)};"></div>
+            <div class="list-event-time">
+              <div class="list-event-time-start">${esc(fmt12(ev.start))}</div>
+              <div class="list-event-time-end">${esc(fmt12(ev.end))}</div>
+            </div>
+            <div class="list-event-body">
+              <div class="list-event-title">${esc(ev.title)}</div>
+              <div class="list-event-meta">${esc(duration(ev.start, ev.end))}</div>
+              ${linkHtml}
+            </div>
+            <button class="btn-icon" title="Delete" onclick="window._calDelete('${esc(ev.id)}')">🗑️</button>
+          </div>`
+      })
+      html += '</div>'
+    })
+    document.getElementById('calView').innerHTML = html
+  }
+
+  /* ── Upcoming mini (sidebar) ──────────────────────────────── */
+  function renderUpcomingMini() {
+    const today = localDateStr()
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 7)
+    const cutoffStr = localDateStr(cutoff)
+
+    const upcoming = getEvents()
+      .filter(e => e.date >= today && e.date <= cutoffStr)
+      .sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start))
+      .slice(0, 6)
+
+    const el = document.getElementById('upcomingMini')
+    if (!upcoming.length) {
+      el.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:16px 0;">Nothing in the next 7 days.</div>'
+      return
+    }
+    el.innerHTML = upcoming.map(ev => `
+      <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center;cursor:pointer;" data-id="${esc(ev.id)}">
+        <div class="event-type-dot" style="background:${dotColor(ev.linkType)};margin-top:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(ev.title)}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${ev.date===today?'Today':esc(formatDate(ev.date))} · ${esc(fmt12(ev.start))}</div>
+        </div>
+      </div>`).join('')
+
+    el.querySelectorAll('[data-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const ev = getEvents().find(e => e.id === row.dataset.id)
+        if (ev) openEventModal(ev)
+      })
+    })
+  }
+
+  /* ── Helpers ──────────────────────────────────────────────── */
+  const TYPE_ICONS = { zoom:'🎥', meet:'📹', teams:'💼', other:'🔗', error:'⚠️', none:'' }
+
+  function dotColor(type) {
+    return { zoom:'#1a56db', meet:'#7c3aed', teams:'#0369a1', other:'#3aa876', none:'#9ca3af' }[type] || '#3aa876'
+  }
+
+  function fmt12(t) {
+    if (!t) return ''
+    const [h, m] = t.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hr = h % 12 || 12
+    return `${hr}:${String(m).padStart(2,'0')} ${ampm}`
+  }
+
+  function fmt12short(t) {
+    if (!t) return ''
+    const [h, m] = t.split(':').map(Number)
+    const ampm = h >= 12 ? 'p' : 'a'
+    return `${h%12||12}${m>0?':'+String(m).padStart(2,'0'):''}${ampm}`
+  }
+
+  function duration(start, end) {
+    if (!start || !end) return ''
+    const [sh, sm] = start.split(':').map(Number)
+    const [eh, em] = end.split(':').map(Number)
+    const mins = (eh*60+em) - (sh*60+sm)
+    if (mins <= 0) return ''
+    return mins < 60 ? `${mins} min` : `${Math.floor(mins/60)}h${mins%60>0?' '+mins%60+'m':''}`
+  }
+
+  function formatDate(ds) {
+    const d = new Date(ds + 'T12:00:00')
+    return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })
+  }
+
+  render()
+})()
+</script>
