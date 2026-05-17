@@ -1,8 +1,10 @@
 # Ur Study Bro
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 **Website: https://urstudybro.netlify.app**
 
-A macOS study partner app built with Electron.
+A free, open-source desktop study partner app built with Electron.
 
 ## Download
 
