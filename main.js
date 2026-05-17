@@ -111,6 +111,7 @@ ipcMain.handle('recorder:delete', async (_e, filepath) => {
 // ── AI chat (proxied through main to avoid CORS) ──────────────────
 ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, systemPrompt }) => {
   try {
+    const { net } = require('electron')
     let url, headers, body, extractReply
 
     if (provider === 'openai') {
@@ -122,6 +123,23 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
         max_tokens: 1024,
       })
       extractReply = d => d.choices?.[0]?.message?.content
+
+    } else if (provider === 'gemini') {
+      const m = model || 'gemini-2.0-flash'
+      url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`
+      headers = { 'Content-Type': 'application/json' }
+      // Gemini uses 'model' role (not 'assistant') and its own contents format
+      const contents = messages.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }],
+      }))
+      body = JSON.stringify({
+        system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+        contents,
+        generationConfig: { maxOutputTokens: 1024 },
+      })
+      extractReply = d => d.candidates?.[0]?.content?.parts?.[0]?.text
+
     } else {
       // Anthropic (default)
       url = 'https://api.anthropic.com/v1/messages'
@@ -139,11 +157,9 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
       extractReply = d => d.content?.[0]?.text
     }
 
-    const { net } = require('electron')
-    const req = net.fetch(url, { method: 'POST', headers, body })
-    const res = await req
+    const res = await net.fetch(url, { method: 'POST', headers, body })
     const data = await res.json()
-    if (!res.ok) return { error: data.error?.message || JSON.stringify(data) }
+    if (!res.ok) return { error: data.error?.message || data.error?.status || JSON.stringify(data) }
     return { reply: extractReply(data) || '' }
   } catch (e) {
     return { error: e.message }

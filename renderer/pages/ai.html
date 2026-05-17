@@ -92,6 +92,7 @@
     <div class="provider-card">
       <label>AI Provider</label>
       <select id="providerSel">
+        <option value="gemini">Gemini (Google) ✨</option>
         <option value="anthropic">Claude (Anthropic)</option>
         <option value="openai">ChatGPT (OpenAI)</option>
       </select>
@@ -144,6 +145,12 @@
   const noKeyBanner  = document.getElementById('noKeyBanner')
 
   const MODELS = {
+    gemini: [
+      { value:'gemini-2.0-flash-lite', label:'Gemini 2.0 Flash Lite (fastest)' },
+      { value:'gemini-2.0-flash',      label:'Gemini 2.0 Flash (fast)' },
+      { value:'gemini-2.5-flash',      label:'Gemini 2.5 Flash (smart)' },
+      { value:'gemini-2.5-pro',        label:'Gemini 2.5 Pro (best)' },
+    ],
     anthropic: [
       { value:'claude-haiku-4-5-20251001', label:'Claude Haiku (fast)' },
       { value:'claude-sonnet-4-6',         label:'Claude Sonnet (smart)' },
@@ -176,8 +183,10 @@
     apiKeyInput.value = localStorage.getItem('ai_key_' + p) || ''
     apiKeyInput.placeholder = p === 'anthropic' ? 'sk-ant-…' : 'sk-…'
 
-    if (p === 'anthropic') {
-      keyHint.innerHTML = 'Get a free key at <a onclick="window.api.openExternal(\'https://console.anthropic.com\')" style="color:var(--accent);cursor:pointer;">console.anthropic.com</a>'
+    if (p === 'gemini') {
+      keyHint.innerHTML = 'Free key at <a onclick="window.api.openExternal(\'https://aistudio.google.com/apikey\')" style="color:var(--accent);cursor:pointer;">aistudio.google.com</a>'
+    } else if (p === 'anthropic') {
+      keyHint.innerHTML = 'Get a key at <a onclick="window.api.openExternal(\'https://console.anthropic.com\')" style="color:var(--accent);cursor:pointer;">console.anthropic.com</a>'
     } else {
       keyHint.innerHTML = 'Get a key at <a onclick="window.api.openExternal(\'https://platform.openai.com/api-keys\')" style="color:var(--accent);cursor:pointer;">platform.openai.com</a>'
     }
