@@ -108,6 +108,48 @@ ipcMain.handle('recorder:delete', async (_e, filepath) => {
   if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
 })
 
+// ── AI chat (proxied through main to avoid CORS) ──────────────────
+ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, systemPrompt }) => {
+  try {
+    let url, headers, body, extractReply
+
+    if (provider === 'openai') {
+      url = 'https://api.openai.com/v1/chat/completions'
+      headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }
+      body = JSON.stringify({
+        model: model || 'gpt-4o-mini',
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        max_tokens: 1024,
+      })
+      extractReply = d => d.choices?.[0]?.message?.content
+    } else {
+      // Anthropic (default)
+      url = 'https://api.anthropic.com/v1/messages'
+      headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      }
+      body = JSON.stringify({
+        model: model || 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages,
+      })
+      extractReply = d => d.content?.[0]?.text
+    }
+
+    const { net } = require('electron')
+    const req = net.fetch(url, { method: 'POST', headers, body })
+    const res = await req
+    const data = await res.json()
+    if (!res.ok) return { error: data.error?.message || JSON.stringify(data) }
+    return { reply: extractReply(data) || '' }
+  } catch (e) {
+    return { error: e.message }
+  }
+})
+
 // ── Sync note to Apple Notes ──────────────────────────────────────
 ipcMain.handle('notes:sync', async (_e, { title, html, folder }) => {
   // Build a dated header then append the editor's HTML body.
