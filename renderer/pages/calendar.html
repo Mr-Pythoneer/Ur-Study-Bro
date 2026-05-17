@@ -221,14 +221,12 @@
   /* ── Live URL feedback ────────────────────────────────────── */
   const linkInput = document.getElementById('evLink')
   const linkFeedback = document.getElementById('linkFeedback')
-  const TYPE_ICONS = { zoom:'🎥', meet:'📹', teams:'💼', other:'🔗', error:'⚠️' }
-
   linkInput.addEventListener('input', () => {
     const val = linkInput.value.trim()
     if (!val) { linkFeedback.className = 'url-parse-feedback'; return }
     const parsed = parseLink(val)
     if (parsed.type === 'none') { linkFeedback.className = 'url-parse-feedback'; return }
-    linkFeedback.textContent = `${TYPE_ICONS[parsed.type] || '🔗'} ${parsed.label}`
+    linkFeedback.textContent = `${TYPE_ICONS[parsed.type] || ''} ${parsed.label}`
     linkFeedback.className = `url-parse-feedback ${parsed.type}`
   })
 
