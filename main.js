@@ -7,6 +7,8 @@ const path = require('path')
 const fs   = require('fs')
 const os   = require('os')
 const { execSync, spawnSync } = require('child_process')
+const Imap = require('imap')
+const { simpleParser } = require('mailparser')
 
 // ── Window factory ────────────────────────────────────────────────
 function createWindow() {
@@ -217,6 +219,95 @@ function _checkFrontmost() {
       }
     }
   } catch { /* ignore — user may not have granted Accessibility access */ }
+}
+
+// ── Email: fetch & summarise via IMAP ────────────────────────────
+ipcMain.handle('email:fetch', async (_e, { host, port, user, password, tls, limit = 20 }) => {
+  return new Promise((resolve) => {
+    const imap = new Imap({ host, port: port || 993, user, password, tls: tls !== false, tlsOptions: { rejectUnauthorized: false } })
+    const emails = []
+
+    function finish(err) {
+      try { imap.end() } catch {}
+      if (err) resolve({ error: err.message || String(err) })
+      else resolve({ emails })
+    }
+
+    imap.once('error', finish)
+    imap.once('ready', () => {
+      imap.openBox('INBOX', true, (err, box) => {
+        if (err) return finish(err)
+        const total = box.messages.total
+        if (total === 0) return finish(null)
+        const start = Math.max(1, total - limit + 1)
+        const fetch = imap.seq.fetch(`${start}:${total}`, { bodies: '', struct: true })
+        const pending = []
+
+        fetch.on('message', (msg) => {
+          const p = new Promise((res) => {
+            let raw = ''
+            msg.on('body', (stream) => stream.on('data', d => raw += d.toString()))
+            msg.once('end', () => res(raw))
+          })
+          pending.push(p)
+        })
+
+        fetch.once('error', finish)
+        fetch.once('end', async () => {
+          const raws = await Promise.all(pending)
+          for (const raw of raws) {
+            try {
+              const parsed = await simpleParser(raw)
+              const text = (parsed.text || parsed.html?.replace(/<[^>]+>/g, ' ') || '').slice(0, 3000)
+              emails.push({
+                id:      parsed.messageId || String(Math.random()),
+                subject: parsed.subject   || '(no subject)',
+                from:    parsed.from?.text || '',
+                date:    parsed.date?.toISOString() || new Date().toISOString(),
+                text,
+                meeting: detectMeeting(text, parsed.subject || ''),
+              })
+            } catch { /* skip malformed */ }
+          }
+          emails.reverse() // newest first
+          finish(null)
+        })
+      })
+    })
+    imap.connect()
+  })
+})
+
+function detectMeeting(body, subject) {
+  const combined = (subject + ' ' + body).toLowerCase()
+  const isMeeting = /\b(meeting|call|zoom|webinar|conference|interview|standup|sync|catch[\s-]up|google meet|teams|webex)\b/.test(combined)
+  if (!isMeeting) return null
+
+  // Extract link
+  const linkMatch = body.match(/https?:\/\/([\w.-]*zoom\.us|meet\.google\.com|teams\.microsoft\.com|webex\.com|whereby\.com|meet\.jit\.si)[^\s"<>]*/i)
+  const link = linkMatch ? linkMatch[0] : null
+
+  // Extract date — look for patterns like "May 20", "2026-05-20", "20/05/2026"
+  const datePatterns = [
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?/i,
+    /\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/,
+    /\b(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b/,
+  ]
+  let dateStr = null
+  for (const re of datePatterns) {
+    const m = body.match(re)
+    if (m) { dateStr = m[0]; break }
+  }
+
+  // Extract time
+  const timeMatch = body.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)(?:\s*[-–]\s*\d{1,2}(?::\d{2})?\s*(?:am|pm))?)\b/i)
+  const timeStr = timeMatch ? timeMatch[0] : null
+
+  // Summary: first 200 chars of relevant sentences
+  const sentences = body.split(/[.\n]+/).filter(s => s.trim().length > 10)
+  const summary = sentences.slice(0, 3).join('. ').slice(0, 200).trim()
+
+  return { link, dateStr, timeStr, summary }
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────

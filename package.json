@@ -20,25 +20,46 @@
     "files": [
       "main.js",
       "preload.js",
-      "renderer/**/*"
+      "renderer/**/*",
+      "node_modules/imap/**/*",
+      "node_modules/mailparser/**/*",
+      "node_modules/readable-stream/**/*",
+      "node_modules/iconv-lite/**/*",
+      "node_modules/encoding/**/*",
+      "node_modules/charset-detector/**/*"
     ],
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.education",
       "target": [
-        { "target": "dmg", "arch": ["arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
       ]
     },
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "linux": {
       "icon": "build/icon.icns",
       "target": [
-        { "target": "AppImage", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     }
   },
@@ -47,5 +68,9 @@
     "electron-builder": "^25.1.8"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mailparser": "^3.9.8"
+  }
 }

@@ -1,0 +1,316 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  .email-setup { max-width:520px; }
+  .setup-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .setup-grid .full { grid-column:1/-1; }
+  .provider-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .provider-btn { padding:6px 14px; border:1.5px solid var(--border); border-radius:99px; font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; font-family:var(--font); }
+  .provider-btn:hover, .provider-btn.active { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+
+  .inbox-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .inbox-count { font-size:13px; color:var(--text-secondary); margin-left:auto; }
+
+  .email-list { display:flex; flex-direction:column; gap:8px; }
+  .email-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px 18px; cursor:pointer; transition:all .15s; }
+  .email-card:hover { border-color:var(--accent); box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .email-card.expanded { border-color:var(--accent); }
+  .email-header { display:flex; align-items:flex-start; gap:12px; }
+  .email-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent-light); color:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+  .email-meta { flex:1; min-width:0; }
+  .email-from { font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .email-subject { font-size:13px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .email-date { font-size:11px; color:var(--text-secondary); flex-shrink:0; }
+  .meeting-badge { display:inline-flex; align-items:center; gap:5px; background:#fef3c7; color:#b45309; border:1px solid #fcd34d; border-radius:99px; font-size:11px; font-weight:700; padding:3px 9px; margin-top:6px; }
+  .email-body { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); display:none; }
+  .email-card.expanded .email-body { display:block; }
+  .email-summary { font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:12px; }
+  .meeting-details { background:var(--accent-light); border:1px solid rgba(42,122,90,.2); border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+  .meeting-details h4 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--accent); margin-bottom:8px; }
+  .meeting-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-primary); margin-bottom:4px; }
+  .meeting-row svg { width:14px; height:14px; color:var(--accent); flex-shrink:0; }
+  .meeting-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+  .empty-state { text-align:center; padding:60px 24px; color:var(--text-secondary); }
+  .empty-state svg { width:48px; height:48px; margin-bottom:16px; opacity:.3; }
+
+  .fetch-status { font-size:13px; color:var(--text-secondary); padding:10px 0; }
+  .fetch-status.error { color:#ef4444; }
+</style>
+
+<div class="page-header">
+  <div class="page-title">Email Inbox</div>
+  <div class="page-subtitle">Summaries, meeting detection, and one-click calendar add.</div>
+</div>
+
+<!-- Setup card -->
+<div class="card email-setup" id="emailSetupCard">
+  <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;">Connect your email</h3>
+  <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Uses IMAP — your password never leaves your device.</p>
+
+  <div class="provider-row">
+    <button class="provider-btn" data-host="imap.gmail.com" data-port="993">Gmail</button>
+    <button class="provider-btn" data-host="outlook.office365.com" data-port="993">Outlook</button>
+    <button class="provider-btn" data-host="imap.mail.yahoo.com" data-port="993">Yahoo</button>
+    <button class="provider-btn" data-host="imap.icloud.com" data-port="993">iCloud</button>
+  </div>
+
+  <div class="setup-grid">
+    <div class="full">
+      <label class="form-label">Email address</label>
+      <input class="form-input" id="emailAddr" type="email" placeholder="you@gmail.com"/>
+    </div>
+    <div class="full">
+      <label class="form-label">Password / App password</label>
+      <input class="form-input" id="emailPass" type="password" placeholder="App password (not your main password)"/>
+    </div>
+    <div>
+      <label class="form-label">IMAP host</label>
+      <input class="form-input" id="emailHost" placeholder="imap.gmail.com"/>
+    </div>
+    <div>
+      <label class="form-label">Port</label>
+      <input class="form-input" id="emailPort" type="number" value="993"/>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;margin-top:14px;">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" id="emailAutoAdd" style="accent-color:var(--accent);"/> Auto-add meetings to calendar
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-left:12px;">
+      <input type="checkbox" id="emailTLS" checked style="accent-color:var(--accent);"/> TLS
+    </label>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:16px;">
+    <button class="btn btn-primary" id="emailFetchBtn">Fetch Emails</button>
+    <button class="btn btn-ghost" id="emailSaveBtn">Save Settings</button>
+  </div>
+  <div class="fetch-status" id="fetchStatus" style="display:none;"></div>
+</div>
+
+<!-- Inbox -->
+<div class="card" id="inboxCard" style="display:none;">
+  <div class="inbox-toolbar">
+    <button class="btn btn-primary" id="refreshBtn" style="padding:8px 16px;font-size:13px;">Refresh</button>
+    <span class="inbox-count" id="inboxCount"></span>
+  </div>
+  <div class="email-list" id="emailList"></div>
+</div>
+
+<script>
+;(function(){
+  const CS = k => localStorage.getItem('cs_email_'+k)
+  const SS = (k,v) => localStorage.setItem('cs_email_'+k, v)
+
+  // Load saved settings
+  const saved = {
+    host: CS('host'), port: CS('port'), addr: CS('addr'),
+    pass: CS('pass'), autoAdd: CS('autoAdd'), tls: CS('tls'),
+  }
+  if (saved.host) document.getElementById('emailHost').value = saved.host
+  if (saved.port) document.getElementById('emailPort').value = saved.port
+  if (saved.addr) document.getElementById('emailAddr').value = saved.addr
+  if (saved.pass) document.getElementById('emailPass').value = saved.pass
+  document.getElementById('emailAutoAdd').checked = saved.autoAdd === '1'
+  document.getElementById('emailTLS').checked = saved.tls !== '0'
+
+  // Provider presets
+  document.querySelectorAll('.provider-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      document.getElementById('emailHost').value = btn.dataset.host
+      document.getElementById('emailPort').value = btn.dataset.port
+    })
+    if (btn.dataset.host === saved.host) btn.classList.add('active')
+  })
+
+  function saveSettings() {
+    SS('host', document.getElementById('emailHost').value.trim())
+    SS('port', document.getElementById('emailPort').value.trim())
+    SS('addr', document.getElementById('emailAddr').value.trim())
+    SS('pass', document.getElementById('emailPass').value)
+    SS('autoAdd', document.getElementById('emailAutoAdd').checked ? '1' : '0')
+    SS('tls', document.getElementById('emailTLS').checked ? '1' : '0')
+  }
+
+  document.getElementById('emailSaveBtn').addEventListener('click', () => {
+    saveSettings()
+    showStatus('Settings saved.', false)
+  })
+
+  function showStatus(msg, isErr) {
+    const el = document.getElementById('fetchStatus')
+    el.textContent = msg
+    el.className = 'fetch-status' + (isErr ? ' error' : '')
+    el.style.display = 'block'
+  }
+
+  async function doFetch() {
+    saveSettings()
+    const host = document.getElementById('emailHost').value.trim()
+    const port = parseInt(document.getElementById('emailPort').value) || 993
+    const user = document.getElementById('emailAddr').value.trim()
+    const password = document.getElementById('emailPass').value
+    const tls = document.getElementById('emailTLS').checked
+
+    if (!host || !user || !password) {
+      showStatus('Please fill in host, email, and password.', true); return
+    }
+
+    const btn = document.getElementById('emailFetchBtn')
+    btn.disabled = true; btn.textContent = 'Fetching…'
+    showStatus('Connecting to ' + host + '…', false)
+
+    if (!window.api?.fetchEmails) {
+      showStatus('Email fetching requires the desktop app (not available in browser preview).', true)
+      btn.disabled = false; btn.textContent = 'Fetch Emails'; return
+    }
+
+    const result = await window.api.fetchEmails({ host, port, user, password, tls, limit: 30 })
+    btn.disabled = false; btn.textContent = 'Fetch Emails'
+
+    if (result.error) {
+      showStatus('Error: ' + result.error, true); return
+    }
+
+    showStatus(`Fetched ${result.emails.length} emails.`, false)
+    renderInbox(result.emails)
+
+    if (document.getElementById('emailAutoAdd').checked) {
+      result.emails.forEach(e => { if (e.meeting) autoAddToCalendar(e) })
+    }
+  }
+
+  document.getElementById('emailFetchBtn').addEventListener('click', doFetch)
+  document.getElementById('refreshBtn').addEventListener('click', doFetch)
+
+  function renderInbox(emails) {
+    document.getElementById('inboxCard').style.display = 'block'
+    document.getElementById('inboxCount').textContent = `${emails.length} emails · ${emails.filter(e=>e.meeting).length} meetings detected`
+    const list = document.getElementById('emailList')
+    list.innerHTML = ''
+
+    if (emails.length === 0) {
+      list.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l9 6 9-6M3 8v10a1 1 0 001 1h16a1 1 0 001-1V8M3 8l9-5 9 5"/></svg><p>No emails found.</p></div>`
+      return
+    }
+
+    emails.forEach(email => {
+      const card = document.createElement('div')
+      card.className = 'email-card'
+      const initial = (email.from.match(/^([^<@\s]+)/)?.[1]?.[0] || '?').toUpperCase()
+      const dateLabel = new Date(email.date).toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+      const m = email.meeting
+
+      card.innerHTML = `
+        <div class="email-header">
+          <div class="email-avatar">${initial}</div>
+          <div class="email-meta">
+            <div class="email-from">${escHtml(email.from)}</div>
+            <div class="email-subject">${escHtml(email.subject)}</div>
+            ${m ? `<div class="meeting-badge"><svg viewBox="0 0 16 16" fill="currentColor" width="11" height="11"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v1l-6 4-6-4V4zm0 2.4V12a2 2 0 002 2h8a2 2 0 002-2V6.4l-6 4-6-4z"/></svg>Meeting detected</div>` : ''}
+          </div>
+          <div class="email-date">${dateLabel}</div>
+        </div>
+        <div class="email-body">
+          <div class="email-summary">${escHtml((email.text || '').slice(0, 300).trim())}…</div>
+          ${m ? meetingBlock(m, email) : ''}
+        </div>`
+
+      card.querySelector('.email-header').addEventListener('click', () => {
+        card.classList.toggle('expanded')
+      })
+
+      if (m) {
+        card.querySelector('.add-cal-btn')?.addEventListener('click', (e) => {
+          e.stopPropagation()
+          addToCalendar(email, m)
+        })
+      }
+      list.appendChild(card)
+    })
+  }
+
+  function meetingBlock(m, email) {
+    return `<div class="meeting-details">
+      <h4>Meeting Info</h4>
+      ${m.dateStr ? `<div class="meeting-row"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/></svg>${escHtml(m.dateStr)}${m.timeStr ? ' at ' + escHtml(m.timeStr) : ''}</div>` : ''}
+      ${m.link ? `<div class="meeting-row"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8a3 3 0 106 0 3 3 0 00-6 0zm3-3V3m0 10v-2m3-3h2M3 8H1"/></svg><a href="#" class="meeting-link" style="color:var(--accent);text-decoration:none;font-size:12px;">${escHtml(m.link.slice(0,50))}…</a></div>` : ''}
+      ${m.summary ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.5;">${escHtml(m.summary)}</div>` : ''}
+    </div>
+    <div class="meeting-actions">
+      <button class="btn btn-primary add-cal-btn" style="padding:8px 16px;font-size:13px;">Add to Calendar</button>
+      ${m.link ? `<button class="btn btn-ghost join-btn" style="padding:8px 16px;font-size:13px;" data-link="${escHtml(m.link)}">Join Meeting</button>` : ''}
+    </div>`
+  }
+
+  function addToCalendar(email, m) {
+    // Build a calendar event and save it into the shared localStorage key
+    const events = JSON.parse(localStorage.getItem('cs_calendar_events') || '[]')
+    const dateObj = m.dateStr ? new Date(m.dateStr) : new Date()
+    if (isNaN(dateObj)) dateObj.setTime(Date.now())
+
+    // Parse time if present
+    if (m.timeStr) {
+      const tm = m.timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i)
+      if (tm) {
+        let h = parseInt(tm[1]); const min = parseInt(tm[2]||'0')
+        const ampm = (tm[3]||'').toLowerCase()
+        if (ampm === 'pm' && h < 12) h += 12
+        if (ampm === 'am' && h === 12) h = 0
+        dateObj.setHours(h, min, 0, 0)
+      }
+    }
+
+    const event = {
+      id: 'email_' + Date.now(),
+      title: email.subject,
+      date: dateObj.toISOString().slice(0,10),
+      startTime: dateObj.toTimeString().slice(0,5),
+      endTime: new Date(dateObj.getTime() + 60*60*1000).toTimeString().slice(0,5),
+      link: m.link || '',
+      type: m.link?.includes('zoom') ? 'zoom' : m.link?.includes('meet.google') ? 'meet' : m.link?.includes('teams') ? 'teams' : 'other',
+      notes: `From: ${email.from}\n\n${m.summary || ''}`,
+      fromEmail: true,
+    }
+
+    events.push(event)
+    localStorage.setItem('cs_calendar_events', JSON.stringify(events))
+
+    // Visual feedback
+    event.id && showToast(`"${email.subject.slice(0,30)}" added to Calendar`)
+  }
+
+  function autoAddToCalendar(email) {
+    if (email.meeting) addToCalendar(email, email.meeting)
+  }
+
+  function showToast(msg) {
+    let t = document.getElementById('emailToast')
+    if (!t) {
+      t = document.createElement('div')
+      t.id = 'emailToast'
+      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e2228;color:#fff;border-radius:12px;padding:14px 20px;font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:9000;'
+      document.body.appendChild(t)
+    }
+    t.textContent = msg
+    t.style.display = 'block'
+    clearTimeout(t._timer)
+    t._timer = setTimeout(() => { t.style.display = 'none' }, 3500)
+  }
+
+  // Join meeting links
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.join-btn')
+    if (btn && window.api?.openExternal) window.api.openExternal(btn.dataset.link)
+    const lnk = e.target.closest('.meeting-link')
+    if (lnk) { e.preventDefault(); window.api?.openExternal?.(lnk.textContent) }
+  })
+
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+})()
+</script>
