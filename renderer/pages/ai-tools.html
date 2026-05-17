@@ -5,19 +5,28 @@
   .page-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.10); }
 
   .tool-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-  .tool-layout.single { grid-template-columns:1fr; }
   @media (max-width:800px) { .tool-layout { grid-template-columns:1fr; } }
 
   .tool-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-secondary); display:block; margin-bottom:6px; }
-  .tool-textarea { width:100%; box-sizing:border-box; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:12px; font-family:inherit; font-size:13px; color:var(--text-primary); resize:vertical; outline:none; line-height:1.6; transition:border-color .15s; }
+  .tool-textarea {
+    width:100%; box-sizing:border-box; background:var(--bg);
+    border:1.5px solid var(--border); border-radius:8px;
+    padding:12px; font-family:inherit; font-size:13px;
+    color:var(--text-primary); resize:none; outline:none;
+    line-height:1.6; transition:border-color .15s;
+    overflow-y:auto;
+  }
   .tool-textarea:focus { border-color:var(--accent); }
 
-  /* ── Result panel ── */
-  .result-panel { background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:16px; min-height:120px; font-size:13px; line-height:1.7; color:var(--text-primary); white-space:pre-wrap; display:none; }
-  .result-panel.visible { display:block; }
-  .result-panel code { background:#f3f4f6; border-radius:4px; padding:1px 5px; font-family:monospace; font-size:12px; }
+  /* key setup bar */
+  .key-bar { display:flex; gap:8px; align-items:center; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; margin-bottom:16px; }
+  .key-bar.hidden { display:none; }
+  .key-bar input { flex:1; border:1px solid #fcd34d; border-radius:6px; padding:6px 10px; font-family:inherit; font-size:13px; background:#fffbeb; outline:none; }
+  .key-bar input:focus { border-color:#d97706; }
+  .key-bar select { border:1px solid #fcd34d; border-radius:6px; padding:6px 8px; font-family:inherit; font-size:13px; background:#fffbeb; outline:none; cursor:pointer; }
+  .key-bar-label { font-size:12px; font-weight:600; color:#92400e; white-space:nowrap; }
 
-  /* ── Grade badge ── */
+  /* result panels */
   .grade-strip { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
   .grade-badge { border-radius:10px; padding:12px 20px; text-align:center; min-width:90px; }
   .grade-badge .badge-val { font-size:28px; font-weight:800; line-height:1; }
@@ -28,17 +37,18 @@
   .grade-D { background:#ffe4e6; color:#9f1239; }
   .grade-F { background:#fee2e2; color:#7f1d1d; }
 
-  /* ── AI score meter ── */
   .score-row { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
   .score-meter { flex:1; height:12px; background:#f3f4f6; border-radius:99px; overflow:hidden; }
   .score-fill { height:100%; border-radius:99px; transition:width .6s ease; }
   .score-val { font-size:22px; font-weight:800; min-width:50px; text-align:right; }
   .verdict-chip { display:inline-flex; align-items:center; gap:6px; border-radius:99px; padding:5px 14px; font-size:12px; font-weight:700; }
 
-  /* ── Copy button ── */
   .copy-btn { padding:6px 14px; font-size:12px; }
 
-  .no-key-warn { background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; font-size:12px; color:#92400e; margin-bottom:12px; }
+  .placeholder-box { text-align:center; padding:40px 20px; color:var(--text-secondary); }
+  .placeholder-box .ph-icon { font-size:36px; margin-bottom:12px; }
+  .placeholder-box p { font-size:13px; margin:0 0 6px; }
+  .placeholder-box small { font-size:12px; }
 
   .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:6px; }
   @keyframes spin { to { transform:rotate(360deg); } }
@@ -49,8 +59,16 @@
   <div class="page-subtitle">Assignment grader, AI detector, and humanizer — all in one place.</div>
 </div>
 
-<div id="noKeyWarn" class="no-key-warn" style="display:none;">
-  No API key found. Go to <strong>AI Tutor</strong> and save your key first.
+<!-- Inline key setup — shown when no key saved -->
+<div class="key-bar" id="keyBar">
+  <span class="key-bar-label">🔑 API Key:</span>
+  <select id="kbProvider">
+    <option value="gemini">Gemini</option>
+    <option value="anthropic">Claude</option>
+    <option value="openai">OpenAI</option>
+  </select>
+  <input type="password" id="kbInput" placeholder="Paste your API key here…" autocomplete="off"/>
+  <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:6px 14px;white-space:nowrap;">Save &amp; Use</button>
 </div>
 
 <div class="page-tabs">
@@ -62,22 +80,18 @@
 <!-- ══════════════════ ASSIGNMENT CHECKER ══════════════════════════ -->
 <div id="pane-checker">
   <div class="tool-layout">
-    <div>
-      <div class="card">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-title">Assignment Instructions</div>
-        <label class="tool-label">Paste the task/rubric/prompt from your teacher</label>
-        <textarea class="tool-textarea" id="instrText" rows="8" placeholder="e.g. Write a 500-word essay arguing whether social media is harmful to teenagers. Include at least 3 sources. Graded on: argument clarity (30pts), evidence (40pts), grammar (30pts)."></textarea>
+        <label class="tool-label">Paste the task / rubric / prompt from your teacher</label>
+        <textarea class="tool-textarea" id="instrText" style="height:180px;" placeholder="e.g. Write a 500-word essay arguing whether social media is harmful to teenagers. Include at least 3 sources. Graded on: argument clarity (30pts), evidence (40pts), grammar (30pts)."></textarea>
       </div>
-      <div class="card" style="margin-top:16px;">
+      <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-title">Your Work</div>
         <label class="tool-label">Paste your essay / answers / code</label>
-        <textarea class="tool-textarea" id="workText" rows="10" placeholder="Paste your assignment here…"></textarea>
+        <textarea class="tool-textarea" id="workText" style="height:240px;" placeholder="Paste your assignment here…"></textarea>
       </div>
-      <div style="margin-top:14px;">
-        <button class="btn btn-primary" id="checkBtn" style="padding:10px 24px;">
-          📋 Check My Assignment
-        </button>
-      </div>
+      <button class="btn btn-primary" id="checkBtn" style="padding:10px 24px;align-self:flex-start;">📋 Check My Assignment</button>
     </div>
 
     <div>
@@ -86,11 +100,11 @@
         <div class="grade-strip" id="gradeBadges"></div>
         <div style="font-size:13px;line-height:1.7;" id="gradeDetail"></div>
       </div>
-      <div class="card" id="gradePlaceholder" style="margin-top:0;">
-        <div style="text-align:center;padding:40px 20px;color:var(--text-secondary);">
-          <div style="font-size:36px;margin-bottom:12px;">📊</div>
-          <div style="font-size:13px;">Fill in your instructions and work, then click <strong>Check My Assignment</strong>.</div>
-          <div style="font-size:12px;margin-top:8px;">You'll get an estimated grade, on-task score, and specific feedback.</div>
+      <div class="card" id="gradePlaceholder">
+        <div class="placeholder-box">
+          <div class="ph-icon">📊</div>
+          <p>Fill in your instructions and work,<br>then click <strong>Check My Assignment</strong>.</p>
+          <small>You'll get an estimated grade, on-task score, and specific feedback.</small>
         </div>
       </div>
     </div>
@@ -100,15 +114,13 @@
 <!-- ══════════════════ AI DETECTOR ═════════════════════════════════ -->
 <div id="pane-detect" style="display:none;">
   <div class="tool-layout">
-    <div>
-      <div class="card">
-        <div class="card-title">Text to Analyze</div>
-        <label class="tool-label">Paste any text — essay, email, code comment, article</label>
-        <textarea class="tool-textarea" id="detectText" rows="16" placeholder="Paste text here to check if it was written by AI…"></textarea>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
-          <span id="detectWordCount" style="font-size:12px;color:var(--text-secondary);">0 words</span>
-          <button class="btn btn-primary" id="detectBtn" style="padding:10px 24px;">🔍 Analyze</button>
-        </div>
+    <div class="card" style="display:flex;flex-direction:column;">
+      <div class="card-title">Text to Analyze</div>
+      <label class="tool-label">Paste any text — essay, email, code comment, article</label>
+      <textarea class="tool-textarea" id="detectText" style="height:420px;" placeholder="Paste text here to check if it was written by AI…"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+        <span id="detectWordCount" style="font-size:12px;color:var(--text-secondary);">0 words</span>
+        <button class="btn btn-primary" id="detectBtn" style="padding:10px 24px;">🔍 Analyze</button>
       </div>
     </div>
 
@@ -123,10 +135,10 @@
         <div style="font-size:13px;line-height:1.7;" id="detectDetail"></div>
       </div>
       <div class="card" id="detectPlaceholder">
-        <div style="text-align:center;padding:40px 20px;color:var(--text-secondary);">
-          <div style="font-size:36px;margin-bottom:12px;">🔍</div>
-          <div style="font-size:13px;">Paste text on the left and click <strong>Analyze</strong>.</div>
-          <div style="font-size:12px;margin-top:8px;">The AI will look for patterns, sentence structure, and telltale signs of generated text.</div>
+        <div class="placeholder-box">
+          <div class="ph-icon">🔍</div>
+          <p>Paste text on the left and click <strong>Analyze</strong>.</p>
+          <small>The AI will look for patterns, sentence structure, and telltale signs of generated text.</small>
         </div>
       </div>
     </div>
@@ -136,21 +148,19 @@
 <!-- ══════════════════ HUMANIZER ════════════════════════════════════ -->
 <div id="pane-human" style="display:none;">
   <div class="tool-layout">
-    <div>
-      <div class="card">
-        <div class="card-title">AI-Written Text</div>
-        <label class="tool-label">Paste the text you want to humanize</label>
-        <textarea class="tool-textarea" id="humanInput" rows="14" placeholder="Paste AI-generated text here…"></textarea>
-        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <label class="tool-label" style="margin:0;">Tone:</label>
-          <select id="humanTone" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text-primary);outline:none;">
-            <option value="casual">Casual student</option>
-            <option value="academic">Academic (formal but natural)</option>
-            <option value="conversational">Conversational</option>
-            <option value="teenager">Teenager / Gen Z</option>
-          </select>
-          <button class="btn btn-primary" id="humanBtn" style="padding:10px 24px;margin-left:auto;">✍️ Humanize</button>
-        </div>
+    <div class="card" style="display:flex;flex-direction:column;">
+      <div class="card-title">AI-Written Text</div>
+      <label class="tool-label">Paste the text you want to humanize</label>
+      <textarea class="tool-textarea" id="humanInput" style="height:380px;" placeholder="Paste AI-generated text here…"></textarea>
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <label class="tool-label" style="margin:0;">Tone:</label>
+        <select id="humanTone" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--bg);color:var(--text-primary);outline:none;">
+          <option value="casual">Casual student</option>
+          <option value="academic">Academic (formal but natural)</option>
+          <option value="conversational">Conversational</option>
+          <option value="teenager">Teenager / Gen Z</option>
+        </select>
+        <button class="btn btn-primary" id="humanBtn" style="padding:10px 24px;margin-left:auto;">✍️ Humanize</button>
       </div>
     </div>
 
@@ -160,16 +170,16 @@
           <div class="card-title" style="margin:0;">Humanized Version</div>
           <button class="btn btn-ghost copy-btn" id="copyHumanBtn">Copy</button>
         </div>
-        <div id="humanOutput" style="font-size:13px;line-height:1.7;white-space:pre-wrap;"></div>
+        <div id="humanOutput" style="font-size:13px;line-height:1.7;white-space:pre-wrap;max-height:400px;overflow-y:auto;"></div>
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
           <button class="btn btn-ghost" id="rehumanBtn" style="font-size:12px;padding:6px 14px;">↺ Try Again (different style)</button>
         </div>
       </div>
       <div class="card" id="humanPlaceholder">
-        <div style="text-align:center;padding:40px 20px;color:var(--text-secondary);">
-          <div style="font-size:36px;margin-bottom:12px;">✍️</div>
-          <div style="font-size:13px;">Paste AI text on the left, pick a tone, then click <strong>Humanize</strong>.</div>
-          <div style="font-size:12px;margin-top:8px;">The AI rewrites it to sound natural, varied, and less robotic.</div>
+        <div class="placeholder-box">
+          <div class="ph-icon">✍️</div>
+          <p>Paste AI text on the left, pick a tone,<br>then click <strong>Humanize</strong>.</p>
+          <small>Rewrites it to sound natural, varied, and less robotic.</small>
         </div>
       </div>
     </div>
@@ -185,258 +195,155 @@
     })
   }
 
-  /* ── Get saved API settings (from AI Tutor page) ── */
+  /* ── Key bar ── */
+  const kbProvider = document.getElementById('kbProvider')
+  const kbInput    = document.getElementById('kbInput')
+  const keyBar     = document.getElementById('keyBar')
+
   function getApiCfg() {
-    const provider = localStorage.getItem('ai_provider') || 'anthropic'
+    const provider = localStorage.getItem('ai_provider') || 'gemini'
     const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
     const model    = localStorage.getItem('ai_model_' + provider) ||
-      (provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
+      (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
     return { provider, apiKey, model }
   }
 
-  function checkApiKey() {
-    const { apiKey } = getApiCfg()
-    document.getElementById('noKeyWarn').style.display = apiKey ? 'none' : 'block'
-    return !!apiKey
+  function refreshKeyBar() {
+    const { apiKey, provider } = getApiCfg()
+    keyBar.classList.toggle('hidden', !!apiKey)
+    kbProvider.value = provider
   }
-  checkApiKey()
+  refreshKeyBar()
+
+  document.getElementById('kbSaveBtn').addEventListener('click', () => {
+    const key = kbInput.value.trim()
+    if (!key) { kbInput.focus(); return }
+    const p = kbProvider.value
+    localStorage.setItem('ai_provider', p)
+    localStorage.setItem('ai_key_' + p, key)
+    kbInput.value = ''
+    refreshKeyBar()
+    document.getElementById('kbSaveBtn').textContent = 'Saved ✓'
+    setTimeout(() => document.getElementById('kbSaveBtn').textContent = 'Save & Use', 1500)
+  })
 
   async function callAI(systemPrompt, userContent) {
     const { provider, apiKey, model } = getApiCfg()
-    if (!apiKey) { alert('No API key found. Go to AI Tutor and save your key first.'); return null }
-    const res = await window.api.askAI({
-      provider, apiKey, model,
-      systemPrompt,
-      messages: [{ role: 'user', content: userContent }],
-    })
+    if (!apiKey) { alert('Enter your API key in the yellow bar above first.'); return null }
+    const res = await window.api.askAI({ provider, apiKey, model, systemPrompt, messages:[{ role:'user', content:userContent }] })
     if (res.error) throw new Error(res.error)
     return res.reply
   }
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
-  function setLoading(btn, loading, orig) {
-    btn.disabled = loading
-    btn.innerHTML = loading ? `<span class="spinner"></span>Thinking…` : orig
-  }
+  function setLoading(btn, on, orig) { btn.disabled=on; btn.innerHTML=on?`<span class="spinner"></span>Thinking…`:orig }
 
-  /* ══════════════════════════════════════════════════════════════ */
-  /* ── ASSIGNMENT CHECKER ──────────────────────────────────────── */
-
-  const checkBtn = document.getElementById('checkBtn')
-  checkBtn.addEventListener('click', async () => {
+  /* ══ ASSIGNMENT CHECKER ══════════════════════════════════════════ */
+  document.getElementById('checkBtn').addEventListener('click', async () => {
     const instructions = document.getElementById('instrText').value.trim()
-    const work         = document.getElementById('workText').value.trim()
-    if (!instructions || !work) { alert('Please fill in both the instructions and your work.'); return }
-    if (!checkApiKey()) return
-
-    setLoading(checkBtn, true, '📋 Check My Assignment')
-    document.getElementById('gradeResultCard').style.display = 'none'
-    document.getElementById('gradePlaceholder').style.display = ''
-
+    const work = document.getElementById('workText').value.trim()
+    if (!instructions || !work) { alert('Fill in both the instructions and your work.'); return }
+    const btn = document.getElementById('checkBtn')
+    setLoading(btn, true, '📋 Check My Assignment')
+    document.getElementById('gradeResultCard').style.display='none'
+    document.getElementById('gradePlaceholder').style.display=''
     try {
-      const system = `You are a strict but fair academic grader. Analyze the student's work against the assignment instructions. Return your response in this EXACT JSON format with no extra text:
-{
-  "grade": "B+",
-  "percent": 87,
-  "on_task_score": 90,
-  "summary": "One sentence overall verdict.",
-  "strengths": ["point 1", "point 2"],
-  "improvements": ["point 1", "point 2"],
-  "on_task_analysis": "2-3 sentences about whether they stayed on task.",
-  "grading_breakdown": "Short paragraph explaining how you arrived at the grade."
-}
-Grade letters: A+ 97-100, A 93-96, A- 90-92, B+ 87-89, B 83-86, B- 80-82, C+ 77-79, C 73-76, C- 70-72, D 60-69, F below 60.`
-
-      const prompt = `ASSIGNMENT INSTRUCTIONS:\n${instructions}\n\n---\nSTUDENT WORK:\n${work}`
-      const raw = await callAI(system, prompt)
+      const system=`You are a strict but fair academic grader. Return ONLY this JSON, no extra text:
+{"grade":"B+","percent":87,"on_task_score":90,"summary":"One sentence verdict.","strengths":["pt1","pt2"],"improvements":["pt1","pt2"],"on_task_analysis":"2-3 sentences on task adherence.","grading_breakdown":"Short paragraph on grade reasoning."}`
+      const raw = await callAI(system, `INSTRUCTIONS:\n${instructions}\n\nSTUDENT WORK:\n${work}`)
       if (!raw) return
-
       let data
-      try {
-        const jsonMatch = raw.match(/\{[\s\S]*\}/)
-        data = JSON.parse(jsonMatch ? jsonMatch[0] : raw)
-      } catch {
-        document.getElementById('gradePlaceholder').innerHTML = `<div style="padding:20px;color:#ef4444;font-size:13px;">Could not parse AI response. Try again.<br><br><small>${esc(raw)}</small></div>`
-        return
-      }
-
-      renderGradeResult(data)
-    } catch(e) {
-      alert('Error: ' + e.message)
-    } finally {
-      setLoading(checkBtn, false, '📋 Check My Assignment')
-    }
+      try { const m=raw.match(/\{[\s\S]*\}/); data=JSON.parse(m?m[0]:raw) }
+      catch { document.getElementById('gradePlaceholder').innerHTML=`<div class="placeholder-box"><div class="ph-icon">⚠️</div><p>Couldn't parse response. Try again.</p><small style="color:#ef4444">${esc(raw.slice(0,200))}</small></div>`; return }
+      renderGrade(data)
+    } catch(e) { alert('Error: '+e.message) }
+    finally { setLoading(btn, false, '📋 Check My Assignment') }
   })
 
-  function gradeClass(letter) {
-    const l = (letter||'').toUpperCase()[0]
-    return { A:'grade-A', B:'grade-B', C:'grade-C', D:'grade-D', F:'grade-F' }[l] || 'grade-C'
-  }
+  function gradeClass(l){ return {A:'grade-A',B:'grade-B',C:'grade-C',D:'grade-D',F:'grade-F'}[(l||'').toUpperCase()[0]]||'grade-C' }
 
-  function renderGradeResult(d) {
-    document.getElementById('gradePlaceholder').style.display = 'none'
-    document.getElementById('gradeResultCard').style.display = ''
-
-    document.getElementById('gradeBadges').innerHTML = `
-      <div class="grade-badge ${gradeClass(d.grade)}">
-        <div class="badge-val">${esc(d.grade||'?')}</div>
-        <div class="badge-lbl">Estimated Grade</div>
-      </div>
-      <div class="grade-badge" style="background:#f3f4f6;color:var(--text-primary);">
-        <div class="badge-val">${d.percent||'?'}%</div>
-        <div class="badge-lbl">Score</div>
-      </div>
-      <div class="grade-badge" style="background:#ede9fe;color:#5b21b6;">
-        <div class="badge-val">${d.on_task_score||'?'}%</div>
-        <div class="badge-lbl">On-Task</div>
-      </div>`
-
-    const strengths   = (d.strengths||[]).map(s=>`<li>${esc(s)}</li>`).join('')
-    const improvements= (d.improvements||[]).map(s=>`<li>${esc(s)}</li>`).join('')
-
-    document.getElementById('gradeDetail').innerHTML = `
+  function renderGrade(d) {
+    document.getElementById('gradePlaceholder').style.display='none'
+    document.getElementById('gradeResultCard').style.display=''
+    document.getElementById('gradeBadges').innerHTML=`
+      <div class="grade-badge ${gradeClass(d.grade)}"><div class="badge-val">${esc(d.grade||'?')}</div><div class="badge-lbl">Estimated Grade</div></div>
+      <div class="grade-badge" style="background:#f3f4f6;color:var(--text-primary);"><div class="badge-val">${d.percent||'?'}%</div><div class="badge-lbl">Score</div></div>
+      <div class="grade-badge" style="background:#ede9fe;color:#5b21b6;"><div class="badge-val">${d.on_task_score||'?'}%</div><div class="badge-lbl">On-Task</div></div>`
+    document.getElementById('gradeDetail').innerHTML=`
       <p style="margin-bottom:12px;"><strong>${esc(d.summary||'')}</strong></p>
-      ${d.on_task_analysis ? `<p style="margin-bottom:14px;padding:10px 14px;background:#f0fdf4;border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;">${esc(d.on_task_analysis)}</p>` : ''}
-      ${strengths ? `<p style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">✅ Strengths</p><ul style="font-size:13px;padding-left:20px;margin-bottom:12px;">${strengths}</ul>` : ''}
-      ${improvements ? `<p style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:4px;">⚠️ To Improve</p><ul style="font-size:13px;padding-left:20px;margin-bottom:12px;">${improvements}</ul>` : ''}
-      ${d.grading_breakdown ? `<p style="font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">${esc(d.grading_breakdown)}</p>` : ''}`
+      ${d.on_task_analysis?`<p style="margin-bottom:14px;padding:10px 14px;background:#f0fdf4;border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;">${esc(d.on_task_analysis)}</p>`:''}
+      ${(d.strengths||[]).length?`<p style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px;">✅ Strengths</p><ul style="font-size:13px;padding-left:20px;margin-bottom:12px;">${d.strengths.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}
+      ${(d.improvements||[]).length?`<p style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:4px;">⚠️ To Improve</p><ul style="font-size:13px;padding-left:20px;margin-bottom:12px;">${d.improvements.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}
+      ${d.grading_breakdown?`<p style="font-size:12px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">${esc(d.grading_breakdown)}</p>`:''}`
   }
 
-  /* ══════════════════════════════════════════════════════════════ */
-  /* ── AI DETECTOR ─────────────────────────────────────────────── */
-
-  const detectText = document.getElementById('detectText')
-  detectText.addEventListener('input', () => {
-    const words = detectText.value.trim().split(/\s+/).filter(Boolean).length
-    document.getElementById('detectWordCount').textContent = `${words} word${words!==1?'s':''}`
+  /* ══ AI DETECTOR ═════════════════════════════════════════════════ */
+  document.getElementById('detectText').addEventListener('input', function(){
+    const w=this.value.trim().split(/\s+/).filter(Boolean).length
+    document.getElementById('detectWordCount').textContent=`${w} word${w!==1?'s':''}`
   })
 
   document.getElementById('detectBtn').addEventListener('click', async () => {
-    const text = detectText.value.trim()
-    if (!text || text.split(/\s+/).length < 20) { alert('Please paste at least 20 words to analyze.'); return }
-    if (!checkApiKey()) return
-
-    const btn = document.getElementById('detectBtn')
-    setLoading(btn, true, '🔍 Analyze')
-    document.getElementById('detectResultCard').style.display = 'none'
-    document.getElementById('detectPlaceholder').style.display = ''
-
+    const text=document.getElementById('detectText').value.trim()
+    if(!text||text.split(/\s+/).length<20){alert('Paste at least 20 words to analyze.');return}
+    const btn=document.getElementById('detectBtn')
+    setLoading(btn,true,'🔍 Analyze')
+    document.getElementById('detectResultCard').style.display='none'
+    document.getElementById('detectPlaceholder').style.display=''
     try {
-      const system = `You are an expert AI-text detection analyst. Analyze the writing style, patterns, vocabulary, sentence structure, and other indicators. Return ONLY this JSON:
-{
-  "ai_probability": 78,
-  "verdict": "Likely AI",
-  "confidence": "High",
-  "signals": ["signal 1", "signal 2", "signal 3"],
-  "human_signals": ["human-like trait 1"],
-  "explanation": "2-3 sentences explaining your reasoning."
-}
-verdict must be one of: "Human Written", "Possibly AI", "Likely AI", "Almost Certainly AI".
-ai_probability is 0-100. Be honest and nuanced.`
-
-      const prompt = `Analyze this text for AI authorship:\n\n${text}`
-      const raw = await callAI(system, prompt)
-      if (!raw) return
-
+      const system=`You are an expert AI-text detection analyst. Return ONLY this JSON:
+{"ai_probability":78,"verdict":"Likely AI","confidence":"High","signals":["s1","s2","s3"],"human_signals":["h1"],"explanation":"2-3 sentences."}`
+      const raw=await callAI(system,`Analyze for AI authorship:\n\n${text}`)
+      if(!raw)return
       let data
-      try {
-        const jsonMatch = raw.match(/\{[\s\S]*\}/)
-        data = JSON.parse(jsonMatch ? jsonMatch[0] : raw)
-      } catch {
-        alert('Could not parse AI response. Try again.')
-        return
-      }
-
-      renderDetectResult(data)
-    } catch(e) {
-      alert('Error: ' + e.message)
-    } finally {
-      setLoading(btn, false, '🔍 Analyze')
-    }
+      try{const m=raw.match(/\{[\s\S]*\}/);data=JSON.parse(m?m[0]:raw)}
+      catch{alert('Could not parse response. Try again.');return}
+      renderDetect(data)
+    } catch(e){alert('Error: '+e.message)}
+    finally{setLoading(btn,false,'🔍 Analyze')}
   })
 
-  function renderDetectResult(d) {
-    document.getElementById('detectPlaceholder').style.display = 'none'
-    document.getElementById('detectResultCard').style.display = ''
-
-    const pct   = Math.min(100, Math.max(0, d.ai_probability || 0))
-    const color = pct < 30 ? '#22c55e' : pct < 60 ? '#f59e0b' : '#ef4444'
-    const chipBg = pct < 30 ? '#d1fae5' : pct < 60 ? '#fef3c7' : '#fee2e2'
-    const chipColor = pct < 30 ? '#065f46' : pct < 60 ? '#92400e' : '#7f1d1d'
-
-    document.getElementById('scoreFill').style.width = pct + '%'
-    document.getElementById('scoreFill').style.background = color
-    document.getElementById('scoreVal').textContent = pct + '%'
-    document.getElementById('scoreVal').style.color = color
-
-    document.getElementById('verdictChip').innerHTML = `
-      <span class="verdict-chip" style="background:${chipBg};color:${chipColor};">
-        ${pct < 30 ? '✅' : pct < 60 ? '⚠️' : '🤖'} ${esc(d.verdict||'')}
-        ${d.confidence ? `<span style="opacity:.7;font-weight:400;">· ${esc(d.confidence)} confidence</span>` : ''}
-      </span>`
-
-    const aiSigs  = (d.signals||[]).map(s=>`<li>${esc(s)}</li>`).join('')
-    const humSigs = (d.human_signals||[]).map(s=>`<li>${esc(s)}</li>`).join('')
-
-    document.getElementById('detectDetail').innerHTML = `
-      ${d.explanation ? `<p style="margin-bottom:14px;">${esc(d.explanation)}</p>` : ''}
-      ${aiSigs ? `<p style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:4px;">🤖 AI Signals</p><ul style="font-size:13px;padding-left:20px;margin-bottom:12px;">${aiSigs}</ul>` : ''}
-      ${humSigs ? `<p style="font-size:12px;font-weight:700;color:#22c55e;margin-bottom:4px;">✅ Human Signals</p><ul style="font-size:13px;padding-left:20px;">${humSigs}</ul>` : ''}`
+  function renderDetect(d){
+    document.getElementById('detectPlaceholder').style.display='none'
+    document.getElementById('detectResultCard').style.display=''
+    const pct=Math.min(100,Math.max(0,d.ai_probability||0))
+    const color=pct<30?'#22c55e':pct<60?'#f59e0b':'#ef4444'
+    const chipBg=pct<30?'#d1fae5':pct<60?'#fef3c7':'#fee2e2'
+    const chipTx=pct<30?'#065f46':pct<60?'#92400e':'#7f1d1d'
+    document.getElementById('scoreFill').style.cssText=`width:${pct}%;background:${color}`
+    document.getElementById('scoreVal').style.color=color
+    document.getElementById('scoreVal').textContent=pct+'%'
+    document.getElementById('verdictChip').innerHTML=`<span class="verdict-chip" style="background:${chipBg};color:${chipTx};">${pct<30?'✅':pct<60?'⚠️':'🤖'} ${esc(d.verdict||'')}${d.confidence?` <span style="opacity:.7;font-weight:400;">· ${esc(d.confidence)} confidence</span>`:''}</span>`
+    document.getElementById('detectDetail').innerHTML=`
+      ${d.explanation?`<p style="margin-bottom:14px;">${esc(d.explanation)}</p>`:''}
+      ${(d.signals||[]).length?`<p style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:4px;">🤖 AI Signals</p><ul style="font-size:13px;padding-left:20px;margin-bottom:12px;">${d.signals.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}
+      ${(d.human_signals||[]).length?`<p style="font-size:12px;font-weight:700;color:#22c55e;margin-bottom:4px;">✅ Human Signals</p><ul style="font-size:13px;padding-left:20px;">${d.human_signals.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}`
   }
 
-  /* ══════════════════════════════════════════════════════════════ */
-  /* ── HUMANIZER ───────────────────────────────────────────────── */
-
-  async function runHumanize() {
-    const text = document.getElementById('humanInput').value.trim()
-    const tone = document.getElementById('humanTone').value
-    if (!text) { alert('Paste some text to humanize first.'); return }
-    if (!checkApiKey()) return
-
-    const btn = document.getElementById('humanBtn')
-    setLoading(btn, true, '✍️ Humanize')
-    document.getElementById('humanResultCard').style.display = 'none'
-    document.getElementById('humanPlaceholder').style.display = ''
-
-    const toneGuides = {
-      casual: 'Write like a regular student: contractions, occasional filler words, natural flow. Imperfect but clear.',
-      academic: 'Write formally but naturally — no robotic phrasing. Vary sentence length. Sound like a smart human student.',
-      conversational: 'Friendly and direct. Short sentences mix with longer ones. Uses "I" naturally.',
-      teenager: 'Gen Z student voice. Casual, slightly informal, genuine. May start sentences with "so" or "honestly". Natural imperfections.',
-    }
-
-    const system = `You are an expert writing editor. Rewrite the provided text so it sounds unmistakably human-written.
-Tone: ${toneGuides[tone] || toneGuides.casual}
-Rules:
-- Vary sentence length significantly (short punchy ones mixed with longer complex ones)
-- Replace AI clichés ("delve into", "it is worth noting", "furthermore", "in conclusion") with natural transitions
-- Add slight imperfections humans make: occasional sentence fragments, informal transitions, genuine voice
-- Keep all the original facts and meaning — only change how it sounds
-- Do NOT add any commentary or explanation — return ONLY the rewritten text`
-
-    try {
-      const result = await callAI(system, `Rewrite this text:\n\n${text}`)
-      if (!result) return
-
-      document.getElementById('humanPlaceholder').style.display = 'none'
-      document.getElementById('humanResultCard').style.display = ''
-      document.getElementById('humanOutput').textContent = result
-    } catch(e) {
-      alert('Error: ' + e.message)
-    } finally {
-      setLoading(btn, false, '✍️ Humanize')
-    }
+  /* ══ HUMANIZER ═══════════════════════════════════════════════════ */
+  async function runHumanize(){
+    const text=document.getElementById('humanInput').value.trim()
+    const tone=document.getElementById('humanTone').value
+    if(!text){alert('Paste some text to humanize first.');return}
+    const btn=document.getElementById('humanBtn')
+    setLoading(btn,true,'✍️ Humanize')
+    document.getElementById('humanResultCard').style.display='none'
+    document.getElementById('humanPlaceholder').style.display=''
+    const tones={casual:'Write like a regular student: contractions, natural flow, slight imperfections.',academic:'Formally but naturally — vary sentence length, sound like a smart human.',conversational:'Friendly and direct. Mix short and long sentences. Use "I" naturally.',teenager:'Gen Z student voice. Casual, genuine. May use "so" or "honestly". Natural imperfections.'}
+    try{
+      const result=await callAI(`Rewrite the text to sound unmistakably human. Tone: ${tones[tone]||tones.casual}. Replace AI clichés. Vary sentence length. Keep all facts. Return ONLY the rewritten text, no commentary.`,`Rewrite:\n\n${text}`)
+      if(!result)return
+      document.getElementById('humanPlaceholder').style.display='none'
+      document.getElementById('humanResultCard').style.display=''
+      document.getElementById('humanOutput').textContent=result
+    }catch(e){alert('Error: '+e.message)}
+    finally{setLoading(btn,false,'✍️ Humanize')}
   }
-
-  document.getElementById('humanBtn').addEventListener('click', runHumanize)
-  document.getElementById('rehumanBtn').addEventListener('click', runHumanize)
-
-  document.getElementById('copyHumanBtn').addEventListener('click', () => {
-    const text = document.getElementById('humanOutput').textContent
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('copyHumanBtn')
-      btn.textContent = 'Copied ✓'
-      setTimeout(() => btn.textContent = 'Copy', 1800)
+  document.getElementById('humanBtn').addEventListener('click',runHumanize)
+  document.getElementById('rehumanBtn').addEventListener('click',runHumanize)
+  document.getElementById('copyHumanBtn').addEventListener('click',()=>{
+    navigator.clipboard.writeText(document.getElementById('humanOutput').textContent).then(()=>{
+      const b=document.getElementById('copyHumanBtn');b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy',1800)
     })
   })
 })()

@@ -1,0 +1,447 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  .writer-shell {
+    display:flex; gap:16px;
+    height:calc(100vh - 160px); min-height:500px;
+  }
+
+  /* ── Editor column ── */
+  .writer-main { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+  .writer-toolbar {
+    display:flex; gap:4px; flex-wrap:wrap; align-items:center;
+    padding:8px 10px; background:#f9fafb;
+    border:1.5px solid var(--border); border-bottom:none;
+    border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  }
+  .tb-btn {
+    width:30px; height:30px; border:1.5px solid var(--border); border-radius:6px;
+    background:#fff; cursor:pointer; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .12s; font-family:var(--font); color:var(--text-primary);
+  }
+  .tb-btn:hover { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+  .tb-btn.active { background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+  .tb-sep { width:1px; background:var(--border); margin:4px 2px; align-self:stretch; }
+  .tb-title {
+    flex:1; min-width:120px; border:none; outline:none; background:transparent;
+    font-family:var(--font); font-size:14px; font-weight:600; color:var(--text-primary);
+    padding:0 8px;
+  }
+  .tb-title::placeholder { color:var(--text-secondary); font-weight:400; }
+  .word-count { font-size:11px; color:var(--text-secondary); padding:0 8px; white-space:nowrap; }
+
+  .writer-body {
+    flex:1; padding:24px 28px; overflow-y:auto;
+    border:1.5px solid var(--border); border-radius:0 0 var(--radius-sm) var(--radius-sm);
+    font-family:Georgia, 'Times New Roman', serif;
+    font-size:15px; line-height:1.85; color:var(--text-primary);
+    outline:none; background:#fff;
+    caret-color:var(--accent);
+  }
+  .writer-body:empty::before {
+    content:attr(data-placeholder); color:#9ca3af; pointer-events:none;
+    font-family:var(--font); font-size:14px;
+  }
+  .writer-body h1 { font-size:22px; margin:.5em 0 .3em; }
+  .writer-body h2 { font-size:18px; margin:.5em 0 .3em; }
+  .writer-body p  { margin:.3em 0; }
+  .writer-body ul, .writer-body ol { padding-left:1.6em; margin:.4em 0; }
+  .writer-body blockquote { border-left:3px solid var(--accent); margin:.5em 0; padding:.3em .9em; color:var(--text-secondary); background:var(--accent-light); border-radius:0 4px 4px 0; }
+  .writer-body .ai-ghost { color:#9ca3af; font-style:italic; }
+
+  /* ── AI sidebar ── */
+  .writer-sidebar {
+    width:240px; flex-shrink:0; display:flex; flex-direction:column; gap:12px;
+  }
+
+  .ai-panel { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; }
+  .ai-panel-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-secondary); margin-bottom:10px; }
+
+  .ai-action-btn {
+    width:100%; text-align:left; padding:8px 12px; margin-bottom:6px;
+    border:1.5px solid var(--border); border-radius:8px;
+    background:#fff; cursor:pointer; font-family:var(--font); font-size:13px;
+    color:var(--text-primary); display:flex; align-items:center; gap:8px;
+    transition:all .15s;
+  }
+  .ai-action-btn:last-child { margin-bottom:0; }
+  .ai-action-btn:hover { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+  .ai-action-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .ai-action-btn .btn-icon { font-size:15px; }
+
+  .ai-response-box {
+    background:#f0fdf4; border:1px solid rgba(42,122,90,.2);
+    border-radius:8px; padding:12px; font-size:13px; line-height:1.6;
+    color:var(--text-primary); white-space:pre-wrap; display:none;
+    max-height:260px; overflow-y:auto;
+  }
+  .ai-response-box.visible { display:block; }
+
+  .ai-response-actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; display:none; }
+  .ai-response-actions.visible { display:flex; }
+
+  .tone-select {
+    width:100%; padding:6px 8px; border:1.5px solid var(--border); border-radius:6px;
+    font-family:var(--font); font-size:12px; background:#fff;
+    color:var(--text-primary); outline:none; margin-bottom:8px;
+  }
+  .tone-select:focus { border-color:var(--accent); }
+
+  .key-bar { display:flex; flex-direction:column; gap:6px; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 12px; }
+  .key-bar.hidden { display:none; }
+  .key-bar-label { font-size:11px; font-weight:700; color:#92400e; }
+  .key-bar input { border:1px solid #fcd34d; border-radius:6px; padding:6px 8px; font-family:inherit; font-size:12px; background:#fffbeb; outline:none; width:100%; box-sizing:border-box; }
+  .key-bar select { border:1px solid #fcd34d; border-radius:6px; padding:5px 6px; font-family:inherit; font-size:12px; background:#fffbeb; outline:none; width:100%; }
+
+  .saved-list { display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; }
+  .saved-item { padding:8px 10px; border:1px solid var(--border); border-radius:6px; cursor:pointer; font-size:12px; background:#fff; transition:border-color .12s; }
+  .saved-item:hover { border-color:var(--accent); }
+  .saved-item-title { font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .saved-item-meta { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+
+  .spinner { display:inline-block; width:12px; height:12px; border:2px solid rgba(42,122,90,.3); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+
+<div class="page-header" style="margin-bottom:14px;">
+  <div class="page-title">AI Writer</div>
+  <div class="page-subtitle">Write freely — ask the AI to continue, improve, or rephrase anything.</div>
+</div>
+
+<div class="writer-shell">
+
+  <!-- ── Main editor ── -->
+  <div class="writer-main">
+    <div class="writer-toolbar">
+      <input class="tb-title" id="docTitle" placeholder="Untitled document…" />
+      <div class="tb-sep"></div>
+      <button class="tb-btn" data-cmd="bold"          title="Bold"><b>B</b></button>
+      <button class="tb-btn" data-cmd="italic"        title="Italic"><i>I</i></button>
+      <button class="tb-btn" data-cmd="underline"     title="Underline"><u>U</u></button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" data-cmd="insertUnorderedList" title="Bullet list">• ≡</button>
+      <button class="tb-btn" data-cmd="insertOrderedList"   title="Numbered list">1 ≡</button>
+      <button class="tb-btn" data-cmd="formatBlock" data-val="blockquote" title="Quote">❝</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" data-cmd="formatBlock" data-val="h1" title="Heading 1">H1</button>
+      <button class="tb-btn" data-cmd="formatBlock" data-val="h2" title="Heading 2">H2</button>
+      <button class="tb-btn" data-cmd="removeFormat" title="Clear format">✕</button>
+      <div class="tb-sep"></div>
+      <span class="word-count" id="wordCount">0 words</span>
+    </div>
+    <div
+      class="writer-body"
+      id="writerBody"
+      contenteditable="true"
+      data-placeholder="Start writing here… or pick an AI action on the right to get started.">
+    </div>
+  </div>
+
+  <!-- ── AI sidebar ── -->
+  <div class="writer-sidebar">
+
+    <!-- Key setup (shown when no key) -->
+    <div class="key-bar" id="keyBar">
+      <div class="key-bar-label">🔑 API Key needed</div>
+      <select id="kbProvider">
+        <option value="gemini">Gemini</option>
+        <option value="anthropic">Claude</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input type="password" id="kbInput" placeholder="Paste key…" autocomplete="off"/>
+      <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:5px 10px;">Save</button>
+    </div>
+
+    <!-- AI actions -->
+    <div class="ai-panel">
+      <div class="ai-panel-title">✨ AI Actions</div>
+
+      <button class="ai-action-btn" id="btnContinue">
+        <span class="btn-icon">▶️</span> Continue writing
+      </button>
+      <button class="ai-action-btn" id="btnImprove">
+        <span class="btn-icon">✨</span> Improve selection
+      </button>
+      <button class="ai-action-btn" id="btnShorter">
+        <span class="btn-icon">✂️</span> Make shorter
+      </button>
+      <button class="ai-action-btn" id="btnLonger">
+        <span class="btn-icon">📝</span> Expand / make longer
+      </button>
+      <button class="ai-action-btn" id="btnFix">
+        <span class="btn-icon">🔧</span> Fix grammar &amp; spelling
+      </button>
+
+      <div class="tb-sep" style="width:100%;height:1px;margin:10px 0;"></div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">CHANGE TONE TO</div>
+      <select class="tone-select" id="toneSelect">
+        <option value="formal">Formal / academic</option>
+        <option value="casual">Casual / friendly</option>
+        <option value="persuasive">Persuasive</option>
+        <option value="professional">Professional</option>
+        <option value="simple">Simple / easy to read</option>
+      </select>
+      <button class="ai-action-btn" id="btnTone" style="margin-bottom:0;">
+        <span class="btn-icon">🎨</span> Apply tone
+      </button>
+    </div>
+
+    <!-- AI response preview -->
+    <div class="ai-panel" id="responsePanel" style="display:none;">
+      <div class="ai-panel-title" id="responsePanelTitle">AI Suggestion</div>
+      <div id="spinnerWrap" style="text-align:center;padding:20px;display:none;"><div class="spinner"></div></div>
+      <div class="ai-response-box" id="aiResponseBox"></div>
+      <div class="ai-response-actions" id="aiResponseActions">
+        <button class="btn btn-primary" id="btnInsert" style="font-size:12px;padding:6px 12px;">Insert</button>
+        <button class="btn btn-ghost"  id="btnReplace" style="font-size:12px;padding:6px 12px;">Replace</button>
+        <button class="btn btn-ghost"  id="btnDiscard" style="font-size:12px;padding:6px 12px;">Discard</button>
+      </div>
+    </div>
+
+    <!-- Saved docs -->
+    <div class="ai-panel" style="flex:1;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="ai-panel-title" style="margin:0;">💾 Saved Docs</div>
+        <button class="btn btn-ghost" id="btnSave" style="font-size:11px;padding:4px 10px;">Save</button>
+      </div>
+      <div class="saved-list" id="savedList">
+        <div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0;">No saved docs yet.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+;(function(){
+  const body      = document.getElementById('writerBody')
+  const titleInput= document.getElementById('docTitle')
+  const wordCount = document.getElementById('wordCount')
+
+  /* ── Key bar ── */
+  function getApiCfg() {
+    const provider = localStorage.getItem('ai_provider') || 'gemini'
+    const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
+    const model    = localStorage.getItem('ai_model_' + provider) ||
+      (provider==='gemini'?'gemini-2.0-flash':provider==='anthropic'?'claude-haiku-4-5-20251001':'gpt-4o-mini')
+    return { provider, apiKey, model }
+  }
+  function refreshKeyBar() {
+    const { apiKey, provider } = getApiCfg()
+    document.getElementById('keyBar').classList.toggle('hidden', !!apiKey)
+    document.getElementById('kbProvider').value = provider
+  }
+  refreshKeyBar()
+  document.getElementById('kbSaveBtn').addEventListener('click', () => {
+    const key = document.getElementById('kbInput').value.trim(); if(!key)return
+    const p = document.getElementById('kbProvider').value
+    localStorage.setItem('ai_provider', p); localStorage.setItem('ai_key_'+p, key)
+    document.getElementById('kbInput').value = ''
+    refreshKeyBar()
+    document.getElementById('kbSaveBtn').textContent = '✓'
+    setTimeout(()=>document.getElementById('kbSaveBtn').textContent='Save',1500)
+  })
+
+  /* ── Toolbar ── */
+  document.querySelector('.writer-toolbar').addEventListener('click', e => {
+    const btn = e.target.closest('.tb-btn[data-cmd]'); if(!btn)return
+    e.preventDefault(); body.focus()
+    document.execCommand(btn.dataset.cmd, false, btn.dataset.val||null)
+    updateToolbar()
+  })
+  function updateToolbar() {
+    ['bold','italic','underline'].forEach(cmd => {
+      const b = document.querySelector(`.tb-btn[data-cmd="${cmd}"]`)
+      if(b) b.classList.toggle('active', document.queryCommandState(cmd))
+    })
+  }
+  body.addEventListener('keyup', updateToolbar)
+  body.addEventListener('mouseup', updateToolbar)
+
+  body.addEventListener('keydown', e => {
+    if(e.key==='Tab'){e.preventDefault();document.execCommand('insertHTML',false,'&nbsp;&nbsp;&nbsp;&nbsp;')}
+  })
+
+  /* ── Word count ── */
+  function refreshWordCount() {
+    const text = body.innerText||''
+    const w = text.trim().split(/\s+/).filter(Boolean).length
+    wordCount.textContent = `${w} word${w!==1?'s':''}`
+  }
+  body.addEventListener('input', refreshWordCount)
+
+  /* ── Selection helper ── */
+  function getSelectedText() {
+    const sel = window.getSelection(); if(!sel||!sel.rangeCount)return ''
+    return sel.toString().trim()
+  }
+  let savedRange = null
+  function saveRange() {
+    const sel = window.getSelection()
+    savedRange = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null
+  }
+  function restoreRange() {
+    if(!savedRange)return
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange)
+  }
+  body.addEventListener('mouseup', saveRange)
+  body.addEventListener('keyup', saveRange)
+
+  /* ── AI call ── */
+  async function callAI(system, user) {
+    const { provider, apiKey, model } = getApiCfg()
+    if(!apiKey){alert('Enter your API key in the sidebar first.');return null}
+    const res = await window.api.askAI({provider,apiKey,model,systemPrompt:system,messages:[{role:'user',content:user}]})
+    if(res.error) throw new Error(res.error)
+    return res.reply
+  }
+
+  /* ── Response panel ── */
+  let lastReply = ''
+  function showResponse(title, text) {
+    lastReply = text
+    const panel = document.getElementById('responsePanel')
+    panel.style.display = ''
+    document.getElementById('responsePanelTitle').textContent = title
+    document.getElementById('spinnerWrap').style.display = 'none'
+    const box = document.getElementById('aiResponseBox')
+    box.textContent = text; box.classList.add('visible')
+    document.getElementById('aiResponseActions').classList.add('visible')
+  }
+  function showSpinner(title) {
+    const panel = document.getElementById('responsePanel')
+    panel.style.display = ''
+    document.getElementById('responsePanelTitle').textContent = title
+    document.getElementById('spinnerWrap').style.display = 'block'
+    document.getElementById('aiResponseBox').classList.remove('visible')
+    document.getElementById('aiResponseActions').classList.remove('visible')
+  }
+
+  /* ── Insert / Replace / Discard ── */
+  document.getElementById('btnInsert').addEventListener('click', () => {
+    body.focus(); restoreRange()
+    const sel = window.getSelection()
+    if(sel && sel.rangeCount) {
+      const range = sel.getRangeAt(0); range.collapse(false)
+      const node = document.createTextNode('\n\n'+lastReply); range.insertNode(node)
+      range.setStartAfter(node); range.collapse(true)
+      sel.removeAllRanges(); sel.addRange(range)
+    } else {
+      body.innerText += '\n\n'+lastReply
+    }
+    document.getElementById('responsePanel').style.display='none'
+    refreshWordCount()
+  })
+  document.getElementById('btnReplace').addEventListener('click', () => {
+    body.focus(); restoreRange()
+    document.execCommand('insertText', false, lastReply)
+    document.getElementById('responsePanel').style.display='none'
+    refreshWordCount()
+  })
+  document.getElementById('btnDiscard').addEventListener('click', () => {
+    document.getElementById('responsePanel').style.display='none'
+  })
+
+  /* ── AI actions ── */
+  async function runAction(id) {
+    const fullText = body.innerText||''
+    const selected = getSelectedText()
+
+    const actions = {
+      btnContinue: {
+        title:'▶️ Continue writing…',
+        system:'You are a writing assistant. Continue the document naturally. Match the existing tone, style, and voice exactly. Write 2-4 more paragraphs. Return ONLY the new text to append, no commentary.',
+        user: `Continue this document:\n\n${fullText}`,
+      },
+      btnImprove: {
+        title:'✨ Improving…',
+        system:'You are a writing editor. Improve the given text: better word choice, clearer sentences, stronger flow. Keep the meaning identical. Return ONLY the improved text.',
+        user: selected || fullText,
+      },
+      btnShorter: {
+        title:'✂️ Making shorter…',
+        system:'Condense the text to about half the length. Keep all key points. Return ONLY the shortened text.',
+        user: selected || fullText,
+      },
+      btnLonger: {
+        title:'📝 Expanding…',
+        system:'Expand the text with more detail, examples, and explanation. Double the length approximately. Return ONLY the expanded text.',
+        user: selected || fullText,
+      },
+      btnFix: {
+        title:'🔧 Fixing grammar…',
+        system:'Fix all grammar, spelling, and punctuation errors. Do not change the meaning or style. Return ONLY the corrected text.',
+        user: selected || fullText,
+      },
+      btnTone: {
+        title:'🎨 Changing tone…',
+        system:`Rewrite the text in a ${document.getElementById('toneSelect').value} tone. Keep the content and meaning. Return ONLY the rewritten text.`,
+        user: selected || fullText,
+      },
+    }
+
+    const action = actions[id]; if(!action)return
+    if(!fullText.trim()&&!selected){alert('Write something first.');return}
+
+    showSpinner(action.title)
+    const allBtns = document.querySelectorAll('.ai-action-btn')
+    allBtns.forEach(b=>b.disabled=true)
+
+    try {
+      const reply = await callAI(action.system, action.user)
+      if(reply) showResponse(action.title.replace('…',''), reply)
+      else document.getElementById('responsePanel').style.display='none'
+    } catch(e) {
+      document.getElementById('responsePanel').style.display='none'
+      alert('Error: '+e.message)
+    } finally {
+      allBtns.forEach(b=>b.disabled=false)
+    }
+  }
+
+  ['btnContinue','btnImprove','btnShorter','btnLonger','btnFix','btnTone'].forEach(id => {
+    document.getElementById(id).addEventListener('click', ()=>runAction(id))
+  })
+
+  /* ── Save / load docs ── */
+  document.getElementById('btnSave').addEventListener('click', () => {
+    const html  = body.innerHTML.trim()
+    const title = titleInput.value.trim() || 'Untitled'
+    if(!html||html==='<br>'){alert('Nothing to save.');return}
+    const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+    const date = new Date().toISOString().slice(0,10)
+    const existing = docs.findIndex(d=>d.title===title)
+    if(existing>=0) docs[existing]={title,html,date}
+    else docs.unshift({title,html,date})
+    localStorage.setItem('ai_writer_docs', JSON.stringify(docs.slice(0,30)))
+    renderSaved()
+    document.getElementById('btnSave').textContent='Saved ✓'
+    setTimeout(()=>document.getElementById('btnSave').textContent='Save',1500)
+  })
+
+  function renderSaved(){
+    const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+    const list = document.getElementById('savedList')
+    if(!docs.length){list.innerHTML='<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0;">No saved docs yet.</div>';return}
+    list.innerHTML = docs.map((d,i)=>`
+      <div class="saved-item" onclick="loadDoc(${i})">
+        <div class="saved-item-title">${esc(d.title)}</div>
+        <div class="saved-item-meta">${esc(d.date)}</div>
+      </div>`).join('')
+  }
+
+  window.loadDoc = (i) => {
+    const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+    const d = docs[i]; if(!d)return
+    titleInput.value = d.title
+    body.innerHTML = d.html
+    refreshWordCount()
+  }
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+  renderSaved()
+})()
+</script>
