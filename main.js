@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Mr_Pythoneer — MIT License
 const {
   app, BrowserWindow, ipcMain, shell,
   Notification, desktopCapturer,

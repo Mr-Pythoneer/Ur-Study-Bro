@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Mr_Pythoneer — MIT License
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
