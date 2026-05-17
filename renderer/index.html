@@ -268,14 +268,14 @@ function saveAccounts(accounts) {
 }
 
 // ── Per-account data key helper (used by all pages) ───────────────
-window.csKey = (key) => `cs_${sessionStorage.getItem('cs_currentUser')}_${key}`
+window.csKey = (key) => `cs_${localStorage.getItem('cs_currentUser')}_${key}`
 window.csGet = (key) => localStorage.getItem(window.csKey(key))
 window.csSet = (key, val) => localStorage.setItem(window.csKey(key), val)
 window.csGetJSON = (key, fallback = []) => JSON.parse(window.csGet(key) || JSON.stringify(fallback))
 window.csSetJSON = (key, val) => window.csSet(key, JSON.stringify(val))
 
 // ── Current user ──────────────────────────────────────────────────
-function currentUser() { return sessionStorage.getItem('cs_currentUser') }
+function currentUser() { return localStorage.getItem('cs_currentUser') }
 
 // ── Auth tab switching ────────────────────────────────────────────
 function switchAuthTab(tab) {
@@ -377,7 +377,7 @@ function showAuthError(el, msg) {
 
 // ── Launch app after auth ─────────────────────────────────────────
 function launchApp(username) {
-  sessionStorage.setItem('cs_currentUser', username)
+  localStorage.setItem('cs_currentUser', username)
   document.getElementById('auth-overlay').classList.add('hidden')
   document.getElementById('app-shell').style.display = 'flex'
   document.getElementById('topbar-username').textContent = username
@@ -389,7 +389,7 @@ function launchApp(username) {
 function doSignOut() {
   stopScheduler()
   _notifiedEvents.clear()
-  sessionStorage.removeItem('cs_currentUser')
+  localStorage.removeItem('cs_currentUser')
   document.getElementById('auth-overlay').classList.remove('hidden')
   document.getElementById('app-shell').style.display = 'none'
   document.getElementById('content').innerHTML = ''

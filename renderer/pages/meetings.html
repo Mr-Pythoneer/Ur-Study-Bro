@@ -479,18 +479,23 @@
   stopBtn.addEventListener('click',  stopRecording)
 
   async function startRecording() {
-    if (!selectedSourceId) { alert('Please select a screen or window source first.'); return }
     try {
-      recStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          mandatory: {
-            chromeMediaSource: 'desktop',
-            chromeMediaSourceId: selectedSourceId,
-            maxWidth: 1920, maxHeight: 1080,
+      if (selectedSourceId) {
+        // Use the source selected from our thumbnail picker
+        recStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: selectedSourceId,
+              maxWidth: 1920, maxHeight: 1080,
+            }
           }
-        }
-      })
+        })
+      } else {
+        // Fall back to OS screen picker (also works via setDisplayMediaRequestHandler)
+        recStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      }
       preview.srcObject = recStream
       preview.classList.add('visible')
 

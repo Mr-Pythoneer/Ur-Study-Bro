@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Mr_Pythoneer — MIT License
 const {
   app, BrowserWindow, ipcMain, shell,
-  Notification, desktopCapturer,
+  Notification, desktopCapturer, session,
 } = require('electron')
 const path = require('path')
 const fs   = require('fs')
@@ -12,6 +12,13 @@ const { simpleParser } = require('mailparser')
 
 // ── Window factory ────────────────────────────────────────────────
 function createWindow() {
+  // Allow renderer to call getUserMedia with desktop sources (Electron 22+)
+  session.defaultSession.setDisplayMediaRequestHandler((_req, callback) => {
+    desktopCapturer.getSources({ types: ['screen', 'window'] }).then(sources => {
+      callback({ video: sources[0] })
+    }).catch(() => callback({}))
+  })
+
   const win = new BrowserWindow({
     width: 1200, height: 800, minWidth: 900, minHeight: 600,
     titleBarStyle: 'hiddenInset',
