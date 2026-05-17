@@ -143,7 +143,7 @@
 
     <!-- Key setup (shown when no key) -->
     <div class="key-bar" id="keyBar">
-      <div class="key-bar-label">🔑 API Key needed</div>
+      <div class="key-bar-label">API Key</div>
       <select id="kbProvider">
         <option value="gemini">Gemini</option>
         <option value="anthropic">Claude</option>
@@ -155,22 +155,22 @@
 
     <!-- AI actions -->
     <div class="ai-panel">
-      <div class="ai-panel-title">✨ AI Actions</div>
+      <div class="ai-panel-title">AI Actions</div>
 
       <button class="ai-action-btn" id="btnContinue">
-        <span class="btn-icon">▶️</span> Continue writing
+        Continue writing
       </button>
       <button class="ai-action-btn" id="btnImprove">
-        <span class="btn-icon">✨</span> Improve selection
+        Improve
       </button>
       <button class="ai-action-btn" id="btnShorter">
-        <span class="btn-icon">✂️</span> Make shorter
+        Shorten
       </button>
       <button class="ai-action-btn" id="btnLonger">
-        <span class="btn-icon">📝</span> Expand / make longer
+        Expand
       </button>
       <button class="ai-action-btn" id="btnFix">
-        <span class="btn-icon">🔧</span> Fix grammar &amp; spelling
+        Fix grammar
       </button>
 
       <div class="tb-sep" style="width:100%;height:1px;margin:10px 0;"></div>
@@ -184,24 +184,24 @@
         <option value="simple">Simple / easy to read</option>
       </select>
       <button class="ai-action-btn" id="btnTone" style="margin-bottom:0;">
-        <span class="btn-icon">🎨</span> Apply tone
+        Apply tone
       </button>
 
       <div class="tb-sep" style="width:100%;height:1px;margin:10px 0;"></div>
       <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">TOOLS</div>
 
       <button class="ai-action-btn" id="btnELI5">
-        <span class="btn-icon">🧠</span> Simplify concept
+        Simplify
       </button>
 
       <button class="ai-action-btn" id="btnCite" style="margin-bottom:0;">
-        <span class="btn-icon">📚</span> Cite source
+        Cite source
       </button>
     </div>
 
     <!-- Citation panel -->
     <div class="ai-panel" id="citePanel" style="display:none;">
-      <div class="ai-panel-title">📚 Citation Generator</div>
+      <div class="ai-panel-title">Citation Generator</div>
       <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">Style</div>
       <select class="tone-select" id="citeStyle">
         <option value="APA">APA 7th edition</option>
@@ -238,7 +238,7 @@
     <!-- Saved docs -->
     <div class="ai-panel" style="flex:1;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div class="ai-panel-title" style="margin:0;">💾 Saved Docs</div>
+        <div class="ai-panel-title" style="margin:0;">Saved Docs</div>
         <button class="btn btn-ghost" id="btnSave" style="font-size:11px;padding:4px 10px;">Save</button>
       </div>
       <div class="saved-list" id="savedList">
@@ -386,37 +386,37 @@
 
     const actions = {
       btnContinue: {
-        title:'▶️ Continue writing…',
+        title:'Continue writing…',
         system:'You are a writing assistant. Continue the document naturally. Match the existing tone, style, and voice exactly. Write 2-4 more paragraphs. Return ONLY the new text to append, no commentary.',
         user: `Continue this document:\n\n${fullText}`,
       },
       btnImprove: {
-        title:'✨ Improving…',
+        title:'Improving…',
         system:'You are a writing editor. Improve the given text: better word choice, clearer sentences, stronger flow. Keep the meaning identical. Return ONLY the improved text.',
         user: selected || fullText,
       },
       btnShorter: {
-        title:'✂️ Making shorter…',
+        title:'Making shorter…',
         system:'Condense the text to about half the length. Keep all key points. Return ONLY the shortened text.',
         user: selected || fullText,
       },
       btnLonger: {
-        title:'📝 Expanding…',
+        title:'Expanding…',
         system:'Expand the text with more detail, examples, and explanation. Double the length approximately. Return ONLY the expanded text.',
         user: selected || fullText,
       },
       btnFix: {
-        title:'🔧 Fixing grammar…',
+        title:'Fixing grammar…',
         system:'Fix all grammar, spelling, and punctuation errors. Do not change the meaning or style. Return ONLY the corrected text.',
         user: selected || fullText,
       },
       btnTone: {
-        title:'🎨 Changing tone…',
+        title:'Changing tone…',
         system:`Rewrite the text in a ${document.getElementById('toneSelect').value} tone. Keep the content and meaning. Return ONLY the rewritten text.`,
         user: selected || fullText,
       },
       btnELI5: {
-        title:'🧠 Simplifying…',
+        title:'Simplifying…',
         system:'You are a brilliant teacher. Explain the given text as simply as possible using plain language, a relatable analogy, and short sentences — like explaining to a curious 12-year-old. Return ONLY the simplified explanation.',
         user: selected || fullText,
       },

@@ -1,10 +1,5 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
 <style>
-  /* ── Tabs ─────────────────────────────────────────────────── */
-  .page-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:4px; margin-bottom:20px; }
-  .page-tab { flex:1; padding:8px 14px; border:none; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
-  .page-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.10); }
-
   /* ── Records tab ──────────────────────────────────────────── */
   .filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
   .filter-bar input, .filter-bar select { padding:7px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:var(--font); font-size:13px; outline:none; }
@@ -96,10 +91,10 @@
 </div>
 
 <div class="page-tabs">
-  <button class="page-tab active" id="tab-records" onclick="showTab('records')">📋 Session Log</button>
-  <button class="page-tab"        id="tab-record"  onclick="showTab('record')">🔴 Screen Record</button>
-  <button class="page-tab"        id="tab-notes"   onclick="showTab('notes')">✏️ Meeting Notes</button>
-  <button class="page-tab"        id="tab-audio"   onclick="showTab('audio')">🎙 Lecture Audio</button>
+  <button class="page-tab active" id="tab-records" onclick="showTab('records')">Session Log</button>
+  <button class="page-tab"        id="tab-record"  onclick="showTab('record')">Screen Record</button>
+  <button class="page-tab"        id="tab-notes"   onclick="showTab('notes')">Meeting Notes</button>
+  <button class="page-tab"        id="tab-audio"   onclick="showTab('audio')">Lecture Audio</button>
 </div>
 
 <!-- ══════ TAB: SESSION LOG ══════════════════════════════════════ -->
@@ -187,7 +182,7 @@
 
       <div class="card" style="margin-top:16px;">
         <div class="card-title">Screen Source</div>
-        <button class="btn btn-ghost" style="font-size:13px;padding:7px 14px;" id="refreshSourcesBtn">↺ Refresh Sources</button>
+        <button class="btn btn-ghost" style="font-size:13px;padding:7px 14px;" id="refreshSourcesBtn">Refresh Sources</button>
         <div class="source-grid" id="sourceGrid">
           <div style="color:var(--text-secondary);font-size:13px;padding:16px 0;grid-column:1/-1;">Click Refresh Sources to load screens &amp; windows.</div>
         </div>
@@ -202,14 +197,14 @@
           </div>
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-primary" id="recStartBtn">🔴 Start Recording</button>
-          <button class="btn btn-ghost"   id="recStopBtn" disabled>⏹ Stop &amp; Save</button>
+          <button class="btn btn-primary" id="recStartBtn">Start Recording</button>
+          <button class="btn btn-ghost"   id="recStopBtn" disabled>Stop &amp; Save</button>
         </div>
         <video id="recPreview" class="rec-preview" muted autoplay></video>
       </div>
 
       <div class="card" id="summaryCard" style="margin-top:16px;display:none;">
-        <div class="card-title">📝 Session Summary</div>
+        <div class="card-title">Session Summary</div>
         <div class="summary-box" id="summaryContent"></div>
         <div style="display:flex;gap:10px;margin-top:12px;">
           <button class="btn btn-primary" id="saveSummaryBtn">Save to Log</button>
@@ -240,7 +235,7 @@
     <!-- Left: editor -->
     <div class="notes-editor-col">
       <div class="card">
-        <div class="card-title" style="margin-bottom:12px;">✏️ Live Note Editor</div>
+        <div class="card-title" style="margin-bottom:12px;">Live Note Editor</div>
 
         <!-- Toolbar -->
         <div class="rte-toolbar" id="rteToolbar">
@@ -276,7 +271,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             Sync to Apple Notes
           </button>
-          <button class="btn btn-ghost" id="saveNoteLocalBtn">💾 Save Locally</button>
+          <button class="btn btn-ghost" id="saveNoteLocalBtn">Save Locally</button>
           <div id="syncStatus" class="sync-status"></div>
         </div>
 
@@ -306,12 +301,12 @@
   <div class="rec-layout">
     <div class="rec-controls">
       <div class="card">
-        <div class="card-title">🎙 Record Lecture Audio</div>
+        <div class="card-title">Record Lecture Audio</div>
         <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Records your microphone. When done, the AI transcribes it and drops the transcript into Meeting Notes — ready to edit or summarize.</p>
 
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
-          <button class="btn btn-primary" id="audioStartBtn">🎙 Start Recording</button>
-          <button class="btn btn-ghost"   id="audioStopBtn" disabled>⏹ Stop &amp; Transcribe</button>
+          <button class="btn btn-primary" id="audioStartBtn">Start Recording</button>
+          <button class="btn btn-ghost"   id="audioStopBtn" disabled>Stop &amp; Transcribe</button>
           <div class="rec-indicator" id="audioIndicator" style="display:none;">
             <div class="rec-dot"></div>
             <span style="font-size:13px;font-weight:600;color:#ef4444;" id="audioTimer">00:00</span>
@@ -336,7 +331,7 @@
 
       <div class="card" id="transcriptCard" style="margin-top:16px;display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div class="card-title" style="margin:0;">📝 Transcript</div>
+          <div class="card-title" style="margin:0;">Transcript</div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-primary" id="sendToNotesBtn" style="font-size:12px;padding:6px 14px;">Send to Meeting Notes</button>
             <button class="btn btn-ghost"   id="copyTranscriptBtn" style="font-size:12px;padding:6px 14px;">Copy</button>
@@ -462,8 +457,8 @@
         <td>${esc(r.duration)} min</td>
         <td><span class="rating-stars">${'⭐'.repeat(Math.max(0,Math.min(5,r.rating||0)))}</span></td>
         <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.notes||'—')}</td>
-        <td><span class="record-source ${r.source==='timer'?'timer':''}">${r.source==='timer'?'⏱ Timer':'✏️ Manual'}</span></td>
-        <td><button class="btn-icon" title="Delete" onclick="window._deleteRecord('${esc(r.id)}')">🗑️</button></td>
+        <td><span class="record-source ${r.source==='timer'?'timer':''}">${r.source==='timer'?'Timer':'Manual'}</span></td>
+        <td><button class="btn-icon" title="Delete" onclick="window._deleteRecord('${esc(r.id)}')">Delete</button></td>
       </tr>`).join('')
   }
   renderAll()
@@ -666,8 +661,8 @@
           <div class="rec-file-name">${esc(r.name)}</div>
           <div class="rec-file-meta">${(r.size/1024/1024).toFixed(1)} MB · ${new Date(r.mtime).toLocaleDateString()}</div>
           <div class="rec-file-actions">
-            <button class="btn btn-ghost" onclick="window._openRec('${esc(r.filepath)}')">▶ Open</button>
-            <button class="btn" style="background:#fef2f2;color:#b91c1c;" onclick="window._deleteRec('${esc(r.filepath)}')">🗑</button>
+            <button class="btn btn-ghost" onclick="window._openRec('${esc(r.filepath)}')">Open</button>
+            <button class="btn" style="background:#fef2f2;color:#b91c1c;" onclick="window._deleteRec('${esc(r.filepath)}')">Delete</button>
           </div>
         </div>`).join('')
     } catch(e) {
@@ -757,7 +752,7 @@
     const statusEl = document.getElementById('transcriptStatus')
     card.style.display = ''
     statusEl.style.display = 'block'
-    statusEl.textContent = '⏳ Transcribing… this may take a moment.'
+    statusEl.textContent = 'Transcribing… this may take a moment.'
     document.getElementById('transcriptOutput').textContent = ''
 
     try {
@@ -767,7 +762,7 @@
         apiKey,
       })
       statusEl.style.display = 'none'
-      if (res.error) { statusEl.textContent = '❌ ' + res.error; statusEl.style.display='block'; return }
+      if (res.error) { statusEl.textContent = res.error; statusEl.style.display='block'; return }
 
       const text = res.transcript || ''
       document.getElementById('transcriptOutput').textContent = text
@@ -779,7 +774,7 @@
       csSetJSON('transcripts', history.slice(0,20))
       renderTranscriptList()
     } catch(e) {
-      statusEl.textContent = '❌ ' + e.message
+      statusEl.textContent = e.message
       statusEl.style.display = 'block'
     }
   }

@@ -340,7 +340,7 @@
       : '<span style="color:var(--text-secondary);font-size:13px;">No meeting link</span>'
 
     const joinNotesBtn = ev.link
-      ? `<button class="btn btn-primary" id="mJoinNotes" style="background:#5b21b6;">📝 Join &amp; Take Notes</button>`
+      ? `<button class="btn btn-primary" id="mJoinNotes" style="background:#5b21b6;">Join &amp; Take Notes</button>`
       : ''
 
     const modal = document.createElement('div')
@@ -355,7 +355,7 @@
         <div class="modal-detail-row"><div class="modal-detail-icon">🕐</div><div>${fmt12(ev.start)} – ${fmt12(ev.end)} (${duration(ev.start, ev.end)})</div></div>
         <div class="modal-detail-row"><div class="modal-detail-icon">🔗</div><div>${linkHtml}</div></div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" style="color:#ef4444;border-color:#ef4444;" onclick="window._calDelete('${esc(ev.id)}')">🗑️ Delete</button>
+          <button class="btn btn-ghost" style="color:#ef4444;border-color:#ef4444;" onclick="window._calDelete('${esc(ev.id)}')">Delete</button>
           ${joinNotesBtn}
           <button class="btn btn-primary" id="mDone">Done</button>
         </div>
@@ -570,7 +570,7 @@
               <div class="list-event-meta">${esc(duration(ev.start, ev.end))}</div>
               ${linkHtml}
             </div>
-            <button class="btn-icon" title="Delete" onclick="window._calDelete('${esc(ev.id)}')">🗑️</button>
+            <button class="btn-icon" title="Delete" onclick="window._calDelete('${esc(ev.id)}')">Delete</button>
           </div>`
       })
       html += '</div>'

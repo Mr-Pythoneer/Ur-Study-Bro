@@ -7,10 +7,6 @@
   .kit-textarea { width:100%; box-sizing:border-box; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:12px; font-family:inherit; font-size:13px; color:var(--text-primary); resize:none; outline:none; line-height:1.6; transition:border-color .15s; }
   .kit-textarea:focus { border-color:var(--accent); }
 
-  .output-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:8px; padding:3px; margin-bottom:14px; }
-  .output-tab { flex:1; padding:6px 10px; border:none; border-radius:6px; font-family:var(--font); font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
-  .output-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 3px rgba(0,0,0,.08); }
-
   /* Summary */
   .summary-output { font-size:13px; line-height:1.75; color:var(--text-primary); }
   .summary-output h3 { font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.4px; margin:14px 0 6px; }
@@ -61,7 +57,7 @@
 </div>
 
 <div class="key-bar" id="keyBar">
-  <span class="key-bar-label">🔑 API Key:</span>
+  <span class="key-bar-label">API Key:</span>
   <select id="kbProvider"><option value="gemini">Gemini</option><option value="anthropic">Claude</option><option value="openai">OpenAI</option></select>
   <input type="password" id="kbInput" placeholder="Paste your API key…" autocomplete="off"/>
   <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:6px 14px;">Save &amp; Use</button>
@@ -75,9 +71,9 @@
       <div class="card-title">Paste Your Notes</div>
 
       <div class="source-chips">
-        <button class="source-chip active" data-src="paste">✏️ Paste notes</button>
-        <button class="source-chip" data-src="writer">📄 From AI Writer</button>
-        <button class="source-chip" data-src="meeting">📋 From Meeting Notes</button>
+        <button class="source-chip active" data-src="paste">Paste notes</button>
+        <button class="source-chip" data-src="writer">From AI Writer</button>
+        <button class="source-chip" data-src="meeting">From Meeting Notes</button>
       </div>
 
       <textarea class="kit-textarea" id="notesInput" style="height:300px;" placeholder="Paste lecture notes, a textbook excerpt, your essay draft, or any text you want to study from…"></textarea>
@@ -103,7 +99,7 @@
       </div>
 
       <button class="btn btn-primary" id="generateBtn" style="padding:10px 24px;align-self:flex-start;">
-        ✨ Generate Study Kit
+        Generate Study Kit
       </button>
     </div>
   </div>
@@ -111,10 +107,10 @@
   <!-- Right: output -->
   <div>
     <div id="outputArea" style="display:none;">
-      <div class="output-tabs">
-        <button class="output-tab active" id="otab-summary" onclick="switchOut('summary')">📝 Summary</button>
-        <button class="output-tab" id="otab-flash"   onclick="switchOut('flash')">🃏 Flashcards</button>
-        <button class="output-tab" id="otab-exam"    onclick="switchOut('exam')">📋 Exam Questions</button>
+      <div class="page-tabs">
+        <button class="page-tab active" id="otab-summary" onclick="switchOut('summary')">Summary</button>
+        <button class="page-tab" id="otab-flash"   onclick="switchOut('flash')">Flashcards</button>
+        <button class="page-tab" id="otab-exam"    onclick="switchOut('exam')">Exam Questions</button>
       </div>
 
       <div class="card" id="opane-summary">
@@ -144,7 +140,7 @@
 
     <div class="card" id="placeholderPanel">
       <div class="placeholder-panel">
-        <div class="ph-icon">🎓</div>
+        <div class="ph-icon"></div>
         <p style="font-size:13px;margin:0 0 8px;">Paste your notes on the left and click <strong>Generate Study Kit</strong>.</p>
         <p style="font-size:12px;color:var(--text-secondary);margin:0;">Works great with lecture notes, textbook chapters, essays, or any study material.</p>
       </div>
@@ -246,7 +242,7 @@ Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[
       else if(doFlash) switchOut('flash')
       else switchOut('exam')
     }catch(e){alert('Error: '+e.message)}
-    finally{btn.disabled=false;btn.innerHTML='✨ Generate Study Kit'}
+    finally{btn.disabled=false;btn.innerHTML='Generate Study Kit'}
   })
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}

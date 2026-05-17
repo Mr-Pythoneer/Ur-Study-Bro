@@ -41,7 +41,7 @@
 <div class="onboarding-wrap">
   <div class="onboarding-hero">
     <div class="onboarding-snail">🐌</div>
-    <div class="greeting-badge" id="greetingBadge">Welcome!</div>
+    <div class="greeting-badge" id="greetingBadge">Welcome</div>
     <div class="onboarding-headline" id="headline">Let's get you set up</div>
     <div class="onboarding-tagline">Ur Study Bro helps you and your study partner stay on track — slow and steady wins the race.</div>
   </div>
@@ -113,7 +113,7 @@
       <div class="settings-section">
         <div class="settings-section-title">Danger Zone</div>
         <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Permanently delete this account and all its study data.</p>
-        <button class="btn" style="background:#ef4444; color:#fff;" id="deleteAccountBtn">🗑️ Delete My Account</button>
+        <button class="btn" style="background:#ef4444; color:#fff;" id="deleteAccountBtn">Delete My Account</button>
       </div>
     </div>
 
@@ -131,7 +131,7 @@
 
   document.getElementById('displayName').value = savedName || ''
   document.getElementById('accountUsername').textContent = currentUser()
-  document.getElementById('greetingBadge').textContent = `👋 Hey, ${savedName || currentUser()}!`
+  document.getElementById('greetingBadge').textContent = `Hey, ${savedName || currentUser()}!`
   document.getElementById('headline').textContent = savedName ? `Welcome back, ${savedName}!` : `Let's get you set up`
 
   if (savedGoal) {
@@ -208,7 +208,7 @@
     csSetJSON('subjects', subjects)
     csSet('dailyGoalHours', goalHours)
 
-    document.getElementById('greetingBadge').textContent = `👋 Hey, ${name}!`
+    document.getElementById('greetingBadge').textContent = `Hey, ${name}!`
     document.getElementById('headline').textContent = `Welcome back, ${name}!`
     document.getElementById('topbar-username').textContent = currentUser()
 

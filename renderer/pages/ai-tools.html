@@ -1,9 +1,5 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
 <style>
-  .page-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:4px; margin-bottom:20px; }
-  .page-tab { flex:1; padding:8px 14px; border:none; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
-  .page-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 4px rgba(0,0,0,.10); }
-
   .tool-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   @media (max-width:800px) { .tool-layout { grid-template-columns:1fr; } }
 
@@ -61,7 +57,7 @@
 
 <!-- Inline key setup — shown when no key saved -->
 <div class="key-bar" id="keyBar">
-  <span class="key-bar-label">🔑 API Key:</span>
+  <span class="key-bar-label">API Key:</span>
   <select id="kbProvider">
     <option value="gemini">Gemini</option>
     <option value="anthropic">Claude</option>
@@ -72,9 +68,9 @@
 </div>
 
 <div class="page-tabs">
-  <button class="page-tab active" id="tab-checker" onclick="showTool('checker')">📋 Assignment Checker</button>
-  <button class="page-tab"        id="tab-detect"  onclick="showTool('detect')">🔍 AI Detector</button>
-  <button class="page-tab"        id="tab-human"   onclick="showTool('human')">✍️ Humanizer</button>
+  <button class="page-tab active" id="tab-checker" onclick="showTool('checker')">Assignment Checker</button>
+  <button class="page-tab"        id="tab-detect"  onclick="showTool('detect')">AI Detector</button>
+  <button class="page-tab"        id="tab-human"   onclick="showTool('human')">Humanizer</button>
 </div>
 
 <!-- ══════════════════ ASSIGNMENT CHECKER ══════════════════════════ -->
@@ -91,7 +87,7 @@
         <label class="tool-label">Paste your essay / answers / code</label>
         <textarea class="tool-textarea" id="workText" style="height:240px;" placeholder="Paste your assignment here…"></textarea>
       </div>
-      <button class="btn btn-primary" id="checkBtn" style="padding:10px 24px;align-self:flex-start;">📋 Check My Assignment</button>
+      <button class="btn btn-primary" id="checkBtn" style="padding:10px 24px;align-self:flex-start;">Check</button>
     </div>
 
     <div>
@@ -102,7 +98,7 @@
       </div>
       <div class="card" id="gradePlaceholder">
         <div class="placeholder-box">
-          <div class="ph-icon">📊</div>
+          <div class="ph-icon"></div>
           <p>Fill in your instructions and work,<br>then click <strong>Check My Assignment</strong>.</p>
           <small>You'll get an estimated grade, on-task score, and specific feedback.</small>
         </div>
@@ -120,7 +116,7 @@
       <textarea class="tool-textarea" id="detectText" style="height:420px;" placeholder="Paste text here to check if it was written by AI…"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
         <span id="detectWordCount" style="font-size:12px;color:var(--text-secondary);">0 words</span>
-        <button class="btn btn-primary" id="detectBtn" style="padding:10px 24px;">🔍 Analyze</button>
+        <button class="btn btn-primary" id="detectBtn" style="padding:10px 24px;">Analyze</button>
       </div>
     </div>
 
@@ -136,7 +132,7 @@
       </div>
       <div class="card" id="detectPlaceholder">
         <div class="placeholder-box">
-          <div class="ph-icon">🔍</div>
+          <div class="ph-icon"></div>
           <p>Paste text on the left and click <strong>Analyze</strong>.</p>
           <small>The AI will look for patterns, sentence structure, and telltale signs of generated text.</small>
         </div>
@@ -160,7 +156,7 @@
           <option value="conversational">Conversational</option>
           <option value="teenager">Teenager / Gen Z</option>
         </select>
-        <button class="btn btn-primary" id="humanBtn" style="padding:10px 24px;margin-left:auto;">✍️ Humanize</button>
+        <button class="btn btn-primary" id="humanBtn" style="padding:10px 24px;margin-left:auto;">Humanize</button>
       </div>
     </div>
 
@@ -172,12 +168,12 @@
         </div>
         <div id="humanOutput" style="font-size:13px;line-height:1.7;white-space:pre-wrap;max-height:400px;overflow-y:auto;"></div>
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-          <button class="btn btn-ghost" id="rehumanBtn" style="font-size:12px;padding:6px 14px;">↺ Try Again (different style)</button>
+          <button class="btn btn-ghost" id="rehumanBtn" style="font-size:12px;padding:6px 14px;">Try again</button>
         </div>
       </div>
       <div class="card" id="humanPlaceholder">
         <div class="placeholder-box">
-          <div class="ph-icon">✍️</div>
+          <div class="ph-icon"></div>
           <p>Paste AI text on the left, pick a tone,<br>then click <strong>Humanize</strong>.</p>
           <small>Rewrites it to sound natural, varied, and less robotic.</small>
         </div>
@@ -244,7 +240,7 @@
     const work = document.getElementById('workText').value.trim()
     if (!instructions || !work) { alert('Fill in both the instructions and your work.'); return }
     const btn = document.getElementById('checkBtn')
-    setLoading(btn, true, '📋 Check My Assignment')
+    setLoading(btn, true, 'Check')
     document.getElementById('gradeResultCard').style.display='none'
     document.getElementById('gradePlaceholder').style.display=''
     try {
@@ -257,7 +253,7 @@
       catch { document.getElementById('gradePlaceholder').innerHTML=`<div class="placeholder-box"><div class="ph-icon">⚠️</div><p>Couldn't parse response. Try again.</p><small style="color:#ef4444">${esc(raw.slice(0,200))}</small></div>`; return }
       renderGrade(data)
     } catch(e) { alert('Error: '+e.message) }
-    finally { setLoading(btn, false, '📋 Check My Assignment') }
+    finally { setLoading(btn, false, 'Check') }
   })
 
   function gradeClass(l){ return {A:'grade-A',B:'grade-B',C:'grade-C',D:'grade-D',F:'grade-F'}[(l||'').toUpperCase()[0]]||'grade-C' }
@@ -287,7 +283,7 @@
     const text=document.getElementById('detectText').value.trim()
     if(!text||text.split(/\s+/).length<20){alert('Paste at least 20 words to analyze.');return}
     const btn=document.getElementById('detectBtn')
-    setLoading(btn,true,'🔍 Analyze')
+    setLoading(btn,true,'Analyze')
     document.getElementById('detectResultCard').style.display='none'
     document.getElementById('detectPlaceholder').style.display=''
     try {
@@ -300,7 +296,7 @@
       catch{alert('Could not parse response. Try again.');return}
       renderDetect(data)
     } catch(e){alert('Error: '+e.message)}
-    finally{setLoading(btn,false,'🔍 Analyze')}
+    finally{setLoading(btn,false,'Analyze')}
   })
 
   function renderDetect(d){
@@ -326,7 +322,7 @@
     const tone=document.getElementById('humanTone').value
     if(!text){alert('Paste some text to humanize first.');return}
     const btn=document.getElementById('humanBtn')
-    setLoading(btn,true,'✍️ Humanize')
+    setLoading(btn,true,'Humanize')
     document.getElementById('humanResultCard').style.display='none'
     document.getElementById('humanPlaceholder').style.display=''
     const tones={casual:'Write like a regular student: contractions, natural flow, slight imperfections.',academic:'Formally but naturally — vary sentence length, sound like a smart human.',conversational:'Friendly and direct. Mix short and long sentences. Use "I" naturally.',teenager:'Gen Z student voice. Casual, genuine. May use "so" or "honestly". Natural imperfections.'}
@@ -337,7 +333,7 @@
       document.getElementById('humanResultCard').style.display=''
       document.getElementById('humanOutput').textContent=result
     }catch(e){alert('Error: '+e.message)}
-    finally{setLoading(btn,false,'✍️ Humanize')}
+    finally{setLoading(btn,false,'Humanize')}
   }
   document.getElementById('humanBtn').addEventListener('click',runHumanize)
   document.getElementById('rehumanBtn').addEventListener('click',runHumanize)
