@@ -221,61 +221,69 @@ function _checkFrontmost() {
   } catch { /* ignore — user may not have granted Accessibility access */ }
 }
 
-// ── Email: fetch & summarise via IMAP ────────────────────────────
-ipcMain.handle('email:fetch', async (_e, { host, port, user, password, tls, limit = 20 }) => {
-  return new Promise((resolve) => {
-    const imap = new Imap({ host, port: port || 993, user, password, tls: tls !== false, tlsOptions: { rejectUnauthorized: false } })
-    const emails = []
+// ── Email: read from macOS Mail.app via AppleScript ──────────────
+ipcMain.handle('email:fetch', async (_e, { limit = 30 } = {}) => {
+  const script = `
+set output to ""
+tell application "Mail"
+  set allAccounts to every account
+  set msgList to {}
+  repeat with acc in allAccounts
+    try
+      set inboxes to every mailbox of acc whose name is "INBOX"
+      if (count of inboxes) = 0 then
+        set inboxes to every mailbox of acc whose name is "Inbox"
+      end if
+      repeat with mb in inboxes
+        set msgs to (messages of mb)
+        repeat with m in msgs
+          set end of msgList to m
+        end repeat
+      end repeat
+    end try
+  end repeat
+  -- Sort newest first by taking last N
+  set total to count of msgList
+  set startIdx to total - ${limit - 1}
+  if startIdx < 1 then set startIdx to 1
+  repeat with i from total to startIdx by -1
+    try
+      set m to item i of msgList
+      set subj to subject of m
+      set sndr to sender of m
+      set dt to date received of m
+      set bd to (content of m)
+      if length of bd > 2000 then set bd to text 1 thru 2000 of bd
+      -- escape delimiter chars
+      set output to output & subj & "|||" & sndr & "|||" & (dt as string) & "|||" & bd & "###"
+    end try
+  end repeat
+end tell
+return output`
 
-    function finish(err) {
-      try { imap.end() } catch {}
-      if (err) resolve({ error: err.message || String(err) })
-      else resolve({ emails })
+  const result = spawnSync('osascript', ['-e', script], { timeout: 30000, encoding: 'utf8' })
+  if (result.status !== 0) {
+    const msg = (result.stderr || '').trim() || 'AppleScript failed'
+    return { error: msg }
+  }
+
+  const raw = (result.stdout || '').trim()
+  if (!raw) return { emails: [] }
+
+  const emails = raw.split('###').filter(Boolean).map((chunk, i) => {
+    const [subject, from, dateStr, text] = chunk.split('|||')
+    const body = (text || '').trim()
+    return {
+      id:      String(i),
+      subject: (subject || '(no subject)').trim(),
+      from:    (from || '').trim(),
+      date:    new Date(dateStr || '').toISOString().catch?.() || new Date().toISOString(),
+      text:    body,
+      meeting: detectMeeting(body, subject || ''),
     }
-
-    imap.once('error', finish)
-    imap.once('ready', () => {
-      imap.openBox('INBOX', true, (err, box) => {
-        if (err) return finish(err)
-        const total = box.messages.total
-        if (total === 0) return finish(null)
-        const start = Math.max(1, total - limit + 1)
-        const fetch = imap.seq.fetch(`${start}:${total}`, { bodies: '', struct: true })
-        const pending = []
-
-        fetch.on('message', (msg) => {
-          const p = new Promise((res) => {
-            let raw = ''
-            msg.on('body', (stream) => stream.on('data', d => raw += d.toString()))
-            msg.once('end', () => res(raw))
-          })
-          pending.push(p)
-        })
-
-        fetch.once('error', finish)
-        fetch.once('end', async () => {
-          const raws = await Promise.all(pending)
-          for (const raw of raws) {
-            try {
-              const parsed = await simpleParser(raw)
-              const text = (parsed.text || parsed.html?.replace(/<[^>]+>/g, ' ') || '').slice(0, 3000)
-              emails.push({
-                id:      parsed.messageId || String(Math.random()),
-                subject: parsed.subject   || '(no subject)',
-                from:    parsed.from?.text || '',
-                date:    parsed.date?.toISOString() || new Date().toISOString(),
-                text,
-                meeting: detectMeeting(text, parsed.subject || ''),
-              })
-            } catch { /* skip malformed */ }
-          }
-          emails.reverse() // newest first
-          finish(null)
-        })
-      })
-    })
-    imap.connect()
   })
+
+  return { emails }
 })
 
 function detectMeeting(body, subject) {
