@@ -221,8 +221,15 @@ function _checkFrontmost() {
   } catch { /* ignore — user may not have granted Accessibility access */ }
 }
 
-// ── Email: read from macOS Mail.app via AppleScript ──────────────
+// ── Email: platform-aware fetch ───────────────────────────────────
 ipcMain.handle('email:fetch', async (_e, { limit = 30 } = {}) => {
+  if (process.platform === 'darwin') return _fetchMacMail(limit)
+  if (process.platform === 'win32')  return _fetchWinOutlook(limit)
+  return { error: 'Auto-fetch not supported on this OS. Use IMAP instead.' }
+})
+
+// macOS — AppleScript → Mail.app (any account: Gmail, iCloud, Exchange…)
+async function _fetchMacMail(limit) {
   const script = `
 set output to ""
 tell application "Mail"
@@ -231,60 +238,129 @@ tell application "Mail"
   repeat with acc in allAccounts
     try
       set inboxes to every mailbox of acc whose name is "INBOX"
-      if (count of inboxes) = 0 then
-        set inboxes to every mailbox of acc whose name is "Inbox"
-      end if
+      if (count of inboxes) = 0 then set inboxes to every mailbox of acc whose name is "Inbox"
       repeat with mb in inboxes
-        set msgs to (messages of mb)
-        repeat with m in msgs
+        repeat with m in (messages of mb)
           set end of msgList to m
         end repeat
       end repeat
     end try
   end repeat
-  -- Sort newest first by taking last N
   set total to count of msgList
   set startIdx to total - ${limit - 1}
   if startIdx < 1 then set startIdx to 1
   repeat with i from total to startIdx by -1
     try
       set m to item i of msgList
-      set subj to subject of m
-      set sndr to sender of m
-      set dt to date received of m
       set bd to (content of m)
       if length of bd > 2000 then set bd to text 1 thru 2000 of bd
-      -- escape delimiter chars
-      set output to output & subj & "|||" & sndr & "|||" & (dt as string) & "|||" & bd & "###"
+      set output to output & (subject of m) & "|||" & (sender of m) & "|||" & ((date received of m) as string) & "|||" & bd & "###"
     end try
   end repeat
 end tell
 return output`
 
   const result = spawnSync('osascript', ['-e', script], { timeout: 30000, encoding: 'utf8' })
-  if (result.status !== 0) {
-    const msg = (result.stderr || '').trim() || 'AppleScript failed'
-    return { error: msg }
+  if (result.status !== 0) return { error: (result.stderr || '').trim() || 'AppleScript failed. Make sure Mail.app is open and has accounts.' }
+  return _parseDelimited((result.stdout || '').trim())
+}
+
+// Windows — PowerShell COM → Outlook (any account configured in Outlook)
+async function _fetchWinOutlook(limit) {
+  const ps = `
+$ErrorActionPreference = 'Stop'
+try {
+  $ol = New-Object -ComObject Outlook.Application
+  $ns = $ol.GetNamespace('MAPI')
+  $inbox = $ns.GetDefaultFolder(6)
+  $items = $inbox.Items
+  $items.Sort('[ReceivedTime]', $true)
+  $count = [Math]::Min($items.Count, ${limit})
+  $out = ''
+  for ($i = 1; $i -le $count; $i++) {
+    $m = $items.Item($i)
+    $body = $m.Body
+    if ($body.Length -gt 2000) { $body = $body.Substring(0, 2000) }
+    $body = $body -replace '\\|\\|\\|','|' -replace '###',''
+    $out += $m.Subject + '|||' + $m.SenderEmailAddress + '|||' + $m.ReceivedTime.ToString('o') + '|||' + $body + '###'
   }
+  Write-Output $out
+} catch {
+  Write-Error $_.Exception.Message
+}`
 
-  const raw = (result.stdout || '').trim()
+  const result = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 30000, encoding: 'utf8' })
+  if (result.status !== 0) return { error: (result.stderr || '').trim() || 'Could not open Outlook. Make sure Outlook is installed and has accounts.' }
+  return _parseDelimited((result.stdout || '').trim())
+}
+
+// IMAP fallback — Gmail, custom, etc.
+ipcMain.handle('email:fetch-imap', async (_e, { host, port, user, password, tls, limit = 30 }) => {
+  return new Promise((resolve) => {
+    const Imap = require('imap')
+    const { simpleParser } = require('mailparser')
+    const imap = new Imap({ host, port: port || 993, user, password, tls: tls !== false, tlsOptions: { rejectUnauthorized: false } })
+    const emails = []
+
+    function done(err) {
+      try { imap.end() } catch {}
+      if (err) resolve({ error: err.message || String(err) })
+      else resolve({ emails })
+    }
+
+    imap.once('error', done)
+    imap.once('ready', () => {
+      imap.openBox('INBOX', true, (err, box) => {
+        if (err) return done(err)
+        const total = box.messages.total
+        if (!total) return done(null)
+        const start = Math.max(1, total - limit + 1)
+        const fetch = imap.seq.fetch(`${start}:${total}`, { bodies: '' })
+        const pending = []
+        fetch.on('message', msg => {
+          const p = new Promise(res => {
+            let raw = ''
+            msg.on('body', s => s.on('data', d => raw += d))
+            msg.once('end', () => res(raw))
+          })
+          pending.push(p)
+        })
+        fetch.once('end', async () => {
+          const raws = await Promise.all(pending)
+          for (const raw of raws) {
+            try {
+              const parsed = await simpleParser(raw)
+              const text = (parsed.text || '').slice(0, 2000)
+              emails.push({
+                id: parsed.messageId || String(Math.random()),
+                subject: parsed.subject || '(no subject)',
+                from: parsed.from?.text || '',
+                date: parsed.date?.toISOString() || new Date().toISOString(),
+                text, meeting: detectMeeting(text, parsed.subject || ''),
+              })
+            } catch {}
+          }
+          emails.reverse()
+          done(null)
+        })
+        fetch.once('error', done)
+      })
+    })
+    imap.connect()
+  })
+})
+
+function _parseDelimited(raw) {
   if (!raw) return { emails: [] }
-
   const emails = raw.split('###').filter(Boolean).map((chunk, i) => {
     const [subject, from, dateStr, text] = chunk.split('|||')
     const body = (text || '').trim()
-    return {
-      id:      String(i),
-      subject: (subject || '(no subject)').trim(),
-      from:    (from || '').trim(),
-      date:    new Date(dateStr || '').toISOString().catch?.() || new Date().toISOString(),
-      text:    body,
-      meeting: detectMeeting(body, subject || ''),
-    }
+    let date = new Date().toISOString()
+    try { date = new Date(dateStr || '').toISOString() } catch {}
+    return { id: String(i), subject: (subject||'(no subject)').trim(), from: (from||'').trim(), date, text: body, meeting: detectMeeting(body, subject||'') }
   })
-
   return { emails }
-})
+}
 
 function detectMeeting(body, subject) {
   const combined = (subject + ' ' + body).toLowerCase()

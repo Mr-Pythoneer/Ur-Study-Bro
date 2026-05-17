@@ -25,7 +25,8 @@ contextBridge.exposeInMainWorld('api', {
   scanApps: () => ipcRenderer.invoke('apps:scan'),
 
   // ── Email fetch ─────────────────────────────────────────────────
-  fetchEmails: (cfg) => ipcRenderer.invoke('email:fetch', cfg),
+  fetchEmails:     (cfg) => ipcRenderer.invoke('email:fetch', cfg),
+  fetchEmailsIMAP: (cfg) => ipcRenderer.invoke('email:fetch-imap', cfg),
 
   // ── Apple Notes sync ────────────────────────────────────────────
   syncToNotes: (payload) => ipcRenderer.invoke('notes:sync', payload),

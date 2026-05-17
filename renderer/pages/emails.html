@@ -31,21 +31,36 @@
 
   .status-line { font-size:13px; padding:8px 0; }
   .status-line.err { color:#ef4444; }
+
+  .imap-section { margin-top:20px; }
+  .imap-toggle { background:none; border:none; cursor:pointer; font-size:13px; color:var(--accent); display:flex; align-items:center; gap:6px; padding:0; font-family:inherit; }
+  .imap-toggle svg { transition:transform .2s; }
+  .imap-toggle.open svg { transform:rotate(90deg); }
+  .imap-form { display:none; margin-top:14px; padding:18px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); }
+  .imap-form.visible { display:block; }
+  .imap-row { display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .imap-field { display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px; }
+  .imap-field label { font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.4px; }
+  .imap-field input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:7px 10px; font-size:13px; color:var(--text-primary); font-family:inherit; outline:none; }
+  .imap-field input:focus { border-color:var(--accent); }
+  .preset-row { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .preset-btn { padding:5px 12px; font-size:12px; border:1px solid var(--border); border-radius:99px; background:var(--card); cursor:pointer; color:var(--text-secondary); transition:all .15s; font-family:inherit; }
+  .preset-btn:hover { border-color:var(--accent); color:var(--accent); }
 </style>
 
 <div class="page-header">
   <div class="page-title">Email Inbox</div>
-  <div class="page-subtitle">Reads directly from macOS Mail.app — no passwords needed.</div>
+  <div class="page-subtitle" id="emailSubtitle">Reading from your email client — no passwords needed.</div>
 </div>
 
-<div class="hint-box">
+<div class="hint-box" id="hintBox">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01" stroke-linecap="round"/></svg>
-  <p><strong>How it works:</strong> Ur Study Bro reads emails directly from <strong>macOS Mail.app</strong>. Any account you've added there — Gmail, iCloud, Outlook, Exchange — works automatically. No passwords or setup required.<br><br>On first use, macOS will ask you to grant <strong>Automation</strong> permission. Click OK.</p>
+  <p id="hintText"><strong>How it works:</strong> Loading…</p>
 </div>
 
 <div class="card">
   <div class="inbox-toolbar">
-    <button class="btn btn-primary" id="fetchBtn">Fetch from Mail.app</button>
+    <button class="btn btn-primary" id="fetchBtn">Loading…</button>
     <label class="auto-toggle">
       <input type="checkbox" id="autoAddChk" style="accent-color:var(--accent);"/>
       Auto-add meetings to Calendar
@@ -54,6 +69,44 @@
   </div>
   <div class="status-line" id="statusLine" style="display:none;"></div>
   <div class="email-list" id="emailList"></div>
+
+  <!-- IMAP fallback -->
+  <div class="imap-section">
+    <button class="imap-toggle" id="imapToggle">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M6 4l4 4-4 4"/></svg>
+      Connect Gmail or another account (IMAP)
+    </button>
+    <div class="imap-form" id="imapForm">
+      <div class="preset-row">
+        <button class="preset-btn" data-host="imap.gmail.com" data-port="993" data-tls="true">Gmail</button>
+        <button class="preset-btn" data-host="outlook.office365.com" data-port="993" data-tls="true">Outlook</button>
+        <button class="preset-btn" data-host="imap.mail.yahoo.com" data-port="993" data-tls="true">Yahoo</button>
+      </div>
+      <div class="imap-row">
+        <div class="imap-field" style="flex:2">
+          <label>Email address</label>
+          <input type="email" id="imapUser" placeholder="you@gmail.com"/>
+        </div>
+        <div class="imap-field" style="flex:2">
+          <label>App password</label>
+          <input type="password" id="imapPass" placeholder="16-char app password"/>
+        </div>
+      </div>
+      <div class="imap-row">
+        <div class="imap-field">
+          <label>IMAP host</label>
+          <input type="text" id="imapHost" placeholder="imap.gmail.com"/>
+        </div>
+        <div class="imap-field" style="max-width:90px">
+          <label>Port</label>
+          <input type="number" id="imapPort" value="993"/>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--text-secondary);margin:8px 0 12px;">For Gmail, enable 2FA and use an <strong>App Password</strong> — not your main password.</p>
+      <button class="btn btn-primary" id="imapFetchBtn" style="font-size:13px;padding:8px 18px;">Connect &amp; Fetch</button>
+      <div class="status-line" id="imapStatus" style="display:none;margin-top:8px;"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -63,24 +116,53 @@
   autoAddChk.addEventListener('change', () =>
     localStorage.setItem('cs_email_autoAdd', autoAddChk.checked ? '1' : '0'))
 
+  // ── Platform-aware hint & button label ──────────────────────────────
+  const plt = navigator.platform || ''
+  const isWin = plt.toLowerCase().includes('win')
+  const isMac = plt.toLowerCase().includes('mac')
+
+  const hintEl = document.getElementById('hintText')
+  const fetchBtn = document.getElementById('fetchBtn')
+
+  if (isMac) {
+    hintEl.innerHTML = '<strong>How it works:</strong> Ur Study Bro reads emails directly from <strong>macOS Mail.app</strong>. Any account you\'ve added there — Gmail, iCloud, Outlook, Exchange — works automatically. No passwords or setup required.<br><br>On first use, macOS will ask you to grant <strong>Automation</strong> permission. Click OK.'
+    fetchBtn.textContent = 'Fetch from Mail.app'
+  } else if (isWin) {
+    hintEl.innerHTML = '<strong>How it works:</strong> Ur Study Bro reads emails directly from <strong>Microsoft Outlook</strong>. Any account you\'ve added there — Microsoft 365, Exchange, Gmail — works automatically. No passwords needed.<br><br>Make sure Outlook is installed and you\'re signed in.'
+    fetchBtn.textContent = 'Fetch from Outlook'
+  } else {
+    hintEl.innerHTML = '<strong>How it works:</strong> On Linux, use the <strong>IMAP</strong> section below to connect Gmail or any email account.'
+    fetchBtn.textContent = 'Not available on Linux'
+    fetchBtn.disabled = true
+  }
+
+  // ── Status helpers ──────────────────────────────────────────────────
   function status(msg, err) {
     const el = document.getElementById('statusLine')
     el.textContent = msg; el.style.display = msg ? 'block' : 'none'
     el.className = 'status-line' + (err ? ' err' : '')
   }
+  function imapStatus(msg, err) {
+    const el = document.getElementById('imapStatus')
+    el.textContent = msg; el.style.display = msg ? 'block' : 'none'
+    el.className = 'status-line' + (err ? ' err' : '')
+  }
 
-  document.getElementById('fetchBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('fetchBtn')
-    btn.disabled = true; btn.textContent = 'Fetching…'
-    status('Opening Mail.app…')
+  // ── Native fetch ────────────────────────────────────────────────────
+  fetchBtn.addEventListener('click', async () => {
+    if (fetchBtn.disabled) return
+    fetchBtn.disabled = true
+    const orig = fetchBtn.textContent
+    fetchBtn.textContent = 'Fetching…'
+    status(isMac ? 'Opening Mail.app…' : 'Opening Outlook…')
 
     if (!window.api?.fetchEmails) {
       status('Only available in the desktop app.', true)
-      btn.disabled = false; btn.textContent = 'Fetch from Mail.app'; return
+      fetchBtn.disabled = false; fetchBtn.textContent = orig; return
     }
 
     const res = await window.api.fetchEmails({ limit: 40 })
-    btn.disabled = false; btn.textContent = 'Fetch from Mail.app'
+    fetchBtn.disabled = false; fetchBtn.textContent = orig
 
     if (res.error) { status('Error: ' + res.error, true); return }
 
@@ -93,11 +175,63 @@
       emails.forEach(e => { if (e.meeting) addToCal(e) })
   })
 
+  // ── IMAP toggle ─────────────────────────────────────────────────────
+  const imapToggle = document.getElementById('imapToggle')
+  const imapForm   = document.getElementById('imapForm')
+  imapToggle.addEventListener('click', () => {
+    const open = imapForm.classList.toggle('visible')
+    imapToggle.classList.toggle('open', open)
+  })
+
+  // Preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('imapHost').value = btn.dataset.host
+      document.getElementById('imapPort').value = btn.dataset.port
+    })
+  })
+
+  // ── IMAP fetch ──────────────────────────────────────────────────────
+  document.getElementById('imapFetchBtn').addEventListener('click', async () => {
+    const cfg = {
+      user:  document.getElementById('imapUser').value.trim(),
+      pass:  document.getElementById('imapPass').value,
+      host:  document.getElementById('imapHost').value.trim() || 'imap.gmail.com',
+      port:  parseInt(document.getElementById('imapPort').value) || 993,
+      tls:   true,
+      limit: 40,
+    }
+    if (!cfg.user || !cfg.pass) { imapStatus('Enter your email and app password.', true); return }
+
+    const btn = document.getElementById('imapFetchBtn')
+    btn.disabled = true; btn.textContent = 'Connecting…'
+    imapStatus('Connecting to ' + cfg.host + '…')
+
+    if (!window.api?.fetchEmailsIMAP) {
+      imapStatus('Only available in the desktop app.', true)
+      btn.disabled = false; btn.textContent = 'Connect & Fetch'; return
+    }
+
+    const res = await window.api.fetchEmailsIMAP(cfg)
+    btn.disabled = false; btn.textContent = 'Connect & Fetch'
+
+    if (res.error) { imapStatus('Error: ' + res.error, true); return }
+
+    const emails = res.emails || []
+    imapStatus(`Loaded ${emails.length} emails — ${emails.filter(e=>e.meeting).length} meetings found.`)
+    document.getElementById('inboxCount').textContent = `${emails.length} emails`
+    render(emails)
+
+    if (autoAddChk.checked)
+      emails.forEach(e => { if (e.meeting) addToCal(e) })
+  })
+
+  // ── Render ───────────────────────────────────────────────────────────
   function render(emails) {
     const list = document.getElementById('emailList')
     list.innerHTML = ''
     if (!emails.length) {
-      list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;padding:20px 0;">No emails found. Make sure Mail.app has accounts set up.</p>'
+      list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;padding:20px 0;">No emails found.</p>'
       return
     }
     emails.forEach(email => {
@@ -123,7 +257,6 @@
         </div>`
 
       card.querySelector('.email-header').addEventListener('click', () => card.classList.toggle('expanded'))
-
       card.querySelector('.add-cal-btn')?.addEventListener('click', e => { e.stopPropagation(); addToCal(email); showToast('Added to Calendar') })
       card.querySelector('.join-btn')?.addEventListener('click', e => { e.stopPropagation(); window.api?.openExternal?.(m.link) })
       list.appendChild(card)
@@ -145,7 +278,7 @@
   function addToCal(email) {
     const m = email.meeting
     const events = JSON.parse(localStorage.getItem('cs_calendar_events')||'[]')
-    if (events.find(e => e.id === 'em_'+email.id)) return // dedupe
+    if (events.find(e => e.id === 'em_'+email.id)) return
 
     let dateObj = new Date()
     if (m.dateStr) { const d = new Date(m.dateStr); if (!isNaN(d)) dateObj = d }
