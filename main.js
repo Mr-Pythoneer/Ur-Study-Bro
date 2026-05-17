@@ -108,6 +108,43 @@ ipcMain.handle('recorder:delete', async (_e, filepath) => {
   if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
 })
 
+// ── Audio transcription via Whisper (OpenAI or Groq) ─────────────
+ipcMain.handle('ai:transcribe', async (_e, { audioBuffer, provider, apiKey }) => {
+  try {
+    const { net } = require('electron')
+    const buf = Buffer.from(audioBuffer)
+    const boundary = '----FormBoundary' + Math.random().toString(36).slice(2)
+
+    // Build multipart/form-data manually (no DOM FormData in main process)
+    const parts = []
+    const append = (name, value) => {
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`))
+    }
+    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n`))
+    parts.push(buf)
+    parts.push(Buffer.from('\r\n'))
+    append('model', provider === 'groq' ? 'whisper-large-v3-turbo' : 'whisper-1')
+    append('response_format', 'verbose_json')
+    parts.push(Buffer.from(`--${boundary}--\r\n`))
+    const body = Buffer.concat(parts)
+
+    const url = provider === 'groq'
+      ? 'https://api.groq.com/openai/v1/audio/transcriptions'
+      : 'https://api.openai.com/v1/audio/transcriptions'
+
+    const res = await net.fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body,
+    })
+    const data = await res.json()
+    if (!res.ok) return { error: data.error?.message || JSON.stringify(data) }
+    return { transcript: data.text || '', segments: data.segments || [] }
+  } catch(e) {
+    return { error: e.message }
+  }
+})
+
 // ── AI chat (proxied through main to avoid CORS) ──────────────────
 ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, systemPrompt }) => {
   try {

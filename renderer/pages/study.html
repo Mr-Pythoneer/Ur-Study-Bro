@@ -598,7 +598,39 @@
   }
 
   if (window.api && window.api.onGuardNudge) {
-    window.api.onGuardNudge(appName => showNudge(`"${appName}" isn't in your allowed list — stay focused!`))
+    window.api.onGuardNudge(appName => {
+      // Show generic nudge immediately so there's no delay
+      showNudge(`📵 "${appName}" isn't allowed — get back on track!`)
+      // Then try to generate an AI motivational message
+      _aiNudge(appName)
+    })
+  }
+
+  let _nudgeCooldown = false
+  async function _aiNudge(appName) {
+    // Rate-limit: only call AI once per 2 minutes max
+    if (_nudgeCooldown || !window.api?.askAI) return
+    _nudgeCooldown = true
+    setTimeout(() => _nudgeCooldown = false, 120000)
+
+    const provider = localStorage.getItem('ai_provider') || 'gemini'
+    const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
+    if (!apiKey) return
+
+    const model = localStorage.getItem('ai_model_' + provider) ||
+      (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
+
+    // Pull study goals from welcome page storage
+    const goals = localStorage.getItem(`cs_${localStorage.getItem('cs_currentUser')}_studyGoals`) || ''
+
+    try {
+      const res = await window.api.askAI({
+        provider, apiKey, model,
+        systemPrompt: 'You are an encouraging study coach. Give a short (1-2 sentence) motivational nudge. Be warm, direct, and specific if goals are provided. No emojis in output.',
+        messages: [{ role: 'user', content: `The student just opened "${appName}" during a focus session.${goals ? ` Their study goals: ${goals}` : ''} Give them a quick motivational reminder to refocus.` }]
+      })
+      if (res.reply) showNudge('💬 ' + res.reply)
+    } catch { /* silently fail */ }
   }
 })()
 </script>

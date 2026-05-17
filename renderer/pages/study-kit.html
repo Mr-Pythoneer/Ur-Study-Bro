@@ -1,0 +1,310 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  .kit-layout { display:grid; grid-template-columns:1fr 1.4fr; gap:20px; }
+  @media(max-width:860px){ .kit-layout{grid-template-columns:1fr} }
+
+  .tool-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-secondary); display:block; margin-bottom:6px; }
+  .kit-textarea { width:100%; box-sizing:border-box; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:12px; font-family:inherit; font-size:13px; color:var(--text-primary); resize:none; outline:none; line-height:1.6; transition:border-color .15s; }
+  .kit-textarea:focus { border-color:var(--accent); }
+
+  .output-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:8px; padding:3px; margin-bottom:14px; }
+  .output-tab { flex:1; padding:6px 10px; border:none; border-radius:6px; font-family:var(--font); font-size:12px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
+  .output-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+  /* Summary */
+  .summary-output { font-size:13px; line-height:1.75; color:var(--text-primary); }
+  .summary-output h3 { font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.4px; margin:14px 0 6px; }
+  .summary-output ul { padding-left:18px; margin:0 0 10px; }
+  .summary-output li { margin-bottom:4px; }
+
+  /* Flashcards */
+  .flashcard-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .flashcard { perspective:600px; height:130px; cursor:pointer; }
+  .flashcard-inner { position:relative; width:100%; height:100%; transition:transform .45s; transform-style:preserve-3d; }
+  .flashcard.flipped .flashcard-inner { transform:rotateY(180deg); }
+  .flashcard-front, .flashcard-back {
+    position:absolute; inset:0; backface-visibility:hidden;
+    border-radius:10px; padding:14px; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:13px; line-height:1.5;
+  }
+  .flashcard-front { background:var(--accent); color:#fff; font-weight:600; }
+  .flashcard-back  { background:#fff; border:1.5px solid var(--border); color:var(--text-primary); transform:rotateY(180deg); font-size:12px; }
+  .fc-hint { font-size:10px; opacity:.6; position:absolute; bottom:7px; right:10px; }
+
+  /* Exam questions */
+  .eq-item { background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:14px; margin-bottom:10px; }
+  .eq-q { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:8px; }
+  .eq-ans { font-size:12px; color:var(--text-secondary); display:none; padding-top:8px; border-top:1px solid var(--border); line-height:1.6; }
+  .eq-item.revealed .eq-ans { display:block; }
+  .eq-reveal { font-size:11px; font-weight:600; color:var(--accent); background:none; border:none; cursor:pointer; padding:0; font-family:inherit; }
+
+  .key-bar { display:flex; gap:8px; align-items:center; background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:10px 14px; margin-bottom:16px; }
+  .key-bar.hidden { display:none; }
+  .key-bar input { flex:1; border:1px solid #fcd34d; border-radius:6px; padding:6px 10px; font-family:inherit; font-size:13px; background:#fffbeb; outline:none; }
+  .key-bar select { border:1px solid #fcd34d; border-radius:6px; padding:6px 8px; font-family:inherit; font-size:13px; background:#fffbeb; outline:none; cursor:pointer; }
+  .key-bar-label { font-size:12px; font-weight:600; color:#92400e; white-space:nowrap; }
+
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:6px; }
+  @keyframes spin{ to{transform:rotate(360deg)} }
+
+  .placeholder-panel { text-align:center; padding:50px 20px; color:var(--text-secondary); }
+  .placeholder-panel .ph-icon { font-size:40px; margin-bottom:14px; }
+
+  .source-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .source-chip { padding:5px 12px; font-size:12px; border:1.5px solid var(--border); border-radius:99px; background:#fff; cursor:pointer; color:var(--text-secondary); transition:all .15s; font-family:inherit; }
+  .source-chip:hover,.source-chip.active { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+</style>
+
+<div class="page-header">
+  <div class="page-title">Study Kit Generator</div>
+  <div class="page-subtitle">Paste any notes → get an instant summary, flashcards, and exam questions.</div>
+</div>
+
+<div class="key-bar" id="keyBar">
+  <span class="key-bar-label">🔑 API Key:</span>
+  <select id="kbProvider"><option value="gemini">Gemini</option><option value="anthropic">Claude</option><option value="openai">OpenAI</option></select>
+  <input type="password" id="kbInput" placeholder="Paste your API key…" autocomplete="off"/>
+  <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:6px 14px;">Save &amp; Use</button>
+</div>
+
+<div class="kit-layout">
+
+  <!-- Left: input -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card-title">Paste Your Notes</div>
+
+      <div class="source-chips">
+        <button class="source-chip active" data-src="paste">✏️ Paste notes</button>
+        <button class="source-chip" data-src="writer">📄 From AI Writer</button>
+        <button class="source-chip" data-src="meeting">📋 From Meeting Notes</button>
+      </div>
+
+      <textarea class="kit-textarea" id="notesInput" style="height:300px;" placeholder="Paste lecture notes, a textbook excerpt, your essay draft, or any text you want to study from…"></textarea>
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label class="tool-label" style="margin:0;">Generate:</label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="checkbox" id="chkSummary" checked style="accent-color:var(--accent);"/> Summary
+        </label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="checkbox" id="chkFlash" checked style="accent-color:var(--accent);"/> Flashcards
+        </label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="checkbox" id="chkExam" checked style="accent-color:var(--accent);"/> Exam Questions
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label class="tool-label" style="margin:0;">Flashcard count:</label>
+        <input type="number" id="fcCount" value="10" min="3" max="30" style="width:60px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;"/>
+        <label class="tool-label" style="margin:0;">Questions:</label>
+        <input type="number" id="eqCount" value="6" min="3" max="20" style="width:60px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;"/>
+      </div>
+
+      <button class="btn btn-primary" id="generateBtn" style="padding:10px 24px;align-self:flex-start;">
+        ✨ Generate Study Kit
+      </button>
+    </div>
+  </div>
+
+  <!-- Right: output -->
+  <div>
+    <div id="outputArea" style="display:none;">
+      <div class="output-tabs">
+        <button class="output-tab active" id="otab-summary" onclick="switchOut('summary')">📝 Summary</button>
+        <button class="output-tab" id="otab-flash"   onclick="switchOut('flash')">🃏 Flashcards</button>
+        <button class="output-tab" id="otab-exam"    onclick="switchOut('exam')">📋 Exam Questions</button>
+      </div>
+
+      <div class="card" id="opane-summary">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin:0;">Key Concepts Summary</div>
+          <button class="btn btn-ghost" id="copySummaryBtn" style="font-size:12px;padding:5px 12px;">Copy</button>
+        </div>
+        <div class="summary-output" id="summaryContent"></div>
+      </div>
+
+      <div class="card" id="opane-flash" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div class="card-title" style="margin:0;">Flashcards <span style="font-size:12px;font-weight:400;color:var(--text-secondary);">— click to flip</span></div>
+          <button class="btn btn-ghost" id="exportFlashBtn" style="font-size:12px;padding:5px 12px;">Export CSV</button>
+        </div>
+        <div class="flashcard-grid" id="flashcardGrid"></div>
+      </div>
+
+      <div class="card" id="opane-exam" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div class="card-title" style="margin:0;">Exam Questions</div>
+          <button class="btn btn-ghost" id="revealAllBtn" style="font-size:12px;padding:5px 12px;">Reveal All</button>
+        </div>
+        <div id="examList"></div>
+      </div>
+    </div>
+
+    <div class="card" id="placeholderPanel">
+      <div class="placeholder-panel">
+        <div class="ph-icon">🎓</div>
+        <p style="font-size:13px;margin:0 0 8px;">Paste your notes on the left and click <strong>Generate Study Kit</strong>.</p>
+        <p style="font-size:12px;color:var(--text-secondary);margin:0;">Works great with lecture notes, textbook chapters, essays, or any study material.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+;(function(){
+  /* ── Key bar ── */
+  function getApiCfg(){
+    const p=localStorage.getItem('ai_provider')||'gemini'
+    return{provider:p,apiKey:localStorage.getItem('ai_key_'+p)||'',model:localStorage.getItem('ai_model_'+p)||(p==='gemini'?'gemini-2.0-flash':p==='anthropic'?'claude-haiku-4-5-20251001':'gpt-4o-mini')}
+  }
+  function refreshKeyBar(){const{apiKey,provider}=getApiCfg();document.getElementById('keyBar').classList.toggle('hidden',!!apiKey);document.getElementById('kbProvider').value=provider}
+  refreshKeyBar()
+  document.getElementById('kbSaveBtn').addEventListener('click',()=>{
+    const k=document.getElementById('kbInput').value.trim();if(!k)return
+    const p=document.getElementById('kbProvider').value
+    localStorage.setItem('ai_provider',p);localStorage.setItem('ai_key_'+p,k)
+    document.getElementById('kbInput').value='';refreshKeyBar()
+    document.getElementById('kbSaveBtn').textContent='Saved ✓';setTimeout(()=>document.getElementById('kbSaveBtn').textContent='Save & Use',1500)
+  })
+
+  /* ── Source chips ── */
+  document.querySelectorAll('.source-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      document.querySelectorAll('.source-chip').forEach(c=>c.classList.remove('active'))
+      chip.classList.add('active')
+      const src=chip.dataset.src
+      const ta=document.getElementById('notesInput')
+      if(src==='writer'){
+        const docs=JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+        if(docs.length){const d=docs[0];ta.value=d.title+'\n\n'+d.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return}
+        alert('No saved AI Writer docs found. Write and save something in AI Writer first.')
+      } else if(src==='meeting'){
+        const notes=JSON.parse(localStorage.getItem('meetingNotes')||'[]')
+        if(notes.length){const n=notes[notes.length-1];ta.value=(n.title||'')+'\n\n'+n.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return}
+        alert('No saved meeting notes found. Save notes in Meeting Records first.')
+      }
+    })
+  })
+
+  /* ── Tab switcher ── */
+  window.switchOut=function(name){
+    ['summary','flash','exam'].forEach(t=>{
+      document.getElementById('opane-'+t).style.display=t===name?'':'none'
+      document.getElementById('otab-'+t).classList.toggle('active',t===name)
+    })
+  }
+
+  /* ── Generate ── */
+  let flashData=[]
+
+  document.getElementById('generateBtn').addEventListener('click',async()=>{
+    const text=document.getElementById('notesInput').value.trim()
+    if(!text||text.length<50){alert('Paste at least a few sentences of notes first.');return}
+    const{provider,apiKey,model}=getApiCfg()
+    if(!apiKey){alert('Enter your API key in the yellow bar above.');return}
+
+    const doSummary=document.getElementById('chkSummary').checked
+    const doFlash  =document.getElementById('chkFlash').checked
+    const doExam   =document.getElementById('chkExam').checked
+    const fcN=parseInt(document.getElementById('fcCount').value)||10
+    const eqN=parseInt(document.getElementById('eqCount').value)||6
+
+    const btn=document.getElementById('generateBtn')
+    btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Generating…'
+
+    const system=`You are a study assistant. Analyze the notes and return ONLY valid JSON in this exact structure (include only requested sections):
+{
+  "summary": {
+    "overview": "2-3 sentence overview of the material.",
+    "key_concepts": ["concept 1","concept 2","concept 3"],
+    "important_terms": [{"term":"Term","definition":"Definition"}],
+    "takeaways": ["main takeaway 1","main takeaway 2"]
+  },
+  "flashcards": [{"front":"Question or term","back":"Answer or definition"}],
+  "exam_questions": [{"question":"Question text?","answer":"Model answer."}]
+}
+Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[doSummary&&'summary',doFlash&&'flashcards',doExam&&'exam_questions'].filter(Boolean).join(', ')}.`
+
+    try{
+      const res=await window.api.askAI({provider,apiKey,model,systemPrompt:system,messages:[{role:'user',content:`Notes to study:\n\n${text}`}]})
+      if(res.error)throw new Error(res.error)
+      let data
+      try{const m=res.reply.match(/\{[\s\S]*\}/);data=JSON.parse(m?m[0]:res.reply)}
+      catch{alert('Could not parse AI response. Try again.\n\n'+res.reply.slice(0,200));return}
+
+      document.getElementById('placeholderPanel').style.display='none'
+      document.getElementById('outputArea').style.display=''
+
+      if(doSummary&&data.summary) renderSummary(data.summary)
+      if(doFlash&&data.flashcards){ flashData=data.flashcards; renderFlashcards(data.flashcards) }
+      if(doExam&&data.exam_questions) renderExam(data.exam_questions)
+
+      // Switch to first available tab
+      if(doSummary) switchOut('summary')
+      else if(doFlash) switchOut('flash')
+      else switchOut('exam')
+    }catch(e){alert('Error: '+e.message)}
+    finally{btn.disabled=false;btn.innerHTML='✨ Generate Study Kit'}
+  })
+
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+  function renderSummary(s){
+    const el=document.getElementById('summaryContent')
+    const concepts=(s.key_concepts||[]).map(c=>`<li>${esc(c)}</li>`).join('')
+    const terms=(s.important_terms||[]).map(t=>`<li><strong>${esc(t.term)}:</strong> ${esc(t.definition)}</li>`).join('')
+    const takeaways=(s.takeaways||[]).map(t=>`<li>${esc(t)}</li>`).join('')
+    el.innerHTML=`
+      ${s.overview?`<p style="margin-bottom:12px;">${esc(s.overview)}</p>`:''}
+      ${concepts?`<h3>Key Concepts</h3><ul>${concepts}</ul>`:''}
+      ${terms?`<h3>Important Terms</h3><ul>${terms}</ul>`:''}
+      ${takeaways?`<h3>Key Takeaways</h3><ul>${takeaways}</ul>`:''}`
+  }
+
+  document.getElementById('copySummaryBtn').addEventListener('click',()=>{
+    const text=document.getElementById('summaryContent').innerText
+    navigator.clipboard.writeText(text).then(()=>{
+      const b=document.getElementById('copySummaryBtn');b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy',1800)
+    })
+  })
+
+  function renderFlashcards(cards){
+    const grid=document.getElementById('flashcardGrid')
+    grid.innerHTML=cards.map((c,i)=>`
+      <div class="flashcard" id="fc${i}" onclick="this.classList.toggle('flipped')">
+        <div class="flashcard-inner">
+          <div class="flashcard-front">${esc(c.front)}<span class="fc-hint">tap to flip</span></div>
+          <div class="flashcard-back">${esc(c.back)}<span class="fc-hint">tap to flip</span></div>
+        </div>
+      </div>`).join('')
+  }
+
+  document.getElementById('exportFlashBtn').addEventListener('click',()=>{
+    if(!flashData.length)return
+    const csv='Front,Back\n'+flashData.map(c=>`"${c.front.replace(/"/g,'""')}","${c.back.replace(/"/g,'""')}"`).join('\n')
+    const blob=new Blob([csv],{type:'text/csv'})
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='flashcards.csv';a.click()
+  })
+
+  function renderExam(qs){
+    document.getElementById('examList').innerHTML=qs.map((q,i)=>`
+      <div class="eq-item" id="eq${i}">
+        <div class="eq-q">${i+1}. ${esc(q.question)}</div>
+        <button class="eq-reveal" onclick="document.getElementById('eq${i}').classList.toggle('revealed');this.textContent=document.getElementById('eq${i}').classList.contains('revealed')?'Hide answer':'Show answer'">Show answer</button>
+        <div class="eq-ans">${esc(q.answer)}</div>
+      </div>`).join('')
+  }
+
+  document.getElementById('revealAllBtn').addEventListener('click',()=>{
+    const items=document.querySelectorAll('.eq-item')
+    const allRevealed=[...items].every(el=>el.classList.contains('revealed'))
+    items.forEach(el=>{
+      el.classList.toggle('revealed',!allRevealed)
+      const btn=el.querySelector('.eq-reveal');if(btn)btn.textContent=allRevealed?'Show answer':'Hide answer'
+    })
+    document.getElementById('revealAllBtn').textContent=allRevealed?'Reveal All':'Hide All'
+  })
+})()
+</script>

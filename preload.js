@@ -32,5 +32,6 @@ contextBridge.exposeInMainWorld('api', {
   syncToNotes: (payload) => ipcRenderer.invoke('notes:sync', payload),
 
   // ── AI chat ─────────────────────────────────────────────────────
-  askAI: (payload) => ipcRenderer.invoke('ai:chat', payload),
+  askAI:          (payload) => ipcRenderer.invoke('ai:chat', payload),
+  transcribeAudio:(payload) => ipcRenderer.invoke('ai:transcribe', payload),
 })

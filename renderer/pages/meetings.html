@@ -99,6 +99,7 @@
   <button class="page-tab active" id="tab-records" onclick="showTab('records')">📋 Session Log</button>
   <button class="page-tab"        id="tab-record"  onclick="showTab('record')">🔴 Screen Record</button>
   <button class="page-tab"        id="tab-notes"   onclick="showTab('notes')">✏️ Meeting Notes</button>
+  <button class="page-tab"        id="tab-audio"   onclick="showTab('audio')">🎙 Lecture Audio</button>
 </div>
 
 <!-- ══════ TAB: SESSION LOG ══════════════════════════════════════ -->
@@ -300,16 +301,71 @@
   </div>
 </div>
 
+<!-- ══════ TAB: LECTURE AUDIO ═════════════════════════════════════ -->
+<div id="pane-audio" style="display:none;">
+  <div class="rec-layout">
+    <div class="rec-controls">
+      <div class="card">
+        <div class="card-title">🎙 Record Lecture Audio</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Records your microphone. When done, the AI transcribes it and drops the transcript into Meeting Notes — ready to edit or summarize.</p>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+          <button class="btn btn-primary" id="audioStartBtn">🎙 Start Recording</button>
+          <button class="btn btn-ghost"   id="audioStopBtn" disabled>⏹ Stop &amp; Transcribe</button>
+          <div class="rec-indicator" id="audioIndicator" style="display:none;">
+            <div class="rec-dot"></div>
+            <span style="font-size:13px;font-weight:600;color:#ef4444;" id="audioTimer">00:00</span>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="input-group" style="margin:0;">
+            <label>Transcription Provider</label>
+            <select id="transcribeProvider">
+              <option value="openai">OpenAI Whisper</option>
+              <option value="groq">Groq (faster, free tier)</option>
+            </select>
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label>API Key <span style="font-size:11px;color:var(--text-secondary);">(OpenAI or Groq)</span></label>
+            <input type="password" id="transcribeKey" placeholder="sk-… or gsk_…" autocomplete="off"/>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin:0;">Get a free Groq key at <strong>console.groq.com</strong> — it has a generous free tier for Whisper.</p>
+      </div>
+
+      <div class="card" id="transcriptCard" style="margin-top:16px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin:0;">📝 Transcript</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="sendToNotesBtn" style="font-size:12px;padding:6px 14px;">Send to Meeting Notes</button>
+            <button class="btn btn-ghost"   id="copyTranscriptBtn" style="font-size:12px;padding:6px 14px;">Copy</button>
+          </div>
+        </div>
+        <div id="transcriptStatus" style="font-size:12px;color:var(--accent);margin-bottom:8px;display:none;"></div>
+        <div id="transcriptOutput" style="font-size:13px;line-height:1.7;white-space:pre-wrap;max-height:360px;overflow-y:auto;color:var(--text-primary);"></div>
+      </div>
+    </div>
+
+    <div class="rec-list-panel">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px;">Past Transcripts</div>
+        <div id="transcriptList" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">No transcripts yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
   /* ── Tab switching ─────────────────────────────────────────── */
   function showTab(name) {
-    document.getElementById('pane-records').style.display = name==='records' ? '' : 'none'
-    document.getElementById('pane-record').style.display  = name==='record'  ? '' : 'none'
-    document.getElementById('pane-notes').style.display   = name==='notes'   ? '' : 'none'
-    document.getElementById('tab-records').classList.toggle('active', name==='records')
-    document.getElementById('tab-record').classList.toggle('active',  name==='record')
-    document.getElementById('tab-notes').classList.toggle('active',   name==='notes')
+    ['records','record','notes','audio'].forEach(t => {
+      document.getElementById('pane-'+t).style.display = t===name ? '' : 'none'
+      document.getElementById('tab-'+t).classList.toggle('active', t===name)
+    })
     if (name==='record') loadRecordingsList()
     if (name==='notes')  renderNoteHistory()
   }
@@ -633,7 +689,142 @@
     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop()
     if (recStream) recStream.getTracks().forEach(t=>t.stop())
     clearInterval(recTimerInterval)
+    if (audioRecorder && audioRecorder.state !== 'inactive') audioRecorder.stop()
+    if (audioStream) audioStream.getTracks().forEach(t=>t.stop())
+    clearInterval(audioTimerInterval)
   }
+
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+  /* ── LECTURE AUDIO TAB ─────────────────────────────────────── */
+  /* ── ═══════════════════════════════════════════════════════ ─ */
+
+  let audioRecorder = null, audioChunks = [], audioStream = null
+  let audioTimerInterval = null, audioSeconds = 0
+
+  const audioStartBtn = document.getElementById('audioStartBtn')
+  const audioStopBtn  = document.getElementById('audioStopBtn')
+  const audioIndicator= document.getElementById('audioIndicator')
+  const audioTimerEl  = document.getElementById('audioTimer')
+
+  // Persist transcription key
+  const transcribeKeyEl = document.getElementById('transcribeKey')
+  transcribeKeyEl.value = localStorage.getItem('transcribe_key') || ''
+  transcribeKeyEl.addEventListener('change', () => localStorage.setItem('transcribe_key', transcribeKeyEl.value))
+
+  audioStartBtn.addEventListener('click', async () => {
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      audioChunks = []
+      audioRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' })
+      audioRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data) }
+      audioRecorder.onstop = finalizeAudio
+      audioRecorder.start(1000)
+      audioStartBtn.disabled = true
+      audioStopBtn.disabled  = false
+      audioIndicator.style.display = 'inline-flex'
+      audioSeconds = 0
+      audioTimerInterval = setInterval(() => {
+        audioSeconds++
+        const m = Math.floor(audioSeconds/60), s = audioSeconds%60
+        audioTimerEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+      }, 1000)
+    } catch(e) {
+      alert('Could not access microphone: ' + e.message + '\n\nGrant Microphone permission in System Settings → Privacy & Security.')
+    }
+  })
+
+  audioStopBtn.addEventListener('click', () => {
+    if (audioRecorder && audioRecorder.state !== 'inactive') audioRecorder.stop()
+    if (audioStream) audioStream.getTracks().forEach(t => t.stop())
+    clearInterval(audioTimerInterval)
+    audioStartBtn.disabled = false
+    audioStopBtn.disabled  = true
+    audioIndicator.style.display = 'none'
+  })
+
+  async function finalizeAudio() {
+    const blob   = new Blob(audioChunks, { type: 'audio/webm' })
+    const buffer = await blob.arrayBuffer()
+    const apiKey = transcribeKeyEl.value.trim()
+    const provider = document.getElementById('transcribeProvider').value
+
+    if (!apiKey) {
+      alert('Enter your OpenAI or Groq API key first.')
+      return
+    }
+
+    const card = document.getElementById('transcriptCard')
+    const statusEl = document.getElementById('transcriptStatus')
+    card.style.display = ''
+    statusEl.style.display = 'block'
+    statusEl.textContent = '⏳ Transcribing… this may take a moment.'
+    document.getElementById('transcriptOutput').textContent = ''
+
+    try {
+      const res = await window.api.transcribeAudio({
+        audioBuffer: Array.from(new Uint8Array(buffer)),
+        provider,
+        apiKey,
+      })
+      statusEl.style.display = 'none'
+      if (res.error) { statusEl.textContent = '❌ ' + res.error; statusEl.style.display='block'; return }
+
+      const text = res.transcript || ''
+      document.getElementById('transcriptOutput').textContent = text
+
+      // Save to transcript history
+      const history = csGetJSON('transcripts', [])
+      const dateStr = new Date().toISOString().slice(0,10)
+      history.unshift({ id: Date.now().toString(), date: dateStr, duration: audioSeconds, text })
+      csSetJSON('transcripts', history.slice(0,20))
+      renderTranscriptList()
+    } catch(e) {
+      statusEl.textContent = '❌ ' + e.message
+      statusEl.style.display = 'block'
+    }
+  }
+
+  document.getElementById('sendToNotesBtn').addEventListener('click', () => {
+    const text = document.getElementById('transcriptOutput').textContent
+    if (!text) return
+    const notes = csGetJSON('meetingNotes', [])
+    const dateStr = new Date().toISOString().slice(0,10)
+    const title = `Lecture Transcript — ${dateStr}`
+    notes.push({ title, subject: '', html: `<h2>${title}</h2><p>${text.replace(/\n/g,'</p><p>')}</p>`, date: dateStr, synced: false })
+    csSetJSON('meetingNotes', notes)
+    showTab('notes')
+    renderNoteHistory()
+    const n = notes[notes.length-1]
+    window._loadNote(notes.length-1)
+  })
+
+  document.getElementById('copyTranscriptBtn').addEventListener('click', () => {
+    const text = document.getElementById('transcriptOutput').textContent
+    navigator.clipboard.writeText(text).then(() => {
+      const b = document.getElementById('copyTranscriptBtn')
+      b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = 'Copy', 1800)
+    })
+  })
+
+  function renderTranscriptList() {
+    const history = csGetJSON('transcripts', [])
+    const list = document.getElementById('transcriptList')
+    if (!history.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);text-align:center;padding:20px 0;">No transcripts yet.</div>'; return }
+    list.innerHTML = history.map((t,i) => `
+      <div class="rec-file-card" style="cursor:pointer;" onclick="window._loadTranscript(${i})">
+        <div class="rec-file-name">${esc(t.date)} — ${Math.round(t.duration/60)}min</div>
+        <div class="rec-file-meta">${esc(t.text.slice(0,60))}…</div>
+      </div>`).join('')
+  }
+
+  window._loadTranscript = (i) => {
+    const t = csGetJSON('transcripts',[])[i]; if (!t) return
+    document.getElementById('transcriptCard').style.display = ''
+    document.getElementById('transcriptOutput').textContent = t.text
+    document.getElementById('transcriptStatus').style.display = 'none'
+  }
+
+  renderTranscriptList()
 
   /* ── ═══════════════════════════════════════════════════════ ─ */
   /* ── MEETING NOTES TAB ─────────────────────────────────────── */

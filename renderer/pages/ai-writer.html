@@ -186,6 +186,41 @@
       <button class="ai-action-btn" id="btnTone" style="margin-bottom:0;">
         <span class="btn-icon">🎨</span> Apply tone
       </button>
+
+      <div class="tb-sep" style="width:100%;height:1px;margin:10px 0;"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">TOOLS</div>
+
+      <button class="ai-action-btn" id="btnELI5">
+        <span class="btn-icon">🧠</span> Simplify concept
+      </button>
+
+      <button class="ai-action-btn" id="btnCite" style="margin-bottom:0;">
+        <span class="btn-icon">📚</span> Cite source
+      </button>
+    </div>
+
+    <!-- Citation panel -->
+    <div class="ai-panel" id="citePanel" style="display:none;">
+      <div class="ai-panel-title">📚 Citation Generator</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">Style</div>
+      <select class="tone-select" id="citeStyle">
+        <option value="APA">APA 7th edition</option>
+        <option value="MLA">MLA 9th edition</option>
+        <option value="Chicago">Chicago 17th edition</option>
+      </select>
+      <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:4px;">Source (URL or book/article info)</div>
+      <textarea style="width:100%;box-sizing:border-box;height:80px;border:1.5px solid var(--border);border-radius:6px;padding:8px;font-family:inherit;font-size:12px;background:var(--bg);color:var(--text-primary);resize:none;outline:none;margin-bottom:8px;" id="citeInput" placeholder="https://example.com/article&#10;or: Smith, John. The Big Book. 2022."></textarea>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" id="btnGenCite" style="flex:1;font-size:12px;padding:6px;">Format</button>
+        <button class="btn btn-ghost" id="btnCiteClose" style="font-size:12px;padding:6px;">✕</button>
+      </div>
+      <div id="citeResult" style="margin-top:10px;display:none;">
+        <div style="background:#f0fdf4;border:1px solid rgba(42,122,90,.2);border-radius:6px;padding:10px;font-size:12px;font-family:Georgia,serif;line-height:1.6;" id="citeText"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="btn btn-primary" id="btnInsertCite" style="font-size:11px;padding:5px 10px;">Insert at cursor</button>
+          <button class="btn btn-ghost"  id="btnCopyCite"   style="font-size:11px;padding:5px 10px;">Copy</button>
+        </div>
+      </div>
     </div>
 
     <!-- AI response preview -->
@@ -380,6 +415,11 @@
         system:`Rewrite the text in a ${document.getElementById('toneSelect').value} tone. Keep the content and meaning. Return ONLY the rewritten text.`,
         user: selected || fullText,
       },
+      btnELI5: {
+        title:'🧠 Simplifying…',
+        system:'You are a brilliant teacher. Explain the given text as simply as possible using plain language, a relatable analogy, and short sentences — like explaining to a curious 12-year-old. Return ONLY the simplified explanation.',
+        user: selected || fullText,
+      },
     }
 
     const action = actions[id]; if(!action)return
@@ -401,8 +441,56 @@
     }
   }
 
-  ['btnContinue','btnImprove','btnShorter','btnLonger','btnFix','btnTone'].forEach(id => {
+  ['btnContinue','btnImprove','btnShorter','btnLonger','btnFix','btnTone','btnELI5'].forEach(id => {
     document.getElementById(id).addEventListener('click', ()=>runAction(id))
+  })
+
+  /* ── Citation tool ── */
+  document.getElementById('btnCite').addEventListener('click', () => {
+    const p = document.getElementById('citePanel')
+    p.style.display = p.style.display === 'none' ? '' : 'none'
+  })
+  document.getElementById('btnCiteClose').addEventListener('click', () => {
+    document.getElementById('citePanel').style.display = 'none'
+  })
+
+  document.getElementById('btnGenCite').addEventListener('click', async () => {
+    const source = document.getElementById('citeInput').value.trim()
+    const style  = document.getElementById('citeStyle').value
+    if (!source) { alert('Paste a URL or source info first.'); return }
+    const btn = document.getElementById('btnGenCite')
+    btn.disabled = true; btn.textContent = '…'
+    document.getElementById('citeResult').style.display = 'none'
+    try {
+      const reply = await callAI(
+        `You are a citation expert. Format the given source into a perfect ${style} citation. Return ONLY the formatted citation string, nothing else. If it is a URL, infer the title and access date (today is ${new Date().toISOString().slice(0,10)}).`,
+        source
+      )
+      if (!reply) return
+      document.getElementById('citeText').textContent = reply
+      document.getElementById('citeResult').style.display = ''
+    } catch(e) { alert('Error: '+e.message) }
+    finally { btn.disabled = false; btn.textContent = 'Format' }
+  })
+
+  document.getElementById('btnInsertCite').addEventListener('click', () => {
+    const cite = document.getElementById('citeText').textContent
+    body.focus(); restoreRange()
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount) {
+      const r = sel.getRangeAt(0); r.collapse(false)
+      const node = document.createTextNode('\n'+cite); r.insertNode(node)
+      r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r)
+    } else { body.innerText += '\n'+cite }
+    document.getElementById('citePanel').style.display = 'none'
+    refreshWordCount()
+  })
+
+  document.getElementById('btnCopyCite').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('citeText').textContent).then(() => {
+      const b = document.getElementById('btnCopyCite'); b.textContent = 'Copied ✓'
+      setTimeout(() => b.textContent = 'Copy', 1500)
+    })
   })
 
   /* ── Save / load docs ── */
