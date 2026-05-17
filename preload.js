@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('api', {
   openRecording:   (filepath)           => ipcRenderer.invoke('recorder:open', filepath),
   deleteRecording: (filepath)           => ipcRenderer.invoke('recorder:delete', filepath),
 
+  // ── App scanner ─────────────────────────────────────────────────
+  scanApps: () => ipcRenderer.invoke('apps:scan'),
+
   // ── Apple Notes sync ────────────────────────────────────────────
   syncToNotes: (payload) => ipcRenderer.invoke('notes:sync', payload),
 })

@@ -176,7 +176,9 @@
   <div class="custom-app-row">
     <input type="text" id="customAppInput" placeholder="Add custom app name (e.g. Figma)" />
     <button class="btn btn-ghost" id="addCustomAppBtn" style="padding:9px 14px;">+ Add</button>
+    <button class="btn btn-ghost" id="scanAppsBtn" style="padding:9px 14px;white-space:nowrap;">Scan for Apps</button>
   </div>
+  <div id="scanStatus" style="font-size:12px;color:var(--text-secondary);margin-top:6px;display:none;"></div>
 
   <div style="display:flex;gap:10px;margin-top:16px;">
     <button class="btn btn-primary" id="guardStartBtn">Start Guard</button>
@@ -518,6 +520,39 @@
   })
   document.getElementById('customAppInput').addEventListener('keydown', e=>{
     if (e.key==='Enter') document.getElementById('addCustomAppBtn').click()
+  })
+
+  document.getElementById('scanAppsBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('scanAppsBtn')
+    const status = document.getElementById('scanStatus')
+    if (!window.api?.scanApps) {
+      status.textContent = 'App scanning is only available in the desktop app.'
+      status.style.display = 'block'
+      return
+    }
+    btn.disabled = true
+    btn.textContent = 'Scanning…'
+    status.style.display = 'none'
+    try {
+      const found = await window.api.scanApps()
+      const presetNames = new Set(PRESET_APPS.map(a => a.name.toLowerCase()))
+      const newApps = found.filter(name =>
+        !presetNames.has(name.toLowerCase()) && !customApps.includes(name)
+      )
+      if (newApps.length === 0) {
+        status.textContent = 'No new apps found — your list is already up to date.'
+      } else {
+        newApps.forEach(name => customApps.push(name))
+        csSetJSON('guardCustom', customApps)
+        renderAppGrid()
+        status.textContent = `Added ${newApps.length} app${newApps.length !== 1 ? 's' : ''}: ${newApps.slice(0,5).join(', ')}${newApps.length > 5 ? ` + ${newApps.length - 5} more` : ''}.`
+      }
+    } catch(e) {
+      status.textContent = 'Scan failed: ' + e.message
+    }
+    status.style.display = 'block'
+    btn.disabled = false
+    btn.textContent = 'Scan for Apps'
   })
 
   const guardStartBtn  = document.getElementById('guardStartBtn')

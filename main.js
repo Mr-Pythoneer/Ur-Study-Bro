@@ -164,6 +164,22 @@ end tell`
   return { ok: true }
 })
 
+// ── Scan installed apps ───────────────────────────────────────────
+ipcMain.handle('apps:scan', async () => {
+  const dirs = [
+    '/Applications',
+    path.join(os.homedir(), 'Applications'),
+  ]
+  const results = new Set()
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue
+    fs.readdirSync(dir).forEach(f => {
+      if (f.endsWith('.app')) results.add(f.replace(/\.app$/, ''))
+    })
+  }
+  return [...results].sort((a, b) => a.localeCompare(b))
+})
+
 // ── Focus guard ───────────────────────────────────────────────────
 let _guardInterval  = null
 let _guardAllowed   = []    // lowercase app name substrings
