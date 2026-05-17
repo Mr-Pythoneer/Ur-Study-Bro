@@ -4,9 +4,11 @@ A macOS study partner app built with Electron.
 
 ## Download
 
-**[Download the latest release](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest)** — click the `.dmg` file under Assets.
-
-Requires macOS 12+ on Apple Silicon (M1/M2/M3/M4).
+| Platform | Download |
+|----------|----------|
+| macOS (Apple Silicon M1/M2/M3/M4) | [Ur.Study.Bro-1.0.0-arm64.dmg](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-1.0.0-arm64.dmg) |
+| Windows (x64) | [Ur.Study.Bro.Setup.1.0.0.exe](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro.Setup.1.0.0.exe) |
+| Linux (x64) | [Ur.Study.Bro-1.0.0.AppImage](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-1.0.0.AppImage) |
 
 ## Features
 
