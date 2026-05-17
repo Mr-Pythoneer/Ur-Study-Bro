@@ -1,5 +1,7 @@
 # Ur Study Bro
 
+**Website: https://scintillating-bublanina-a9d6a1.netlify.app**
+
 A macOS study partner app built with Electron.
 
 ## Download
