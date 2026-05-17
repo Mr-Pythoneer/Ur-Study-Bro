@@ -6,7 +6,10 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
-    "build": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac"
+    "build": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
+    "build:win": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win",
+    "build:linux": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux",
+    "build:all": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --win --linux"
   },
   "build": {
     "appId": "com.cleversnail.app",
@@ -23,7 +26,19 @@
       "icon": "build/icon.icns",
       "category": "public.app-category.education",
       "target": [
-        { "target": "dir", "arch": ["arm64"] }
+        { "target": "dmg", "arch": ["arm64"] }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "linux": {
+      "icon": "build/icon.icns",
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] }
       ]
     }
   },
