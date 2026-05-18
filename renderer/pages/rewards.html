@@ -520,15 +520,47 @@
     return { current, best }
   }
 
+  const STREAK_MILESTONES = [
+    { days: 3,  bonus: 25  },
+    { days: 7,  bonus: 50  },
+    { days: 14, bonus: 100 },
+    { days: 30, bonus: 200 },
+  ]
+
+  function checkStreakMilestoneBonuses(best) {
+    const claimed = csGetJSON('claimedStreakMilestones', [])
+    let awarded = []
+    STREAK_MILESTONES.forEach(({ days, bonus }) => {
+      if (best >= days && !claimed.includes(days)) {
+        claimed.push(days)
+        const pts = parseInt(csGet('studyPoints') || '0')
+        csSet('studyPoints', String(pts + bonus))
+        awarded.push({ days, bonus })
+      }
+    })
+    if (awarded.length) {
+      csSetJSON('claimedStreakMilestones', claimed)
+      awarded.forEach(({ days, bonus }) => {
+        const flash = document.createElement('div')
+        flash.className = 'unlock-flash'
+        flash.innerHTML = `🔥 ${days}-Day Streak!<br><span style="font-size:16px;">+${bonus} bonus pts</span>`
+        document.body.appendChild(flash)
+        setTimeout(() => flash.remove(), 1900)
+      })
+      renderShop()
+    }
+  }
+
   function renderStreak() {
     const { current, best } = computeStreak()
     document.getElementById('streakCount').textContent = current
     document.getElementById('streakBest').textContent  = `Best: ${best} day${best !== 1 ? 's' : ''}`
     document.getElementById('streakFlame').textContent = current >= 7 ? '🏆' : current >= 3 ? '⚡' : '🔥'
-    const MILESTONES = [3, 7, 14, 30]
-    document.getElementById('streakMilestones').innerHTML = MILESTONES.map(m => {
-      const done = best >= m
-      return `<div class="streak-milestone ${done ? 'done' : ''}"><span class="sm-icon">${done ? '✓' : '○'}</span> ${m}-day streak</div>`
+    checkStreakMilestoneBonuses(best)
+    document.getElementById('streakMilestones').innerHTML = STREAK_MILESTONES.map(({ days, bonus }) => {
+      const done = best >= days
+      const claimed = csGetJSON('claimedStreakMilestones', []).includes(days)
+      return `<div class="streak-milestone ${done ? 'done' : ''}"><span class="sm-icon">${done ? '✓' : '○'}</span> ${days}-day streak ${claimed ? `(+${bonus} pts claimed)` : `→ +${bonus} pts`}</div>`
     }).join('')
     const records = csGetJSON('records', [])
     const perDay  = {}

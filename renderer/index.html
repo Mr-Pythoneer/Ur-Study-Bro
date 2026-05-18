@@ -400,6 +400,23 @@ function launchApp(username) {
   document.getElementById('topbar-username').textContent = username
   loadPage('welcome')
   startScheduler()
+  grantDailyLoginBonus()
+}
+
+function grantDailyLoginBonus() {
+  const today = new Date().toISOString().slice(0, 10)
+  const lastKey = csKey('lastLoginBonus')
+  if (localStorage.getItem(lastKey) === today) return
+  localStorage.setItem(lastKey, today)
+  const cur = parseInt(localStorage.getItem(csKey('studyPoints')) || '0')
+  localStorage.setItem(csKey('studyPoints'), String(cur + 5))
+  setTimeout(() => {
+    const toast = document.createElement('div')
+    toast.style.cssText = 'position:fixed;bottom:84px;right:24px;z-index:10000;background:#0f7b6c;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fadeInUp .3s ease'
+    toast.textContent = '+5 pts — Daily login bonus!'
+    document.body.appendChild(toast)
+    setTimeout(() => toast.remove(), 3000)
+  }, 1200)
 }
 
 // ── Sign Out ──────────────────────────────────────────────────────

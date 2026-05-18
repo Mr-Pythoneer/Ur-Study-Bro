@@ -237,6 +237,9 @@ Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[
       if(doFlash&&data.flashcards){ flashData=data.flashcards; renderFlashcards(data.flashcards) }
       if(doExam&&data.exam_questions) renderExam(data.exam_questions)
 
+      // +3 pts for generating a study kit
+      csSet('studyPoints', String(parseInt(csGet('studyPoints')||'0') + 3))
+
       // Switch to first available tab
       if(doSummary) switchOut('summary')
       else if(doFlash) switchOut('flash')

@@ -400,6 +400,9 @@
     const records = csGetJSON('records',[])
     records.push({id:Date.now().toString(),date,subject,duration,rating,notes,source:'manual'})
     csSetJSON('records',records)
+    // Award points for manually logging a session
+    const logPts = Math.max(1, Math.round(duration / 5))
+    csSet('studyPoints', String(parseInt(csGet('studyPoints')||'0') + logPts))
     document.getElementById('meetDuration').value=''
     document.getElementById('meetSubjectCustom').value=''
     document.getElementById('meetNotes').value=''
