@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ur Study Bro v3.0 — AI-Powered Study Partner</title>
-  <meta name="description" content="A free, open-source desktop study app with AI tutoring, focus timers, study streaks, rewards, flashcard generation, and more. macOS Apple Silicon."/>
+  <title>Ur Study Bro v4.0 — AI-Powered Study Partner</title>
+  <meta name="description" content="A free, open-source desktop study app with a psychoeducational cognitive assessment, personalised AI study plans, focus timers, streaks, flashcards, and a rewards system that keeps you motivated. macOS, Windows &amp; Linux."/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -284,6 +284,7 @@
   <div class="nav-links">
     <a class="nav-link" href="#features">Features</a>
     <a class="nav-link" href="#ai">AI Tools</a>
+    <a class="nav-link" href="#assessment">Assessment</a>
     <a class="nav-link" href="#rewards">Rewards</a>
     <a class="nav-link" href="#download">Download</a>
     <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a>
@@ -294,11 +295,12 @@
 <!-- Hero -->
 <section class="hero">
   <div class="hero-badge">
-    <span class="version-pill">v3.0</span>
-    Free &amp; Open Source
+    <span class="version-pill">v4.0</span>
+    Free &amp; Open Source ·
+    <span style="color:#0f7b6c;font-weight:700;">✦ New: Cognitive Assessment</span>
   </div>
-  <h1>Study smarter.<br><span class="hl">Not harder.</span></h1>
-  <p class="hero-sub">An AI-powered desktop study companion with focus timers, streaks, flashcard generation, a full AI writing suite, and a rewards system that actually motivates you.</p>
+  <h1>Study smarter.<br><span class="hl">For how <em>you</em> think.</span></h1>
+  <p class="hero-sub">The only study app that starts by understanding your brain. Take a real psychoeducational cognitive battery, get an AI-generated learning profile, and receive a study plan built specifically around your strengths and weaknesses.</p>
 
   <div class="dl-wrap" id="heroDl"><!-- filled by JS --></div>
   <p class="dl-note" id="heroNote">Free forever · No account needed</p>
@@ -466,7 +468,7 @@
     </div>
     <div class="ai-card">
       <h4>Study Kit Generator</h4>
-      <p>Paste your notes and the AI generates a summary, flip flashcards, and exam Q&amp;A pairs in one go. Export flashcards as CSV for Anki or any spaced-repetition app.</p>
+      <p>Paste your notes and the AI generates a summary, flip flashcards, and exam Q&amp;A pairs in one go. Export flashcards as CSV for Anki. Or switch to <strong>Personalised Study Guide</strong> mode — powered by your cognitive assessment — for a phase-plan, schedule, and techniques built for how you actually think.</p>
     </div>
     <div class="ai-card">
       <h4>AI Writer</h4>
@@ -492,6 +494,114 @@
 
   <div style="font-size:13px;color:var(--text-sub);background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;">
     Supported AI providers: <strong>Google Gemini</strong> (Gemini 2.5 Pro / Flash), <strong>Anthropic Claude</strong> (Claude 4 Sonnet/Opus), <strong>OpenAI</strong> (GPT-4o / GPT-4o-mini), <strong>Groq</strong> (Llama 3, Whisper). Free tiers available on all providers.
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- Cognitive Assessment — NEW IN v4.0 -->
+<section class="section" id="assessment">
+  <div class="section-label">New in v4.0</div>
+  <h2>Know your brain.<br>Study your way.</h2>
+  <p class="section-sub">Most study apps treat every student the same. Ur Study Bro v4.0 starts differently — with a real psychoeducational cognitive battery, the same type of assessment that costs thousands of dollars at a specialist clinic.</p>
+
+  <!-- Big feature callout -->
+  <div style="background:linear-gradient(135deg,#0f7b6c18,#0f7b6c05);border:1.5px solid #0f7b6c33;border-radius:12px;padding:36px 40px;margin-bottom:40px;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-40px;right:-40px;font-size:180px;opacity:.04;pointer-events:none;">🧠</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;color:#0f7b6c;text-transform:uppercase;margin-bottom:10px;">Psychoeducational Cognitive Battery</div>
+    <h3 style="font-size:24px;font-weight:900;color:#37352f;margin-bottom:12px;letter-spacing:-.4px;">6 real cognitive tests. 30 items each. AI analysis.</h3>
+    <p style="font-size:14px;color:#6b6b68;line-height:1.7;max-width:580px;margin-bottom:24px;">Each test is an actual timed cognitive task — not a questionnaire. When you finish, the AI analyses your raw scores, estimates percentiles in each domain, identifies your cognitive strengths and weaknesses, and writes a fully personalised study plan.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="background:#fff;border:1px solid #0f7b6c33;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#0f7b6c;">🧩 Working Memory</div>
+      <div style="background:#fff;border:1px solid #0f7b6c33;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#0f7b6c;">⚡ Processing Speed</div>
+      <div style="background:#fff;border:1px solid #0f7b6c33;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#0f7b6c;">🎯 Sustained Attention</div>
+      <div style="background:#fff;border:1px solid #0f7b6c33;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#0f7b6c;">🔷 Fluid Reasoning</div>
+      <div style="background:#fff;border:1px solid #0f7b6c33;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#0f7b6c;">📖 Reading & Comprehension</div>
+      <div style="background:#fff;border:1px solid #0f7b6c33;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#0f7b6c;">🔀 Cognitive Flexibility</div>
+    </div>
+  </div>
+
+  <!-- The 6 tests -->
+  <div class="features" style="margin-bottom:40px;">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#ede9fe;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.5 3 6l.5 4h7l.5-4c1.8-1.5 3-3.5 3-6 0-4-3-7-7-7z"/><path d="M9 17h6"/></svg>
+      </div>
+      <h3>Digit Span</h3>
+      <p>Sequences of digits are shown one at a time. Recall them in order. Span increases from 3 to 12 across 30 trials — tests working memory capacity and verbal rehearsal.</p>
+      <span class="feature-tag">Working Memory</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fef3c7;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <h3>Symbol Search</h3>
+      <p>A key of symbol-to-number pairs stays on screen. A symbol flashes — tap the matching number as fast as you can. 30 items measure processing speed and visual scanning.</p>
+      <span class="feature-tag">Processing Speed</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fee2e2;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      </div>
+      <h3>Continuous Performance Test</h3>
+      <p>Letters flash rapidly. Press Space only when you see X. 30 target appearances, mixed with distractors. Scores hit rate, false alarms, and d-prime sensitivity — clinically validated attention measure.</p>
+      <span class="feature-tag">Sustained Attention</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#dbeafe;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </div>
+      <h3>Matrix Reasoning</h3>
+      <p>A 3×3 grid of emoji patterns with one cell missing. Choose the correct piece from 4 options. 30 progressive puzzles test fluid intelligence and non-verbal pattern recognition.</p>
+      <span class="feature-tag">Fluid Reasoning</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#d1fae5;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h12"/></svg>
+      </div>
+      <h3>Reading Rate &amp; Comprehension</h3>
+      <p>Read 3 passages at your natural pace and click Done. Then answer 10 comprehension questions per passage — 30 total. Scores WPM and comprehension accuracy across all passages.</p>
+      <span class="feature-tag">Reading</span>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:#fce7f3;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#db2777" stroke-width="2" stroke-linecap="round"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg>
+      </div>
+      <h3>Task Switching</h3>
+      <p>Coloured shapes appear. The rule alternates between "sort by colour" and "sort by shape" without warning. 30 trials measure cognitive flexibility and switch cost — how much mental effort a context change costs you.</p>
+      <span class="feature-tag">Cognitive Flexibility</span>
+    </div>
+  </div>
+
+  <!-- What you get -->
+  <div style="background:var(--sidebar);border-radius:12px;padding:36px 40px;color:#fff;margin-bottom:40px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;color:rgba(255,255,255,.4);margin-bottom:12px;text-transform:uppercase;">After the assessment, you get</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="font-size:22px;flex-shrink:0;">📊</div>
+        <div><div style="font-weight:700;font-size:14px;margin-bottom:3px;">Percentile Score Cards</div><div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">Your score in each cognitive domain colour-coded green, yellow, or red against population norms.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="font-size:22px;flex-shrink:0;">💪</div>
+        <div><div style="font-weight:700;font-size:14px;margin-bottom:3px;">Strengths &amp; Weaknesses</div><div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">Two cognitive strengths and two areas for development, referenced to your actual numbers.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="font-size:22px;flex-shrink:0;">⏱</div>
+        <div><div style="font-weight:700;font-size:14px;margin-bottom:3px;">Recommended Timer</div><div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">Which of the 4 focus timers best matches your attention span — backed by your CPT and task-switching scores.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="font-size:22px;flex-shrink:0;">🗺</div>
+        <div><div style="font-weight:700;font-size:14px;margin-bottom:3px;">90-Day Development Plan</div><div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">Concrete week-by-week actions to improve your weakest domains and double down on strengths.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="font-size:22px;flex-shrink:0;">✨</div>
+        <div><div style="font-weight:700;font-size:14px;margin-bottom:3px;">Personalised Study Guide</div><div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">Generate a subject-specific study guide in the Study Kit — phase plan, techniques, schedule, milestones — all tuned to your cognitive profile.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="font-size:22px;flex-shrink:0;">⚠️</div>
+        <div><div style="font-weight:700;font-size:14px;margin-bottom:3px;">Watch Out Card</div><div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">One honest heads-up about how your profile could work against you — and exactly what to do about it.</div></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -546,6 +656,7 @@
         <tr><td>Marathon 90 min</td><td><span class="pts-badge">+36 pts</span></td></tr>
         <tr><td>Log a manual session (per 5 min)</td><td><span class="pts-badge">+1 pt / 5 min</span></td></tr>
         <tr><td>Generate a Study Kit</td><td><span class="pts-badge">+3 pts</span></td></tr>
+        <tr><td>Generate a Personalised Study Guide</td><td><span class="pts-badge">+5 pts</span></td></tr>
         <tr><td>Daily login bonus</td><td><span class="pts-badge">+5 pts</span></td></tr>
         <tr><td>3-day streak milestone</td><td><span class="pts-badge">+25 pts (once)</span></td></tr>
         <tr><td>7-day streak milestone</td><td><span class="pts-badge">+50 pts (once)</span></td></tr>
@@ -585,13 +696,13 @@
 <!-- Download -->
 <section class="dl-section" id="download">
   <h2>Free. Open source. No sign-up.</h2>
-  <p>Download v3.0.0 for macOS Apple Silicon — M1, M2, M3, M4.</p>
+  <p>Download v4.0.0 — now with the full cognitive assessment &amp; personalised study plans.</p>
   <div class="dl-wrap" id="ctaDl"><!-- filled by JS --></div>
-  <p class="dl-note" id="ctaNote" style="margin-top:14px;">Free forever · No account needed · v3.0.0</p>
+  <p class="dl-note" id="ctaNote" style="margin-top:14px;">Free forever · No account needed · v4.0.0</p>
 </section>
 
 <footer>
-  <p>Built with Electron by <a href="https://github.com/Mr-Pythoneer" target="_blank">Mr_Pythoneer</a> &nbsp;·&nbsp; <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a> &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; v3.0.0</p>
+  <p>Built with Electron by <a href="https://github.com/Mr-Pythoneer" target="_blank">Mr_Pythoneer</a> &nbsp;·&nbsp; <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a> &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; v4.0.0</p>
 </footer>
 
 <script>
