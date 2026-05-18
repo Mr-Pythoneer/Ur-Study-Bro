@@ -186,7 +186,7 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 01 — Working Memory</div>
     <div class="bat-instr-name">Digit Span</div>
-    <div class="bat-instr-text">A sequence of digits will appear on screen, one at a time. When they disappear, type them back in the correct order. Each correct sequence gets longer. Continue until you miss two in a row.</div>
+    <div class="bat-instr-text">A sequence of digits will appear on screen, one at a time. When they disappear, type them back in the correct order. You will complete 30 sequences — 3 trials at each span length from 3 to 12 digits.</div>
     <div class="bat-instr-example"><strong>Example:</strong> You see 3 … 7 … 1 → you type 3, 7, 1 in the boxes.</div>
   </div>
   <button class="btn btn-primary" onclick="startT1()">Start Test →</button>
@@ -208,7 +208,7 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 02 — Processing Speed</div>
     <div class="bat-instr-name">Symbol Search</div>
-    <div class="bat-instr-text">A symbol will appear. A key at the top shows which number goes with which symbol. Click the correct number as fast as you can. You have 60 seconds — go for speed and accuracy.</div>
+    <div class="bat-instr-text">A symbol will appear. A key at the top shows which number goes with which symbol. Click the correct number as fast as you can. Complete all 30 items — go for speed and accuracy.</div>
     <div class="bat-instr-example"><strong>Key:</strong> ★=1, ●=2, ■=3, ▲=4, ◆=5 &nbsp;|&nbsp; <strong>Target: ●</strong> → click <strong>2</strong></div>
   </div>
   <button class="btn btn-primary" onclick="startT2()">Start Test →</button>
@@ -216,7 +216,7 @@
 
 <div class="bat-screen" id="sc-t2">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:17%"></div></div><div class="bat-progress-label">Test 2 / 6</div></div>
-  <div class="bat-timer-bar"><div class="bat-timer-track"><div class="bat-timer-fill" id="t2TimerFill" style="width:100%"></div></div><div class="bat-timer-num" id="t2TimerNum">60</div></div>
+  <div style="text-align:right;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text-secondary);" id="t2ItemCounter">Item 0 of 30</div>
   <div class="bat-test-area" style="gap:0;position:relative;">
     <div class="sym-key" id="t2Key"></div>
     <div class="bat-score-badge" id="t2ScoreBadge">Score: 0</div>
@@ -231,7 +231,7 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 03 — Sustained Attention</div>
     <div class="bat-instr-name">Target Detection</div>
-    <div class="bat-instr-text">Letters will flash on screen one at a time. Press <strong>SPACE</strong> (or tap the box) only when you see the letter <strong>X</strong>. Do not press for any other letter. Stay focused — this runs for 90 seconds.</div>
+    <div class="bat-instr-text">Letters will flash on screen one at a time. Press <strong>SPACE</strong> (or tap the box) only when you see the letter <strong>X</strong>. Do not press for any other letter. Stay focused — the test ends after 30 targets have been shown.</div>
     <div class="bat-instr-example"><strong>Target:</strong> <strong>X</strong> → press SPACE &nbsp;|&nbsp; Any other letter → do nothing</div>
   </div>
   <button class="btn btn-primary" onclick="startT3()">Start Test →</button>
@@ -239,7 +239,7 @@
 
 <div class="bat-screen" id="sc-t3">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:33%"></div></div><div class="bat-progress-label">Test 3 / 6</div></div>
-  <div class="bat-timer-bar"><div class="bat-timer-track"><div class="bat-timer-fill" id="t3TimerFill" style="width:100%"></div></div><div class="bat-timer-num" id="t3TimerNum">90</div></div>
+  <div style="text-align:right;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text-secondary);" id="t3TargetCounter">Targets: 0 / 30</div>
   <div class="bat-test-area" style="position:relative;" id="t3Area" tabindex="0">
     <div class="cpt-flash" id="t3Flash"></div>
     <div class="cpt-target-label">Press SPACE when you see: <span class="cpt-target-letter">X</span></div>
@@ -277,8 +277,8 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 05 — Reading Rate & Comprehension</div>
     <div class="bat-instr-name">Passage Reading</div>
-    <div class="bat-instr-text">Read the passage at your normal reading pace — not faster or slower than usual. When you're done, click "Done Reading". Then answer three comprehension questions from memory.</div>
-    <div class="bat-instr-example"><strong>Important:</strong> Read at your natural pace. The time is recorded to calculate your reading speed.</div>
+    <div class="bat-instr-text">Read each passage at your normal reading pace. When you're done, click "Done Reading". Then answer 10 comprehension questions from memory. There are 3 passages and 30 questions total.</div>
+    <div class="bat-instr-example"><strong>Important:</strong> Read at your natural pace. Time is recorded for each passage to calculate your reading speed.</div>
   </div>
   <button class="btn btn-primary" onclick="startT5()">Start Reading →</button>
 </div>
@@ -301,7 +301,7 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 06 — Cognitive Flexibility</div>
     <div class="bat-instr-name">Task Switching</div>
-    <div class="bat-instr-text">A coloured shape will appear. You'll be told to sort by either <strong>colour</strong> or <strong>shape</strong>. The rule switches without warning. Click the correct label as fast as you can — 24 trials total.</div>
+    <div class="bat-instr-text">A coloured shape will appear. You'll be told to sort by either <strong>colour</strong> or <strong>shape</strong>. The rule switches without warning. Click the correct label as fast as you can — 30 trials total.</div>
     <div class="bat-instr-example"><strong>Colour rule:</strong> Is it Red or Blue? &nbsp;|&nbsp; <strong>Shape rule:</strong> Is it Circle or Square?</div>
   </div>
   <button class="btn btn-primary" onclick="startT6()">Start Test →</button>
@@ -372,11 +372,17 @@
   }
 
   async function runDigitSpan() {
-    let span = 3, consecutiveMisses = 0, maxSpan = 2, totalCorrect = 0, totalTrials = 0
+    let maxSpan = 2, totalCorrect = 0, totalTrials = 0
 
-    while (consecutiveMisses < 2 && span <= 9) {
+    // 30 fixed trials: 3 trials at each span 3-12
+    const trials = []
+    for (let span = 3; span <= 12; span++) {
+      for (let t = 0; t < 3; t++) trials.push(span)
+    }
+
+    for (const span of trials) {
       const seq = Array.from({length:span}, ()=>rand(1,9))
-      document.getElementById('t1Phase').textContent = 'Watch carefully…'
+      document.getElementById('t1Phase').textContent = `Trial ${totalTrials+1} / 30 — Span ${span}`
       document.getElementById('t1InputRow').style.display = 'none'
       document.getElementById('t1Feedback').textContent = ''
 
@@ -426,14 +432,12 @@
       totalTrials++
       const correct = seq.every((d,i)=>d===userSeq[i])
       if (correct) {
-        totalCorrect++; consecutiveMisses=0; maxSpan=Math.max(maxSpan,span); span++
+        totalCorrect++; maxSpan=Math.max(maxSpan,span)
         document.getElementById('t1Feedback').innerHTML = '<span style="color:#16a34a;font-weight:700;">Correct!</span>'
       } else {
-        consecutiveMisses++
         document.getElementById('t1Feedback').innerHTML = `<span style="color:#ef4444;font-weight:700;">Incorrect</span> — correct was: ${seq.join(' ')}`
-        if(consecutiveMisses<2){ await sleep(1200); span++ }
       }
-      await sleep(consecutiveMisses>=2?200:900)
+      await sleep(900)
     }
 
     RESULTS.t1 = { maxSpan, totalCorrect, totalTrials, accuracy: Math.round(totalCorrect/totalTrials*100) }
@@ -444,24 +448,18 @@
      TEST 2 — SYMBOL SEARCH
   ═══════════════════════════════════════════════════════════════ */
   const SYMBOLS = ['★','●','■','▲','◆']
-  let t2Interval, t2Timer, t2Score=0, t2Total=0, t2Correct=0, t2Current
+  let t2Score=0, t2Total=0, t2Correct=0, t2Current
 
   window.startT2 = function() {
     showScreen('sc-t2')
-    t2Score=0; t2Total=0; t2Correct=0; t2Timer=60
+    t2Score=0; t2Total=0; t2Correct=0
 
     // Build key
     const keyEl = document.getElementById('t2Key')
     keyEl.innerHTML = SYMBOLS.map((s,i)=>`<div class="sym-key-pair"><div class="sym-key-sym">${s}</div><div class="sym-key-num">${i+1}</div></div>`).join('')
 
+    document.getElementById('t2ItemCounter').textContent='Item 0 of 30'
     nextSymbol()
-    t2Interval = setInterval(()=>{
-      t2Timer--
-      document.getElementById('t2TimerNum').textContent=t2Timer
-      document.getElementById('t2TimerFill').style.width=(t2Timer/60*100)+'%'
-      if(t2Timer<=10) document.getElementById('t2TimerNum').classList.add('urgent')
-      if(t2Timer<=0){ clearInterval(t2Interval); endT2() }
-    },1000)
   }
 
   function nextSymbol() {
@@ -483,13 +481,17 @@
     if(correct){ t2Correct++; t2Score++; el.classList.add('correct') }
     else { el.classList.add('wrong') }
     document.getElementById('t2ScoreBadge').textContent=`Score: ${t2Score}`
-    setTimeout(()=>{ el.classList.remove('correct','wrong'); nextSymbol() },correct?150:350)
+    document.getElementById('t2ItemCounter').textContent=`Item ${t2Total} of 30`
+    setTimeout(()=>{
+      el.classList.remove('correct','wrong')
+      if(t2Total>=30) endT2()
+      else nextSymbol()
+    },correct?150:350)
   }
 
   function endT2() {
-    const itemsPerMin = Math.round(t2Total)
-    const accuracy    = t2Total>0?Math.round(t2Correct/t2Total*100):0
-    RESULTS.t2 = { score:t2Score, total:t2Total, correct:t2Correct, accuracy, itemsPerMin }
+    const accuracy = t2Total>0?Math.round(t2Correct/t2Total*100):0
+    RESULTS.t2 = { score:t2Score, total:t2Total, correct:t2Correct, accuracy, itemsPerMin:t2Total }
     showScreen('sc-t3-instr')
   }
 
@@ -498,29 +500,28 @@
   ═══════════════════════════════════════════════════════════════ */
   const CPT_LETTERS = 'ABCDFGHJKLMNPQRSTVWXY'
   const CPT_TARGET  = 'X'
-  let cptInterval, cptLetterTimer, cptRunning=false
-  let cptHits=0, cptMisses=0, cptFAs=0, cptCorrectRej=0, cptTargetShown=false, cptTotal=0, cptTimer=90
+  const CPT_MAX_TARGETS = 30
+  let cptRunning=false
+  let cptHits=0, cptMisses=0, cptFAs=0, cptCorrectRej=0, cptTargetShown=false, cptTotal=0, cptTargetsShown=0
 
   window.startT3 = function() {
     showScreen('sc-t3')
-    cptRunning=true; cptHits=0; cptMisses=0; cptFAs=0; cptCorrectRej=0; cptTotal=0; cptTimer=90
+    cptRunning=true; cptHits=0; cptMisses=0; cptFAs=0; cptCorrectRej=0; cptTotal=0; cptTargetsShown=0
+    document.getElementById('t3TargetCounter').textContent='Targets: 0 / 30'
     document.getElementById('t3Area').focus()
     runCPT()
-    cptInterval = setInterval(()=>{
-      cptTimer--
-      document.getElementById('t3TimerNum').textContent=cptTimer
-      document.getElementById('t3TimerFill').style.width=(cptTimer/90*100)+'%'
-      if(cptTimer<=10) document.getElementById('t3TimerNum').classList.add('urgent')
-      if(cptTimer<=0){ cptRunning=false; clearInterval(cptInterval); clearTimeout(cptLetterTimer); endT3() }
-    },1000)
   }
 
   async function runCPT() {
-    while(cptRunning) {
-      // Show letter
+    while(cptRunning && cptTargetsShown < CPT_MAX_TARGETS) {
+      // ~25% target rate but always ensure we reach 30 targets
       const isTarget = Math.random()<0.25
       const letter   = isTarget ? CPT_TARGET : CPT_LETTERS[rand(0,CPT_LETTERS.length-1)]
       cptTargetShown = isTarget
+      if(isTarget) {
+        cptTargetsShown++
+        document.getElementById('t3TargetCounter').textContent=`Targets: ${cptTargetsShown} / 30`
+      }
       cptTotal++
       document.getElementById('t3Letter').textContent=letter
       // Wait 800ms then hide
@@ -533,6 +534,7 @@
       document.getElementById('t3Letter').textContent='+'
       await sleep(400)
     }
+    if(cptRunning) { cptRunning=false; endT3() }
   }
 
   window.handleCPTResponse = function() {
@@ -575,6 +577,30 @@
     { grid:['🔼','🔼','🔼','🔽','🔽','🔽','🔼','🔽','?'], choices:['🔽','🔼','⬆️','◀️'], correct:0, rule:'Row 3: up, down, missing = down' },
     { grid:['🌑','🌒','🌓','🌒','🌓','🌔','🌓','🌔','?'], choices:['🌑','🌕','🌗','🌔'], correct:1, rule:'Diagonal: each step advances phase; missing = full moon' },
     { grid:['🟥','🟥','🟥','🟧','🟧','🟧','🟨','🟨','?'], choices:['🟦','🟩','🟨','🟥'], correct:2, rule:'Each row is same colour; row 3 = yellow' },
+    { grid:['🌱','🌿','🌲','🌱','🌿','🌲','🌱','🌿','?'], choices:['🌱','🌲','🌿','🍀'], correct:1, rule:'3-cycle: sprout, herb, tree repeats' },
+    { grid:['🐣','🐥','🐔','🐣','🐥','🐔','🐣','🐥','?'], choices:['🐦','🐣','🐔','🦅'], correct:2, rule:'3-cycle: chick-egg, chick, hen' },
+    { grid:['⭐','⭐⭐','⭐','⭐⭐','⭐','⭐⭐','⭐','⭐⭐','?'], choices:['⭐⭐⭐','⭐','⭐⭐','🌟'], correct:1, rule:'Alternates: single, double star' },
+    { grid:['🔺','🔻','🔺','🔻','🔺','🔻','🔻','🔺','?'], choices:['🔻','🔺','🔷','🔸'], correct:1, rule:'Row 3 mirrors row 1: up, down, missing=up reversed = down' },
+    { grid:['🌙','🌙','☀️','🌙','☀️','☀️','☀️','☀️','?'], choices:['🌙','⭐','☀️','🌤'], correct:2, rule:'Count increases: row1=2moon+1sun, row2=1moon+2sun, row3=0moon+3sun' },
+    { grid:['🎯','🎯','🎯','🎯','🎯','🎯','🎯','🎯','?'], choices:['🎲','🎯','🎳','🎪'], correct:1, rule:'All same: target' },
+    { grid:['🦁','🐯','🦁','🐯','🦁','🐯','🦁','🐯','?'], choices:['🦁','🐯','🦊','🐻'], correct:0, rule:'Alternates lion, tiger; position 9 = lion' },
+    { grid:['🟣','🟣','🟣','🟣','⚫','🟣','🟣','🟣','?'], choices:['⚫','🟣','🔵','🟤'], correct:1, rule:'Middle cell is black, all others purple — position 9 = purple' },
+    { grid:['🍎','🍊','🍋','🍇','🍓','🍒','🍉','🍑','?'], choices:['🍌','🥝','🍋','🍈'], correct:0, rule:'New fruit each cell; next = banana' },
+    { grid:['🔒','🔓','🔒','🔓','🔒','🔓','🔓','🔒','?'], choices:['🔒','🔓','🗝','🔑'], correct:1, rule:'Row 3: lock, unlock, missing=unlock' },
+    { grid:['🏠','🏡','🏢','🏠','🏡','🏢','🏠','🏡','?'], choices:['🏘','🏚','🏢','🏣'], correct:2, rule:'3-cycle: house types repeat' },
+    { grid:['🌧','🌧','☁️','🌧','☁️','☀️','☁️','☀️','?'], choices:['⛈','🌧','☀️','🌤'], correct:2, rule:'Diagonal: each step gets sunnier; missing = sun' },
+    { grid:['🎸','🎹','🎸','🎹','🎸','🎹','🎸','🎹','?'], choices:['🎻','🥁','🎸','🎹'], correct:2, rule:'Alternates guitar, piano; position 9 = guitar' },
+    { grid:['🐬','🐬','🦈','🐬','🦈','🦈','🦈','🦈','?'], choices:['🐳','🦈','🐬','🐋'], correct:1, rule:'Sharks increase per row: 1,2,3 — missing = shark' },
+    { grid:['🌍','🌎','🌏','🌍','🌎','🌏','🌍','🌎','?'], choices:['🌍','🌏','🌐','🌎'], correct:1, rule:'3-cycle: Africa, Americas, Asia globe repeat' },
+    { grid:['🔴','🔴','🟠','🔴','🟠','🟠','🟠','🟠','?'], choices:['🔴','🟡','🟠','🟢'], correct:2, rule:'Orange increases per row: 1,2,3; missing = orange' },
+    { grid:['🎃','💀','🕷','🎃','💀','🕷','🎃','💀','?'], choices:['🎃','🕷','👻','💀'], correct:1, rule:'3-cycle: pumpkin, skull, spider; missing = spider' },
+    { grid:['🐝','🌸','🍯','🐝','🌸','🍯','🐝','🌸','?'], choices:['🌺','🍯','🐝','🌸'], correct:1, rule:'3-cycle: bee, flower, honey; missing = honey' },
+    { grid:['💎','💍','💎','💍','💎','💍','💍','💎','?'], choices:['💎','💍','👑','🔮'], correct:1, rule:'Row 3: gem, ring, missing = ring' },
+    { grid:['🚀','🌕','🚀','🌕','🚀','🌕','🌕','🚀','?'], choices:['🚀','🌕','⭐','🛸'], correct:1, rule:'Row 3: moon, rocket, missing = moon' },
+    { grid:['🦋','🌺','🦋','🌺','🦋','🌺','🌺','🦋','?'], choices:['🦋','🌺','🌸','🐛'], correct:1, rule:'Row 3 pattern: flower, butterfly, missing = flower' },
+    { grid:['🎭','🎬','📽','🎭','🎬','📽','🎭','🎬','?'], choices:['📺','📽','🎭','🎬'], correct:1, rule:'3-cycle: masks, clapperboard, film; missing = film' },
+    { grid:['🌊','🌊','🌊','🌊','🌊','🌊','🌊','🌊','?'], choices:['🏄','🌊','🐋','💧'], correct:1, rule:'All waves; missing = wave' },
+    { grid:['🍕','🍔','🍣','🍕','🍔','🍣','🍕','🍔','?'], choices:['🍜','🍣','🍕','🍔'], correct:1, rule:'3-cycle: pizza, burger, sushi; missing = sushi' },
   ]
   let t4Q=0, t4Correct=0, t4Times=[], t4QStart
 
@@ -622,34 +648,91 @@
   /* ══════════════════════════════════════════════════════════════
      TEST 5 — READING RATE + COMPREHENSION
   ═══════════════════════════════════════════════════════════════ */
-  const PASSAGE = {
-    text: `The concept of spaced repetition is one of the most well-supported findings in cognitive psychology. When information is reviewed at increasing intervals rather than all at once, long-term retention improves dramatically. Hermann Ebbinghaus first described the forgetting curve in the 1880s — a pattern showing that memory declines rapidly without review, then more slowly as time passes. Modern researchers have built on his work to develop algorithms that schedule reviews at the precise moment forgetting is most likely. Studies consistently show that students using spaced repetition outperform peers who use massed practice — cramming — even when total study time is equal. The key mechanism is retrieval effort: the act of recalling information strengthens the memory trace more than simply re-reading it. This is why flashcard systems, when used correctly, are far more effective than highlighting or re-reading textbooks. Understanding this principle allows learners to study less while retaining more — a counterintuitive but repeatedly proven finding.`,
-    wordCount: 152,
-    questions: [
-      { q: 'Who first described the forgetting curve?', opts:['Wilhelm Wundt','Hermann Ebbinghaus','Sigmund Freud','William James'], correct:1 },
-      { q: 'According to the passage, what makes retrieval effort effective?', opts:['It takes more time','It strengthens the memory trace','It reduces anxiety','It replaces the need for sleep'], correct:1 },
-      { q: 'What does the passage say about spaced repetition vs cramming?', opts:['Cramming is faster','They perform equally','Spaced repetition outperforms even with equal study time','Cramming works better for exams'], correct:2 },
-    ]
-  }
-  let t5ReadStart, t5ReadingTime, t5QAnswers={}
+  const PASSAGES = [
+    {
+      title: 'Passage 1 of 3',
+      text: `The concept of spaced repetition is one of the most well-supported findings in cognitive psychology. When information is reviewed at increasing intervals rather than all at once, long-term retention improves dramatically. Hermann Ebbinghaus first described the forgetting curve in the 1880s — a pattern showing that memory declines rapidly without review, then more slowly as time passes. Modern researchers have built on his work to develop algorithms that schedule reviews at the precise moment forgetting is most likely. Studies consistently show that students using spaced repetition outperform peers who use massed practice — cramming — even when total study time is equal. The key mechanism is retrieval effort: the act of recalling information strengthens the memory trace more than simply re-reading it. This is why flashcard systems, when used correctly, are far more effective than highlighting or re-reading textbooks. Understanding this principle allows learners to study less while retaining more — a counterintuitive but repeatedly proven finding.`,
+      wordCount: 152,
+      questions: [
+        { q: 'Who first described the forgetting curve?', opts:['Wilhelm Wundt','Hermann Ebbinghaus','Sigmund Freud','William James'], correct:1 },
+        { q: 'According to the passage, what makes retrieval effort effective?', opts:['It takes more time','It strengthens the memory trace','It reduces anxiety','It replaces the need for sleep'], correct:1 },
+        { q: 'What does the passage say about spaced repetition vs cramming?', opts:['Cramming is faster','They perform equally','Spaced repetition outperforms even with equal study time','Cramming works better for exams'], correct:2 },
+        { q: 'When did Ebbinghaus first describe the forgetting curve?', opts:['1780s','1980s','1880s','1920s'], correct:2 },
+        { q: 'What do modern algorithms do with spaced repetition?', opts:['Replace flashcards entirely','Schedule reviews when forgetting is most likely','Measure reading speed','Track sleep patterns'], correct:1 },
+        { q: 'What is the key mechanism behind spaced repetition?', opts:['Re-reading highlighted notes','Retrieval effort','Sleeping after study','Timed practice tests'], correct:1 },
+        { q: 'Which study method does the passage say is less effective than flashcards?', opts:['Active recall','Spaced repetition','Highlighting or re-reading textbooks','Teaching others'], correct:2 },
+        { q: 'What happens to memory decline over time without review, according to Ebbinghaus?', opts:['It stays constant','It accelerates steadily','It declines rapidly at first, then more slowly','It stops after one week'], correct:2 },
+        { q: 'What does the passage call the overall finding about studying less?', opts:['A common myth','Counterintuitive but repeatedly proven','Unproven but popular','Only true for some learners'], correct:1 },
+        { q: 'At what interval does spaced repetition schedule reviews?', opts:['Every day at the same time','Randomly throughout the week','At the precise moment forgetting is most likely','Only during exams'], correct:2 },
+      ]
+    },
+    {
+      title: 'Passage 2 of 3',
+      text: `The Pomodoro Technique is a time-management method developed by Francesco Cirillo in the late 1980s. The method uses a timer to break work into focused intervals — traditionally 25 minutes long — separated by short breaks of 5 minutes. After completing four intervals, a longer break of 15 to 30 minutes is taken. Cirillo named the technique after the tomato-shaped kitchen timer he used as a university student, "pomodoro" being the Italian word for tomato. The core idea behind the method is that frequent breaks improve mental agility and reduce the impact of internal and external interruptions. Time-boxing, a related concept, involves allocating a fixed maximum period to an activity and stopping when the time is up, regardless of whether the task is finished. Research on focused work intervals suggests that the human brain can sustain high concentration for roughly 20 to 45 minutes before performance begins to decline. Structured breaks allow the brain to consolidate information and recover attentional resources, making the next interval more productive than if work had continued uninterrupted.`,
+      wordCount: 158,
+      questions: [
+        { q: 'Who developed the Pomodoro Technique?', opts:['Hermann Ebbinghaus','Francesco Cirillo','William James','Bluma Zeigarnik'], correct:1 },
+        { q: 'When was the Pomodoro Technique developed?', opts:['Early 1970s','Late 1980s','Early 2000s','Mid 1990s'], correct:1 },
+        { q: 'How long is a traditional Pomodoro work interval?', opts:['15 minutes','45 minutes','25 minutes','30 minutes'], correct:2 },
+        { q: 'How long is the short break between intervals?', opts:['2 minutes','10 minutes','5 minutes','15 minutes'], correct:2 },
+        { q: 'What does "pomodoro" mean in Italian?', opts:['Timer','Clock','Focus','Tomato'], correct:3 },
+        { q: 'How many intervals are completed before a long break?', opts:['Two','Three','Five','Four'], correct:3 },
+        { q: 'What is time-boxing?', opts:['Allocating a fixed maximum period to an activity','Tracking time spent on each task','A method of grouping similar tasks','A timer designed for exercise'], correct:0 },
+        { q: 'How long can the human brain sustain high concentration, according to the passage?', opts:['10 to 20 minutes','60 to 90 minutes','5 to 10 minutes','20 to 45 minutes'], correct:3 },
+        { q: 'What does the passage say structured breaks allow the brain to do?', opts:['Sleep more efficiently','Consolidate information and recover attentional resources','Increase working memory capacity','Reduce false alarm responses'], correct:1 },
+        { q: 'What was Cirillo\'s original timer shaped like?', opts:['A clock tower','A tomato','An hourglass','An apple'], correct:1 },
+      ]
+    },
+    {
+      title: 'Passage 3 of 3',
+      text: `Sleep plays a critical role in memory consolidation — the process by which newly acquired information is stabilised and integrated into long-term memory. During sleep, the brain replays experiences from the day, strengthening the neural connections that form memories. Research has identified two key sleep stages involved in this process: slow-wave sleep, which is particularly important for declarative memory — the type used to recall facts and events — and REM sleep, which is associated with procedural memory and creative problem-solving. Studies using electroencephalography have shown that memory traces formed during waking are reactivated during slow-wave sleep, allowing the hippocampus to transfer information to the neocortex for long-term storage. Sleep deprivation has been shown to impair both the encoding of new memories and the consolidation of those formed before the deprivation occurred. Students who sleep after studying retain significantly more material than those who stay awake. Even a 90-minute nap taken shortly after learning can double the amount of information retained compared to continued wakefulness. These findings have led sleep researchers to describe sleep not as a passive state, but as an active, essential component of the learning process.`,
+      wordCount: 168,
+      questions: [
+        { q: 'What is memory consolidation?', opts:['The act of writing notes during study','The process of stabilising new information into long-term memory','A type of retrieval practice','A method of time management'], correct:1 },
+        { q: 'Which sleep stage is particularly important for declarative memory?', opts:['REM sleep','Light sleep','Slow-wave sleep','Hypnagogic sleep'], correct:2 },
+        { q: 'Which sleep stage is associated with procedural memory and creative problem-solving?', opts:['Slow-wave sleep','Deep sleep','Stage 1 sleep','REM sleep'], correct:3 },
+        { q: 'Where does the hippocampus transfer information during slow-wave sleep?', opts:['The cerebellum','The prefrontal cortex','The neocortex','The amygdala'], correct:2 },
+        { q: 'What method was used in research to show memory reactivation during sleep?', opts:['fMRI scanning','Electroencephalography','Blood glucose monitoring','Eye-tracking'], correct:1 },
+        { q: 'What does sleep deprivation impair, according to the passage?', opts:['Only encoding of new memories','Only consolidation of old memories','Both encoding of new memories and consolidation of previously formed memories','Physical coordination only'], correct:2 },
+        { q: 'How much more information can a 90-minute nap help retain compared to staying awake?', opts:['50% more','Three times as much','Double the amount','25% more'], correct:2 },
+        { q: 'What do sleep researchers conclude about the role of sleep?', opts:['Sleep is mostly passive but helpful','Sleep is an active, essential component of learning','Sleep can be replaced by short rest periods','Sleep only matters for physical recovery'], correct:1 },
+        { q: 'What type of memory does declarative memory help with?', opts:['Motor skills and habits','Recalling facts and events','Spatial navigation only','Emotional regulation'], correct:1 },
+        { q: 'What happens to students who sleep after studying compared to those who stay awake?', opts:['They perform the same','They retain significantly more material','They retain less but recall faster','They score higher on speed tasks only'], correct:1 },
+      ]
+    }
+  ]
+  let t5PassageIdx=0, t5ReadStart, t5TotalReadTime=0, t5TotalWordCount=0, t5AllAnswers=[], t5QAnswers={}
 
   window.startT5 = function() {
+    t5PassageIdx=0; t5TotalReadTime=0; t5TotalWordCount=0; t5AllAnswers=[]
+    showPassage()
+  }
+
+  function showPassage() {
+    const p=PASSAGES[t5PassageIdx]
     showScreen('sc-t5-read')
-    document.getElementById('t5Passage').textContent=PASSAGE.text
+    document.getElementById('t5Passage').innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">${esc(p.title)}</div>${esc(p.text)}`
     t5ReadStart=Date.now()
   }
 
   window.finishReading = function() {
-    t5ReadingTime=Math.round((Date.now()-t5ReadStart)/1000)
+    const readingTime=Math.round((Date.now()-t5ReadStart)/1000)
+    t5TotalReadTime+=readingTime
+    t5TotalWordCount+=PASSAGES[t5PassageIdx].wordCount
+    t5QAnswers={}
     showScreen('sc-t5-q')
+    const p=PASSAGES[t5PassageIdx]
     const qEl=document.getElementById('t5Questions')
-    qEl.innerHTML=PASSAGE.questions.map((q,qi)=>`
+    const qOffset=t5PassageIdx*10
+    qEl.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">${esc(p.title)} — Questions ${qOffset+1}–${qOffset+10}</div>`+
+      p.questions.map((q,qi)=>`
       <div class="read-q">
-        <div class="read-q-text">${qi+1}. ${esc(q.q)}</div>
+        <div class="read-q-text">${qOffset+qi+1}. ${esc(q.q)}</div>
         <div class="read-opts">${q.opts.map((o,oi)=>`
           <button class="read-opt" data-q="${qi}" data-o="${oi}" onclick="selectReadOpt(this,${qi})">${esc(o)}</button>`).join('')}
         </div>
       </div>`).join('')
+    document.getElementById('t5SubmitBtn').textContent=t5PassageIdx<2?'Next Passage →':'Submit Answers →'
     checkReadSubmit()
   }
 
@@ -661,14 +744,24 @@
   }
 
   function checkReadSubmit() {
-    document.getElementById('t5SubmitBtn').disabled=Object.keys(t5QAnswers).length<PASSAGE.questions.length
+    document.getElementById('t5SubmitBtn').disabled=Object.keys(t5QAnswers).length<PASSAGES[t5PassageIdx].questions.length
   }
 
   window.submitReading = function() {
-    let correct=0
-    PASSAGE.questions.forEach((q,i)=>{ if(t5QAnswers[i]===q.correct) correct++ })
-    const wpm=Math.round(PASSAGE.wordCount/(t5ReadingTime/60))
-    RESULTS.t5={readingTime:t5ReadingTime,wpm,comprehension:correct,comprehensionTotal:PASSAGE.questions.length,comprehensionPct:Math.round(correct/PASSAGE.questions.length*100)}
+    const p=PASSAGES[t5PassageIdx]
+    p.questions.forEach((q,i)=>{ t5AllAnswers.push({correct:q.correct,given:t5QAnswers[i]??-1}) })
+    t5PassageIdx++
+    if(t5PassageIdx<PASSAGES.length) {
+      showPassage()
+    } else {
+      endT5()
+    }
+  }
+
+  function endT5() {
+    const totalCorrect=t5AllAnswers.filter(a=>a.given===a.correct).length
+    const wpm=Math.round(t5TotalWordCount/(t5TotalReadTime/60))
+    RESULTS.t5={readingTime:t5TotalReadTime,wpm,comprehension:totalCorrect,comprehensionTotal:30,comprehensionPct:Math.round(totalCorrect/30*100)}
     showScreen('sc-t6-instr')
   }
 
@@ -677,7 +770,7 @@
   ═══════════════════════════════════════════════════════════════ */
   const SHAPES=[{shape:'●',label:'Circle'},{shape:'■',label:'Square'}]
   const COLORS=[{color:'#ef4444',label:'Red'},{color:'#3b82f6',label:'Blue'}]
-  const TOTAL_TRIALS=24
+  const TOTAL_TRIALS=30
   let t6Trial=0, t6Correct=0, t6SwitchCost=[], t6RTs=[], t6CurrentRule, t6PrevRule, t6SwitchTrials=[]
   let t6ItemColor, t6ItemShape, t6TrialStart
 
@@ -766,7 +859,7 @@
       workingMemory: { raw:RESULTS.t1?.maxSpan||3, pct:pct(RESULTS.t1?.maxSpan||3,3,9) },
       processingSpeed:{ raw:RESULTS.t2?.score||0, pct:pct(RESULTS.t2?.score||0,5,45) },
       attention:      { raw:RESULTS.t3?.hitRate||50, pct:pct((RESULTS.t3?.hitRate||50)-(RESULTS.t3?.faRate||0)*0.5,20,100) },
-      fluidReasoning: { raw:RESULTS.t4?.correct||0, pct:pct(RESULTS.t4?.correct||0,1,6) },
+      fluidReasoning: { raw:RESULTS.t4?.correct||0, pct:pct(RESULTS.t4?.correct||0,5,30) },
       readingRate:    { raw:RESULTS.t5?.wpm||150, pct:pct(RESULTS.t5?.wpm||150,100,400) },
       cogFlex:        { raw:RESULTS.t6?.accuracy||50, pct:pct(RESULTS.t6?.accuracy||50,40,100) },
     }
@@ -780,34 +873,34 @@ Student context — Subjects: ${subjects} | Daily goal: ${dailyGoal} hours
 
 RAW SCORES AND PERFORMANCE DATA:
 
-1. Working Memory (Digit Span)
+1. Working Memory (Digit Span — 30 trials, spans 3–12)
    - Max span achieved: ${RESULTS.t1?.maxSpan} digits (population avg: 6-7)
    - Accuracy: ${RESULTS.t1?.accuracy}%
    - Estimated percentile: ${scores.workingMemory.pct}th
 
-2. Processing Speed (Symbol Search — 60 sec)
+2. Processing Speed (Symbol Search — 30 items)
    - Items completed: ${RESULTS.t2?.total}, Correct: ${RESULTS.t2?.correct}
    - Accuracy: ${RESULTS.t2?.accuracy}%
    - Estimated percentile: ${scores.processingSpeed.pct}th
 
-3. Sustained Attention (CPT — 90 sec)
+3. Sustained Attention (CPT — 30 targets)
    - Hit rate: ${RESULTS.t3?.hitRate}% | False alarm rate: ${RESULTS.t3?.faRate}%
    - Misses: ${RESULTS.t3?.misses} | Commission errors: ${RESULTS.t3?.falseAlarms}
    - Signal detection sensitivity: ${RESULTS.t3?.dprime}
    - Estimated percentile: ${scores.attention.pct}th
 
-4. Fluid Reasoning (Pattern Completion — 6 items)
-   - Correct: ${RESULTS.t4?.correct}/6 (${RESULTS.t4?.accuracy}%)
+4. Fluid Reasoning (Pattern Completion — 30 items)
+   - Correct: ${RESULTS.t4?.correct}/30 (${RESULTS.t4?.accuracy}%)
    - Average response time: ${RESULTS.t4?.avgRT}ms
    - Estimated percentile: ${scores.fluidReasoning.pct}th
 
-5. Reading Rate + Comprehension
+5. Reading Rate + Comprehension (3 passages, 30 questions)
    - Reading speed: ${RESULTS.t5?.wpm} words per minute (avg: 200-250)
-   - Comprehension: ${RESULTS.t5?.comprehension}/${RESULTS.t5?.comprehensionTotal} (${RESULTS.t5?.comprehensionPct}%)
-   - Reading time: ${RESULTS.t5?.readingTime}s for 152 words
+   - Comprehension: ${RESULTS.t5?.comprehension}/30 (${RESULTS.t5?.comprehensionPct}%)
+   - Total reading time: ${RESULTS.t5?.readingTime}s across 3 passages
    - Estimated percentile: ${scores.readingRate.pct}th
 
-6. Cognitive Flexibility (Task Switching — 24 trials)
+6. Cognitive Flexibility (Task Switching — 30 trials)
    - Accuracy: ${RESULTS.t6?.accuracy}%
    - Average RT: ${RESULTS.t6?.avgRT}ms | Switch trial RT: ${RESULTS.t6?.avgSwitchRT}ms
    - Switch cost (penalty): ${RESULTS.t6?.switchCost}ms
