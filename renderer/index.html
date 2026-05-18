@@ -446,11 +446,17 @@ function launchApp(username, isNew = false) {
 
 function showAssessmentPrompt() {
   const modal = document.getElementById('assessmentPromptModal')
-  if (modal) modal.classList.add('visible')
+  if (!modal) return
+  modal.style.opacity = '1'
+  modal.style.pointerEvents = 'all'
+  document.getElementById('assessmentPromptBox').style.transform = 'scale(1)'
 }
 function hideAssessmentPrompt() {
   const modal = document.getElementById('assessmentPromptModal')
-  if (modal) modal.classList.remove('visible')
+  if (!modal) return
+  modal.style.opacity = '0'
+  modal.style.pointerEvents = 'none'
+  document.getElementById('assessmentPromptBox').style.transform = 'scale(.94)'
 }
 
 function grantDailyLoginBonus() {
