@@ -300,9 +300,13 @@ ipcMain.on('guard:start', (_e, allowedApps) => {
 ipcMain.on('guard:stop', () => {
   clearInterval(_guardInterval)
   _guardInterval = null
+  _guardSuppressed = false
 })
 
+let _guardSuppressed = false  // true while app is hidden — prevents re-firing
+
 function _checkFrontmost() {
+  if (_guardSuppressed) return
   try {
     const frontmost = execSync(
       `osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true'`,
@@ -314,8 +318,10 @@ function _checkFrontmost() {
     if (!ok) {
       const win = BrowserWindow.getAllWindows()[0]
       if (win) {
-        // Hide the app (Cmd+H equivalent) — sends it behind everything
+        _guardSuppressed = true  // pause checks until we're visible again
         app.hide()
+        // Resume checking once the user brings our window back
+        win.once('focus', () => { _guardSuppressed = false })
         win.webContents.send('guard:nudge', frontmost)
       }
     }
