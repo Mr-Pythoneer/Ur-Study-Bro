@@ -56,6 +56,12 @@
   <div class="page-subtitle">Paste any notes → get an instant summary, flashcards, and exam questions.</div>
 </div>
 
+<!-- ── Mode tabs ── -->
+<div style="display:flex;gap:0;margin-bottom:18px;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;width:fit-content;">
+  <button id="modeKit" onclick="switchMode('kit')" style="padding:9px 22px;font-size:13px;font-weight:700;font-family:inherit;border:none;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">Study Kit</button>
+  <button id="modeGuide" onclick="switchMode('guide')" style="padding:9px 22px;font-size:13px;font-weight:700;font-family:inherit;border:none;cursor:pointer;background:#fff;color:var(--text-secondary);transition:all .15s;">✨ Personalised Study Guide</button>
+</div>
+
 <div class="key-bar" id="keyBar">
   <span class="key-bar-label">API Key:</span>
   <select id="kbProvider"><option value="gemini">Gemini</option><option value="anthropic">Claude</option><option value="openai">OpenAI</option></select>
@@ -63,6 +69,8 @@
   <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:6px 14px;">Save &amp; Use</button>
 </div>
 
+<!-- ══ PANEL: Study Kit ══ -->
+<div id="panelKit">
 <div class="kit-layout">
 
   <!-- Left: input -->
@@ -143,6 +151,91 @@
         <div class="ph-icon"></div>
         <p style="font-size:13px;margin:0 0 8px;">Paste your notes on the left and click <strong>Generate Study Kit</strong>.</p>
         <p style="font-size:12px;color:var(--text-secondary);margin:0;">Works great with lecture notes, textbook chapters, essays, or any study material.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- end #panelKit -->
+
+<!-- ══ PANEL: Personalised Study Guide ══ -->
+<div id="panelGuide" style="display:none;">
+  <div id="guideNoReport" class="card" style="text-align:center;padding:48px 32px;">
+    <div style="font-size:40px;margin-bottom:14px;">🧠</div>
+    <div style="font-size:17px;font-weight:800;color:var(--text-primary);margin-bottom:8px;">No Learning Profile Yet</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;">Take the cognitive assessment first so the AI can tailor your study guide to your actual strengths and weaknesses.</div>
+    <button class="btn btn-primary" onclick="window.navigateTo('assessment')">Take the Assessment</button>
+  </div>
+
+  <div id="guideHasReport" style="display:none;">
+    <!-- Profile summary strip -->
+    <div id="guideProfileStrip" class="card" style="margin-bottom:16px;background:linear-gradient(135deg,#0f7b6c11,#0f7b6c05);border-color:#0f7b6c33;">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="font-size:28px;">🧠</div>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--accent);margin-bottom:3px;">Your Cognitive Profile</div>
+          <div id="guideProfileTitle" style="font-size:15px;font-weight:800;color:var(--text-primary);"></div>
+          <div id="guideProfileSummary" style="font-size:12px;color:var(--text-secondary);margin-top:3px;line-height:1.5;"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="window.navigateTo('assessment')" style="font-size:11px;padding:5px 12px;white-space:nowrap;">Retake Test</button>
+      </div>
+      <div id="guideStrengthsWeaknesses" style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="kit-layout">
+      <!-- Left: inputs -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card-title">What Are You Studying?</div>
+
+          <div>
+            <label class="tool-label">Subject / Topic</label>
+            <input id="guideSubject" type="text" placeholder="e.g. Organic Chemistry, World War II, Calculus…"
+              style="width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;"/>
+          </div>
+
+          <div>
+            <label class="tool-label">Paste Any Notes or Context <span style="font-weight:400;font-style:italic;">(optional)</span></label>
+            <textarea id="guideNotes" class="kit-textarea" style="height:160px;" placeholder="Paste a textbook excerpt, lecture notes, or any content you want the guide built around…"></textarea>
+          </div>
+
+          <div>
+            <label class="tool-label">Learning Goal</label>
+            <select id="guideGoal" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;background:#fff;cursor:pointer;">
+              <option value="exam">Prepare for an exam</option>
+              <option value="understand">Deeply understand the topic</option>
+              <option value="memorise">Memorise key facts & dates</option>
+              <option value="apply">Apply concepts to projects</option>
+              <option value="quick">Quick refresher / revision</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="tool-label">Time Available</label>
+            <select id="guideTime" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;background:#fff;cursor:pointer;">
+              <option value="1 week">1 week</option>
+              <option value="2 weeks" selected>2 weeks</option>
+              <option value="1 month">1 month</option>
+              <option value="3 months">3 months</option>
+              <option value="ongoing">Ongoing / no deadline</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" id="guideGenBtn" style="padding:11px 24px;">
+            ✨ Generate My Study Guide
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: output -->
+      <div>
+        <div id="guideOutputArea" style="display:none;"></div>
+        <div class="card" id="guidePlaceholder">
+          <div class="placeholder-panel">
+            <div class="ph-icon">✨</div>
+            <p style="font-size:13px;margin:0 0 8px;">Fill in the details and click <strong>Generate My Study Guide</strong>.</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin:0;">The AI uses your cognitive profile to tailor strategies, schedule, and resources specifically to how <em>you</em> learn best.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -305,5 +398,229 @@ Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[
     })
     document.getElementById('revealAllBtn').textContent=allRevealed?'Reveal All':'Hide All'
   })
+
+  /* ══════════════════════════════════════════
+     MODE SWITCHER
+  ══════════════════════════════════════════ */
+  window.switchMode = function(mode){
+    const isKit = mode === 'kit'
+    document.getElementById('panelKit').style.display   = isKit ? '' : 'none'
+    document.getElementById('panelGuide').style.display = isKit ? 'none' : ''
+    document.getElementById('modeKit').style.background   = isKit ? 'var(--accent)' : '#fff'
+    document.getElementById('modeKit').style.color        = isKit ? '#fff' : 'var(--text-secondary)'
+    document.getElementById('modeGuide').style.background = isKit ? '#fff' : 'var(--accent)'
+    document.getElementById('modeGuide').style.color      = isKit ? 'var(--text-secondary)' : '#fff'
+    if(!isKit) initGuidePanel()
+  }
+
+  /* ══════════════════════════════════════════
+     PERSONALISED STUDY GUIDE
+  ══════════════════════════════════════════ */
+  function initGuidePanel(){
+    const report = csGetJSON('cognitiveReport', null)
+    if(!report){
+      document.getElementById('guideNoReport').style.display = ''
+      document.getElementById('guideHasReport').style.display = 'none'
+      return
+    }
+    document.getElementById('guideNoReport').style.display = 'none'
+    document.getElementById('guideHasReport').style.display = ''
+
+    // Fill profile strip
+    document.getElementById('guideProfileTitle').textContent = report.profileTitle || 'Cognitive Profile'
+    document.getElementById('guideProfileSummary').textContent = report.overallSummary || ''
+
+    const sw = document.getElementById('guideStrengthsWeaknesses')
+    const strengths = (report.cognitiveStrengths || []).map(s =>
+      `<span style="background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">💪 ${esc(s)}</span>`).join('')
+    const weaknesses = (report.cognitiveWeaknesses || []).map(w =>
+      `<span style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;">⚠️ ${esc(w)}</span>`).join('')
+    sw.innerHTML = strengths + weaknesses
+  }
+
+  document.getElementById('guideGenBtn').addEventListener('click', async () => {
+    const subject = document.getElementById('guideSubject').value.trim()
+    if(!subject){ alert('Enter a subject or topic first.'); return }
+
+    const {provider, apiKey, model} = getApiCfg()
+    if(!apiKey){ alert('Enter your API key in the yellow bar above.'); return }
+
+    const report = csGetJSON('cognitiveReport', null)
+    if(!report){ alert('Complete the cognitive assessment first.'); return }
+
+    const goal   = document.getElementById('guideGoal').value
+    const time   = document.getElementById('guideTime').value
+    const notes  = document.getElementById('guideNotes').value.trim()
+
+    const btn = document.getElementById('guideGenBtn')
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Building your guide…'
+
+    const profileSummary = `
+Profile: ${report.profileTitle}
+Summary: ${report.overallSummary}
+Strengths: ${(report.cognitiveStrengths||[]).join(', ')}
+Weaknesses: ${(report.cognitiveWeaknesses||[]).join(', ')}
+Recommended timer: ${report.recommendedTimer} (${report.timerRationale})
+Study strategies from assessment: ${(report.studyStrategies||[]).map(s=>s.strategy).join('; ')}
+Watch out: ${report.watchOut}
+`.trim()
+
+    const userMsg = `
+Subject: ${subject}
+Goal: ${goal}
+Time available: ${time}
+${notes ? `\nAdditional notes/context:\n${notes}` : ''}
+
+Cognitive profile:
+${profileSummary}
+`.trim()
+
+    const system = `You are an expert educational psychologist and study coach. Using the student's cognitive profile, create a deeply personalised study guide.
+
+Return ONLY valid JSON in this exact structure:
+{
+  "title": "Personalised Study Guide: [Subject]",
+  "tagline": "One punchy sentence summarising their approach",
+  "whyItWorks": "2-3 sentences explaining how this guide is specifically designed for their cognitive profile",
+  "phases": [
+    {
+      "name": "Phase name",
+      "duration": "e.g. Days 1-3",
+      "goal": "What they will achieve in this phase",
+      "tasks": ["Task 1", "Task 2", "Task 3"],
+      "techniqueRationale": "Why these techniques suit their profile"
+    }
+  ],
+  "dailySchedule": {
+    "sessionLength": "e.g. 25 min",
+    "breakLength": "e.g. 5 min",
+    "sessionsPerDay": 3,
+    "bestTimeToStudy": "e.g. Morning — suits your high processing speed",
+    "warmUp": "What to do in first 2 minutes of each session",
+    "coolDown": "What to do in last 2 minutes"
+  },
+  "techniques": [
+    {
+      "name": "Technique name",
+      "howTo": "Clear 2-3 sentence how-to",
+      "whyForYou": "Why this suits their specific profile"
+    }
+  ],
+  "commonTraps": ["Trap 1 to avoid", "Trap 2 to avoid"],
+  "weeklyMilestones": ["Week 1 milestone", "Week 2 milestone"],
+  "resources": [
+    {"type": "e.g. Video / Book / Practice set", "description": "What to look for / use"}
+  ],
+  "motivationTip": "One personalised motivational insight based on their profile"
+}
+
+Be specific to their strengths and weaknesses. Reference the cognitive profile directly. Keep phase count appropriate for the time available. 3-5 techniques, 2-4 resources.`
+
+    try{
+      const res = await window.api.askAI({provider, apiKey, model, systemPrompt: system,
+        messages:[{role:'user', content: userMsg}]})
+      if(res.error) throw new Error(res.error)
+
+      let data
+      try{ const m=res.reply.match(/\{[\s\S]*\}/); data=JSON.parse(m?m[0]:res.reply) }
+      catch{ alert('Could not parse AI response. Try again.\n\n'+res.reply.slice(0,200)); return }
+
+      renderGuide(data)
+      // +5 pts
+      csSet('studyPoints', String(parseInt(csGet('studyPoints')||'0') + 5))
+    } catch(e){ alert('Error: '+e.message) }
+    finally{ btn.disabled=false; btn.innerHTML='✨ Generate My Study Guide' }
+  })
+
+  function renderGuide(d){
+    document.getElementById('guidePlaceholder').style.display = 'none'
+    const out = document.getElementById('guideOutputArea')
+    out.style.display = ''
+
+    const phases = (d.phases||[]).map(p=>`
+      <div style="border-left:3px solid var(--accent);padding-left:14px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:800;color:var(--text-primary);">${esc(p.name)} <span style="font-weight:400;color:var(--text-secondary);font-size:11px;">${esc(p.duration||'')}</span></div>
+        <div style="font-size:12px;color:var(--accent);margin:3px 0 6px;font-weight:600;">${esc(p.goal||'')}</div>
+        <ul style="margin:0 0 6px;padding-left:16px;">${(p.tasks||[]).map(t=>`<li style="font-size:12px;line-height:1.7;color:var(--text-primary);">${esc(t)}</li>`).join('')}</ul>
+        ${p.techniqueRationale?`<div style="font-size:11px;color:var(--text-secondary);font-style:italic;">${esc(p.techniqueRationale)}</div>`:''}
+      </div>`).join('')
+
+    const techniques = (d.techniques||[]).map(t=>`
+      <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">📌 ${esc(t.name)}</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:4px;">${esc(t.howTo)}</div>
+        <div style="font-size:11px;color:var(--accent);font-weight:600;">Why this works for you: ${esc(t.whyForYou)}</div>
+      </div>`).join('')
+
+    const traps = (d.commonTraps||[]).map(t=>`<li style="font-size:12px;color:#991b1b;line-height:1.7;">${esc(t)}</li>`).join('')
+    const milestones = (d.weeklyMilestones||[]).map((m,i)=>`
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;">
+        <span style="background:var(--accent);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;white-space:nowrap;margin-top:1px;">W${i+1}</span>
+        <span style="font-size:12px;color:var(--text-primary);line-height:1.6;">${esc(m)}</span>
+      </div>`).join('')
+    const resources = (d.resources||[]).map(r=>`
+      <div style="font-size:12px;line-height:1.6;padding:6px 0;border-bottom:1px solid var(--border);">
+        <span style="font-weight:700;color:var(--text-primary);">${esc(r.type)}:</span> <span style="color:var(--text-secondary);">${esc(r.description)}</span>
+      </div>`).join('')
+
+    const ds = d.dailySchedule || {}
+
+    out.innerHTML = `
+      <div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,#0f7b6c18,#0f7b6c04);">
+        <div style="font-size:18px;font-weight:900;color:var(--text-primary);margin-bottom:4px;">${esc(d.title||'Study Guide')}</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:10px;">${esc(d.tagline||'')}</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">${esc(d.whyItWorks||'')}</div>
+        <div style="margin-top:12px;background:#fff;border-radius:8px;padding:10px 14px;border:1px solid var(--border);font-size:12px;color:#92400e;line-height:1.6;"><strong>💡 Motivation:</strong> ${esc(d.motivationTip||'')}</div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        ${[
+          ['⏱', 'Session', ds.sessionLength||'—'],
+          ['☕', 'Break', ds.breakLength||'—'],
+          ['📅', 'Sessions/day', ds.sessionsPerDay||'—'],
+          ['🌅', 'Best time', ds.bestTimeToStudy||'—'],
+        ].map(([icon,label,val])=>`
+          <div style="flex:1;min-width:110px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;">
+            <div style="font-size:18px;">${icon}</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin:2px 0;">${esc(label)}</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${esc(String(val))}</div>
+          </div>`).join('')}
+      </div>
+      ${ds.warmUp||ds.coolDown ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:14px;">
+        ${ds.warmUp?`<span style="margin-right:16px;">🌱 <strong>Warm-up:</strong> ${esc(ds.warmUp)}</span>`:''}
+        ${ds.coolDown?`<span>🏁 <strong>Cool-down:</strong> ${esc(ds.coolDown)}</span>`:''}
+      </div>`:''}
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">📋 Study Phases</div>
+        ${phases || '<p style="font-size:12px;color:var(--text-secondary)">No phases returned.</p>'}
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">🛠 Techniques (tailored to you)</div>
+        ${techniques}
+      </div>
+
+      ${milestones ? `<div class="card" style="margin-bottom:14px;">
+        <div class="card-title">🏆 Weekly Milestones</div>
+        ${milestones}
+      </div>` : ''}
+
+      ${traps ? `<div class="card" style="margin-bottom:14px;border-color:#fca5a5;background:#fff5f5;">
+        <div class="card-title" style="color:#991b1b;">⚠️ Common Traps to Avoid</div>
+        <ul style="margin:0;padding-left:16px;">${traps}</ul>
+      </div>` : ''}
+
+      ${resources ? `<div class="card" style="margin-bottom:14px;">
+        <div class="card-title">📚 Resources</div>
+        ${resources}
+      </div>` : ''}
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('guideOutputArea').innerText)" style="font-size:12px;padding:6px 14px;">Copy Guide</button>
+        <button class="btn btn-primary" id="guideGenBtn2" onclick="document.getElementById('guideGenBtn').click()" style="font-size:12px;padding:6px 14px;">Regenerate</button>
+      </div>`
+  }
+
 })()
 </script>
