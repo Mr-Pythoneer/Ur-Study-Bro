@@ -329,13 +329,15 @@
     records.push({id:Date.now().toString(),date:dateStr,time:timeStr,subject,duration:mins,rating:5,notes,source:'timer'})
     csSetJSON('records',records)
     const today=getToday(); today.sessions++; today.mins+=mins
+    // Award Study Points for any completed timer (scaled by duration)
+    const earned = Math.max(1, Math.round(mins / 2.5))
+    const prevPts = parseInt(csGet('studyPoints') || '0')
+    csSet('studyPoints', String(prevPts + earned))
+    showNudge(`+${earned} Study Points earned!`)
+
     if (isPomodoro) {
       pomodoroN++
       today.pomodoros = (today.pomodoros||0) + 1
-      // Award 10 Study Points for every completed Pomodoro
-      const prevPts = parseInt(csGet('studyPoints') || '0')
-      csSet('studyPoints', String(prevPts + 10))
-      showNudge('+10 Study Points earned!')
     }
     saveToday(today)
     refreshStats()
