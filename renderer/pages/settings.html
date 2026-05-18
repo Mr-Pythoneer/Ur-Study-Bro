@@ -1,0 +1,160 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  .settings-section { margin-bottom: 24px; }
+  .settings-section:last-child { margin-bottom: 0; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+  .toggle-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: #d1d5db; border-radius: 24px; transition: background .2s;
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%; transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+  .ai-key-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ai-key-row:last-child { border-bottom: none; }
+  .ai-key-label { font-weight: 600; color: var(--text-primary); }
+  .ai-key-value { color: var(--text-secondary); font-family: monospace; font-size: 12px; }
+
+  .feedback-thanks { background: var(--accent-light); border: 1px solid var(--accent); color: var(--accent); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; font-weight: 600; display: none; margin-top: 10px; }
+  .feedback-thanks.visible { display: block; }
+
+  .danger-btn { background: #fee2e2; color: #b91c1c; border: 1.5px solid #fca5a5; border-radius: var(--radius-sm); padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: background .15s; }
+  .danger-btn:hover { background: #fecaca; }
+</style>
+
+<div class="page-header">
+  <div class="page-title">Settings &amp; Feedback</div>
+  <div class="page-subtitle">Manage your app preferences and send feedback.</div>
+</div>
+
+<!-- ── Feedback ────────────────────────────────────────────────────── -->
+<div class="card settings-section">
+  <div class="card-title">Feedback</div>
+  <div class="input-group" style="margin-bottom: 10px;">
+    <label>Your feedback</label>
+    <textarea id="feedbackText" rows="4" placeholder="Tell us what you think, what's broken, or what you'd love to see…" style="width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;color:var(--text-primary);resize:vertical;outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+  </div>
+  <button class="btn btn-primary" id="sendFeedbackBtn">Send Feedback</button>
+  <div class="feedback-thanks" id="feedbackThanks">Thank you! Your feedback has been saved.</div>
+</div>
+
+<!-- ── AI Settings ─────────────────────────────────────────────────── -->
+<div class="card settings-section" style="margin-top:16px;">
+  <div class="card-title">AI Settings</div>
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Change your AI provider and API key in the <strong>AI Tutor</strong> tab.</div>
+  <div id="aiSettingsRows"></div>
+</div>
+
+<!-- ── Timer Settings ─────────────────────────────────────────────── -->
+<div class="card settings-section" style="margin-top:16px;">
+  <div class="card-title">Timer Settings</div>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">Auto-enable Focus Guard when Pomodoro starts</div>
+      <div class="toggle-desc">Automatically activates the guard when you start a Pomodoro timer.</div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="autoGuardToggle" />
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+</div>
+
+<!-- ── Account ────────────────────────────────────────────────────── -->
+<div class="card settings-section" style="margin-top:16px;">
+  <div class="card-title">Account</div>
+  <div style="font-size:14px;color:var(--text-primary);margin-bottom:16px;">
+    Signed in as <strong id="settingsUsername">—</strong>
+  </div>
+  <button class="danger-btn" id="clearDataBtn">Clear All Data</button>
+  <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;">This will permanently delete all study records, sessions, rewards, and settings for your account.</div>
+</div>
+
+<!-- ── About ──────────────────────────────────────────────────────── -->
+<div class="card settings-section" style="margin-top:16px;">
+  <div class="card-title">About</div>
+  <div style="font-size:14px;color:var(--text-primary);margin-bottom:8px;font-weight:600;">Ur Study Bro — v4.0.0</div>
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Your focused study partner, built for students who mean business.</div>
+  <a href="https://github.com/Mr-Pythoneer/clever-snail" target="_blank" style="font-size:13px;color:var(--accent);font-weight:600;text-decoration:none;">View on GitHub →</a>
+</div>
+
+<script>
+(function() {
+  // ── Username ──────────────────────────────────────────────
+  const username = localStorage.getItem('cs_currentUser') || '—'
+  document.getElementById('settingsUsername').textContent = username
+
+  // ── AI Settings ───────────────────────────────────────────
+  const provider = localStorage.getItem('ai_provider') || null
+  const aiRows = document.getElementById('aiSettingsRows')
+  if (!provider) {
+    aiRows.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);">No AI provider configured yet.</div>'
+  } else {
+    const rawKey = localStorage.getItem('ai_key_' + provider) || ''
+    const maskedKey = rawKey.length > 8
+      ? rawKey.slice(0, 4) + '••••••••' + rawKey.slice(-4)
+      : rawKey ? '••••••••' : '(not set)'
+    const modelKey = localStorage.getItem('ai_model_' + provider) || '(default)'
+    aiRows.innerHTML = `
+      <div class="ai-key-row">
+        <span class="ai-key-label">Provider</span>
+        <span class="ai-key-value">${provider}</span>
+      </div>
+      <div class="ai-key-row">
+        <span class="ai-key-label">API Key</span>
+        <span class="ai-key-value">${maskedKey}</span>
+      </div>
+      <div class="ai-key-row">
+        <span class="ai-key-label">Model</span>
+        <span class="ai-key-value">${modelKey}</span>
+      </div>
+    `
+  }
+
+  // ── Auto-guard toggle ─────────────────────────────────────
+  const autoGuardKey = `cs_${username}_autoGuard`
+  const autoGuardVal = localStorage.getItem(autoGuardKey)
+  // default true
+  const autoGuardEnabled = autoGuardVal === null ? true : autoGuardVal === 'true'
+  const toggle = document.getElementById('autoGuardToggle')
+  toggle.checked = autoGuardEnabled
+  toggle.addEventListener('change', () => {
+    localStorage.setItem(autoGuardKey, toggle.checked ? 'true' : 'false')
+  })
+
+  // ── Feedback ──────────────────────────────────────────────
+  document.getElementById('sendFeedbackBtn').addEventListener('click', () => {
+    const text = document.getElementById('feedbackText').value.trim()
+    if (!text) return
+    const feedbackKey = `cs_${username}_feedback`
+    const existing = JSON.parse(localStorage.getItem(feedbackKey) || '[]')
+    existing.push({ text, timestamp: new Date().toISOString() })
+    localStorage.setItem(feedbackKey, JSON.stringify(existing))
+    document.getElementById('feedbackText').value = ''
+    const thanks = document.getElementById('feedbackThanks')
+    thanks.classList.add('visible')
+    setTimeout(() => thanks.classList.remove('visible'), 4000)
+  })
+
+  // ── Clear All Data ────────────────────────────────────────
+  document.getElementById('clearDataBtn').addEventListener('click', () => {
+    if (!confirm(`Are you sure you want to clear all data for "${username}"?\n\nThis will permanently delete all study records, sessions, points, rewards, and settings. This cannot be undone.`)) return
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(`cs_${username}_`))
+      .forEach(k => localStorage.removeItem(k))
+    alert('All data cleared. You have been signed out.')
+    window.navigateTo('welcome')
+  })
+})()
+</script>

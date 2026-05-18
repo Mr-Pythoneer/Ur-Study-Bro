@@ -1,10 +1,12 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
 <style>
   /* ── Timer ────────────────────────────────────────────────── */
-  .timer-mode-tabs { display:flex; gap:6px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
+  .timer-mode-tabs { display:flex; gap:6px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
   .timer-tab { padding:7px 16px; border:1.5px solid var(--border); border-radius:99px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all .15s; }
   .timer-tab.active { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
   .timer-tab.pomodoro.active { border-color:#ef4444; background:#fef2f2; color:#ef4444; }
+  .timer-tab.custom-tab.active { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
+  .timer-tab.add-custom-btn { border-style:dashed; }
   .timer-display { font-size:54px; font-weight:800; letter-spacing:-2px; color:var(--text-primary); text-align:center; font-variant-numeric:tabular-nums; transition:color .3s; line-height:1; }
   .timer-display.running { color:var(--accent); }
   .timer-display.break-running { color:#f59e0b; }
@@ -17,6 +19,17 @@
   .timer-controls { display:flex; justify-content:center; gap:12px; margin-top:20px; }
   .session-complete-banner { background:var(--accent-light); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:14px 18px; text-align:center; display:none; margin-top:16px; }
   .session-complete-banner.visible { display:block; }
+
+  /* ── Custom timer form ────────────────────────────────────── */
+  .custom-timer-form {
+    background:var(--accent-light); border:1.5px dashed var(--accent);
+    border-radius:var(--radius-sm); padding:16px; margin-bottom:16px;
+    display:none;
+  }
+  .custom-timer-form.visible { display:block; }
+  .custom-timer-form-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .custom-timer-form .input-group { margin:0; flex:1; min-width:120px; }
+  .no-points-note { font-size:11px; color:#ef4444; font-weight:600; margin-top:6px; }
 
   /* ── Break overlay ────────────────────────────────────────── */
   .break-overlay {
@@ -102,11 +115,29 @@
 
 <!-- ── Timer ───────────────────────────────────────────────────── -->
 <div class="card" style="text-align:center;">
-  <div class="timer-mode-tabs">
-    <button class="timer-tab pomodoro active" data-mins="25" data-type="pomodoro">Pomodoro 25</button>
+  <div class="timer-mode-tabs" id="timerTabs">
+    <button class="timer-tab pomodoro" data-mins="25" data-type="pomodoro">Pomodoro 25</button>
     <button class="timer-tab" data-mins="45"  data-type="focus">Focus 45</button>
     <button class="timer-tab" data-mins="60"  data-type="focus">Deep Work 60</button>
     <button class="timer-tab" data-mins="90"  data-type="focus">Marathon 90</button>
+    <button class="timer-tab add-custom-btn" id="addCustomTimerBtn">+ Custom</button>
+  </div>
+
+  <!-- Custom timer creation form -->
+  <div class="custom-timer-form" id="customTimerForm">
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;">Create Custom Timer</div>
+    <div class="custom-timer-form-row">
+      <div class="input-group">
+        <label>Timer Name</label>
+        <input type="text" id="customTimerName" placeholder="e.g. Quick Review" />
+      </div>
+      <div class="input-group" style="max-width:140px;">
+        <label>Duration (minutes)</label>
+        <input type="number" id="customTimerMins" min="1" placeholder="30" />
+      </div>
+      <button class="btn btn-primary" id="createCustomTimerBtn" style="margin-bottom:0;">Create Timer</button>
+    </div>
+    <div class="no-points-note" id="customTimerPointsNote" style="display:none;">Under 15 min — no Study Points will be awarded</div>
   </div>
 
   <div class="timer-ring">
@@ -121,6 +152,7 @@
     </div>
   </div>
 
+  <div id="noPointsNote" style="font-size:11px;color:#ef4444;font-weight:600;margin-top:10px;display:none;">Under 15 min — no Study Points awarded</div>
   <div id="pomodoroHint" style="font-size:12px;color:#ef4444;font-weight:600;margin-top:14px;margin-bottom:4px;text-align:center;">Pomodoro: 25 min focus → 5 min break · Focus Guard auto-enables</div>
 
   <div class="timer-controls">
@@ -186,6 +218,10 @@
     <button class="btn btn-ghost"   id="guardStopBtn" disabled>Stop Guard</button>
   </div>
 
+  <div id="guardLockNote" style="font-size:12px;color:var(--accent);font-weight:600;margin-top:8px;display:none;">
+    🔒 Guard is locked to the timer — reset the timer to stop it.
+  </div>
+
   <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">
     ⚠️ Requires <strong>Accessibility</strong> permission. If the guard doesn't work, go to
     <strong>System Settings → Privacy &amp; Security → Accessibility</strong> and enable Ur Study Bro.
@@ -207,22 +243,30 @@
     'Drink water, check posture, roll your shoulders.',
   ]
 
-  let totalSecs   = 25 * 60
-  let remaining   = totalSecs
-  let interval    = null
-  let running     = false
-  let isPomodoro  = true
-  let pomodoroN   = 0   // completed pomodoros this session
+  // ── Global persistent timer state ──────────────────────────────
+  // Persists across page navigations so the timer keeps running in background
+  if (!window._studyTimerGlobal) {
+    window._studyTimerGlobal = {
+      totalSecs:         25 * 60,
+      remaining:         25 * 60,
+      running:           false,
+      interval:          null,
+      isPomodoro:        true,
+      pomodoroN:         0,
+      inBreak:           false,
+      breakInterval:     null,
+      breakRemaining:    BREAK_SECS,
+      guardActive:       false,
+      timerLockedByGuard: false,
+      activeTabIndex:    0,   // which preset/custom tab is selected
+    }
+  }
+  const G = window._studyTimerGlobal
 
-  // break state
-  let breakInterval  = null
-  let breakRemaining = BREAK_SECS
-  let inBreak        = false
-
+  // _pageCleanup: do NOT clear interval — timer keeps running in background
   window._pageCleanup = () => {
-    clearInterval(interval);   interval = null;   running = false
-    clearInterval(breakInterval); breakInterval = null; inBreak = false
-    if (window.api) { window.api.stopGuard(); window.api.offGuardNudge() }
+    if (window.api) { window.api.offGuardNudge() }
+    // intentionally do NOT clear G.interval or G.breakInterval
   }
 
   const display  = document.getElementById('timerDisplay')
@@ -267,42 +311,242 @@
 
   /* ── Timer utils ─────────────────────────────────────────── */
   function fmt(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}` }
-  function updateRing() { ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - remaining/totalSecs) }
-  function setDisplay() { display.textContent=fmt(remaining); updateRing() }
+  function updateRing() { ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - G.remaining/G.totalSecs) }
+  function setDisplay() { display.textContent=fmt(G.remaining); updateRing() }
 
-  document.querySelectorAll('.timer-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      if (running || inBreak) return
-      document.querySelectorAll('.timer-tab').forEach(t=>t.classList.remove('active'))
-      tab.classList.add('active')
-      isPomodoro = tab.dataset.type === 'pomodoro'
-      hint.style.display = isPomodoro ? '' : 'none'
-      totalSecs=parseInt(tab.dataset.mins)*60; remaining=totalSecs
-      display.className='timer-display'; status.textContent='Ready'
-      banner.classList.remove('visible')
-      ring.style.stroke = isPomodoro ? '#ef4444' : 'var(--accent)'
-      setDisplay()
+  function syncUIFromGlobal() {
+    // Restore display state from global
+    setDisplay()
+    if (G.running) {
+      startBtn.textContent='⏸ Pause'
+      display.classList.add('running')
+      status.textContent='Focusing…'
+    } else if (G.remaining < G.totalSecs && G.remaining > 0) {
+      startBtn.textContent='▶ Resume'
+      display.classList.remove('running')
+      status.textContent='Paused'
+    } else if (G.remaining <= 0) {
+      startBtn.textContent='▶ Start'
+      display.className='timer-display finished'
+      status.textContent='Done!'
+    } else {
+      startBtn.textContent='▶ Start'
+      display.className='timer-display'
+      status.textContent='Ready'
+    }
+
+    // Ring color
+    ring.style.stroke = G.isPomodoro ? '#ef4444' : 'var(--accent)'
+
+    // Pomodoro hint
+    hint.style.display = G.isPomodoro ? '' : 'none'
+
+    // No-points note for short timers
+    const noPointsNote = document.getElementById('noPointsNote')
+    noPointsNote.style.display = (G.totalSecs < 15 * 60) ? 'block' : 'none'
+
+    // Guard state
+    syncGuardUI()
+
+    // Timer locked state
+    syncGuardLockUI()
+
+    // Break overlay
+    if (G.inBreak) {
+      breakDisplay.textContent = fmt(G.breakRemaining)
+      breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
+      breakOverlay.classList.add('visible')
+      // Reattach break interval if it's running but interval was lost
+      if (!G.breakInterval && G.inBreak && G.breakRemaining > 0) {
+        G.breakInterval = setInterval(() => {
+          G.breakRemaining--
+          breakDisplay.textContent = fmt(G.breakRemaining)
+          breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
+          if (G.breakRemaining <= 0) {
+            clearInterval(G.breakInterval); G.breakInterval = null
+            breakDisplay.textContent = '0:00'
+            breakLabel.textContent = "Break over — let's go!"
+            if (window.api && window.api.scheduleNotify) {
+              window.api.scheduleNotify({ title: 'Break Over!', startLabel: 'Time to focus again', link: null })
+            }
+          }
+        }, 1000)
+      }
+    } else {
+      breakOverlay.classList.remove('visible')
+    }
+  }
+
+  function syncGuardUI() {
+    const guardStatusEl = document.getElementById('guardStatus')
+    const guardLabel    = document.getElementById('guardStatusLabel')
+    const guardStartBtn = document.getElementById('guardStartBtn')
+    const guardStopBtn  = document.getElementById('guardStopBtn')
+    if (G.guardActive) {
+      guardStatusEl.className = 'guard-status on'
+      guardLabel.textContent = `On`
+      guardStartBtn.disabled = true
+      guardStopBtn.disabled  = G.timerLockedByGuard  // locked if timer started
+      document.getElementById('appGrid').classList.add('locked')
+    } else {
+      guardStatusEl.className = 'guard-status off'
+      guardLabel.textContent = 'Off'
+      guardStartBtn.disabled = false
+      guardStopBtn.disabled  = true
+      document.getElementById('appGrid').classList.remove('locked')
+    }
+  }
+
+  function syncGuardLockUI() {
+    const lockNote = document.getElementById('guardLockNote')
+    lockNote.style.display = G.timerLockedByGuard ? 'block' : 'none'
+    const guardStopBtn = document.getElementById('guardStopBtn')
+    if (G.timerLockedByGuard) guardStopBtn.disabled = true
+  }
+
+  /* ── Custom timers ───────────────────────────────────────── */
+  function getCustomTimers() { return csGetJSON('customTimers', []) }
+  function saveCustomTimers(arr) { csSetJSON('customTimers', arr) }
+
+  function buildTimerTabs() {
+    const tabsContainer = document.getElementById('timerTabs')
+    // Remove existing custom tabs (keep presets + add-btn)
+    tabsContainer.querySelectorAll('.custom-tab').forEach(t => t.remove())
+
+    const addBtn = document.getElementById('addCustomTimerBtn')
+    const customs = getCustomTimers()
+    customs.forEach((ct, idx) => {
+      const btn = document.createElement('button')
+      btn.className = 'timer-tab custom-tab'
+      btn.dataset.mins = ct.mins
+      btn.dataset.type = 'focus'
+      btn.dataset.customIdx = idx
+      btn.textContent = ct.name
+      tabsContainer.insertBefore(btn, addBtn)
     })
+
+    // Restore active tab
+    const allTabs = tabsContainer.querySelectorAll('.timer-tab:not(.add-custom-btn)')
+    allTabs.forEach((tab, i) => {
+      tab.classList.toggle('active', i === G.activeTabIndex)
+    })
+    attachTabListeners()
+  }
+
+  function attachTabListeners() {
+    const tabsContainer = document.getElementById('timerTabs')
+    tabsContainer.querySelectorAll('.timer-tab:not(.add-custom-btn)').forEach((tab, i) => {
+      tab.onclick = null
+      tab.addEventListener('click', () => {
+        if (G.running || G.inBreak) return
+        tabsContainer.querySelectorAll('.timer-tab').forEach(t => t.classList.remove('active'))
+        tab.classList.add('active')
+        G.activeTabIndex = i
+        G.isPomodoro = tab.dataset.type === 'pomodoro'
+        hint.style.display = G.isPomodoro ? '' : 'none'
+        G.totalSecs = parseInt(tab.dataset.mins) * 60
+        G.remaining = G.totalSecs
+        display.className = 'timer-display'
+        status.textContent = 'Ready'
+        banner.classList.remove('visible')
+        ring.style.stroke = G.isPomodoro ? '#ef4444' : 'var(--accent)'
+        setDisplay()
+        const noPointsNote = document.getElementById('noPointsNote')
+        noPointsNote.style.display = (G.totalSecs < 15 * 60) ? 'block' : 'none'
+        // When timer resets by switching tab, unlock guard
+        G.timerLockedByGuard = false
+        syncGuardLockUI()
+      })
+    })
+  }
+
+  buildTimerTabs()
+
+  // Custom timer form
+  document.getElementById('addCustomTimerBtn').addEventListener('click', () => {
+    const form = document.getElementById('customTimerForm')
+    form.classList.toggle('visible')
   })
-  // init ring color for pomodoro
-  ring.style.stroke = '#ef4444'
+
+  document.getElementById('customTimerMins').addEventListener('input', () => {
+    const mins = parseInt(document.getElementById('customTimerMins').value) || 0
+    document.getElementById('customTimerPointsNote').style.display = (mins > 0 && mins < 15) ? 'block' : 'none'
+  })
+
+  document.getElementById('createCustomTimerBtn').addEventListener('click', () => {
+    const nameEl = document.getElementById('customTimerName')
+    const minsEl = document.getElementById('customTimerMins')
+    const name   = nameEl.value.trim()
+    const mins   = parseInt(minsEl.value)
+    if (!name || !mins || mins < 1) { showNudge('Enter a name and duration.'); return }
+    const customs = getCustomTimers()
+    customs.push({ name, mins })
+    saveCustomTimers(customs)
+    nameEl.value = ''
+    minsEl.value = ''
+    document.getElementById('customTimerPointsNote').style.display = 'none'
+    document.getElementById('customTimerForm').classList.remove('visible')
+    buildTimerTabs()
+    // Auto-select the new custom tab
+    const allTabs = document.getElementById('timerTabs').querySelectorAll('.timer-tab:not(.add-custom-btn)')
+    const newTabIdx = allTabs.length - 1
+    allTabs.forEach((t, i) => t.classList.toggle('active', i === newTabIdx))
+    G.activeTabIndex = newTabIdx
+    G.isPomodoro = false
+    hint.style.display = 'none'
+    G.totalSecs = mins * 60
+    G.remaining = G.totalSecs
+    display.className = 'timer-display'
+    status.textContent = 'Ready'
+    ring.style.stroke = 'var(--accent)'
+    setDisplay()
+    document.getElementById('noPointsNote').style.display = (mins < 15) ? 'block' : 'none'
+    G.timerLockedByGuard = false
+    syncGuardLockUI()
+  })
+
+  // ── Restore UI from global state on page load ─────────────
+  syncUIFromGlobal()
+
+  // If the study interval was running but interval object is gone (page reload),
+  // reattach it so the timer continues ticking
+  if (G.running && !G.interval) {
+    G.interval = setInterval(() => {
+      G.remaining--; setDisplay()
+      if (G.remaining <= 0) {
+        clearInterval(G.interval); G.interval = null; G.running = false
+        startBtn.textContent = '▶ Start'
+        display.className = 'timer-display finished'; status.textContent = 'Done!'
+        G.timerLockedByGuard = false
+        syncGuardLockUI()
+        completeSession()
+      }
+    }, 1000)
+  }
 
   startBtn.addEventListener('click', () => {
-    if (running) {
-      clearInterval(interval); running=false
-      startBtn.textContent='▶ Resume'; display.classList.remove('running')
-      status.textContent='Paused'
+    if (G.running) {
+      clearInterval(G.interval); G.interval = null; G.running = false
+      startBtn.textContent = '▶ Resume'; display.classList.remove('running')
+      status.textContent = 'Paused'
     } else {
-      running=true; startBtn.textContent='⏸ Pause'
-      display.classList.add('running'); status.textContent='Focusing…'
+      G.running = true; startBtn.textContent = '⏸ Pause'
+      display.classList.add('running'); status.textContent = 'Focusing…'
+      // Lock guard to timer once timer is started
+      if (G.guardActive) {
+        G.timerLockedByGuard = true
+        syncGuardLockUI()
+      }
       // auto-start guard for pomodoro if apps are checked
-      if (isPomodoro && checkedApps.size > 0 && !guardActive) _startGuard()
-      interval = setInterval(()=>{
-        remaining--; setDisplay()
-        if (remaining<=0) {
-          clearInterval(interval); running=false
-          startBtn.textContent='▶ Start'
-          display.className='timer-display finished'; status.textContent='Done!'
+      if (G.isPomodoro && checkedApps.size > 0 && !G.guardActive) _startGuard()
+      G.interval = setInterval(() => {
+        G.remaining--; setDisplay()
+        if (G.remaining <= 0) {
+          clearInterval(G.interval); G.interval = null; G.running = false
+          startBtn.textContent = '▶ Start'
+          display.className = 'timer-display finished'; status.textContent = 'Done!'
+          G.timerLockedByGuard = false
+          syncGuardLockUI()
           completeSession()
         }
       }, 1000)
@@ -310,10 +554,13 @@
   })
 
   resetBtn.addEventListener('click', () => {
-    clearInterval(interval); running=false; remaining=totalSecs
-    startBtn.textContent='▶ Start'; display.className='timer-display'
-    status.textContent='Ready'; banner.classList.remove('visible')
-    if (guardActive) _stopGuard()
+    clearInterval(G.interval); G.interval = null; G.running = false
+    G.remaining = G.totalSecs
+    G.timerLockedByGuard = false
+    startBtn.textContent = '▶ Start'; display.className = 'timer-display'
+    status.textContent = 'Ready'; banner.classList.remove('visible')
+    if (G.guardActive) _stopGuard()
+    syncGuardLockUI()
     setDisplay()
   })
 
@@ -322,28 +569,31 @@
     const customSub  = document.getElementById('customSubject').value.trim()
     const subject    = customSub||subjectSel||'General Study'
     const notes      = document.getElementById('sessionNotes').value.trim()
-    const mins       = Math.round(totalSecs/60)
+    const mins       = Math.round(G.totalSecs/60)
     const dateStr    = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
     const timeStr    = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
     const records    = csGetJSON('records',[])
     records.push({id:Date.now().toString(),date:dateStr,time:timeStr,subject,duration:mins,rating:null,notes,source:'timer'})
     csSetJSON('records',records)
     const today=getToday(); today.sessions++; today.mins+=mins
-    // Award Study Points for any completed timer (scaled by duration)
-    const earned = Math.max(1, Math.round(mins / 2.5))
-    const prevPts = parseInt(csGet('studyPoints') || '0')
-    csSet('studyPoints', String(prevPts + earned))
-    showNudge(`+${earned} Study Points earned!`)
 
-    if (isPomodoro) {
-      pomodoroN++
+    // Award Study Points only for timers >= 15 minutes
+    if (G.totalSecs >= 15 * 60) {
+      const earned = Math.max(1, Math.round(mins / 2.5))
+      const prevPts = parseInt(csGet('studyPoints') || '0')
+      csSet('studyPoints', String(prevPts + earned))
+      showNudge(`+${earned} Study Points earned!`)
+    }
+
+    if (G.isPomodoro) {
+      G.pomodoroN++
       today.pomodoros = (today.pomodoros||0) + 1
     }
     saveToday(today)
     refreshStats()
     document.getElementById('sessionNotes').value=''
 
-    if (isPomodoro) {
+    if (G.isPomodoro) {
       startBreak()
     } else {
       banner.classList.add('visible')
@@ -358,7 +608,7 @@
 
   function startBreak() {
     // Stop guard during break
-    if (guardActive) _stopGuard()
+    if (G.guardActive) _stopGuard()
 
     // Native notification
     if (window.api && window.api.scheduleNotify) {
@@ -369,10 +619,10 @@
       })
     }
 
-    inBreak = true
-    breakRemaining = BREAK_SECS
+    G.inBreak = true
+    G.breakRemaining = BREAK_SECS
     breakTip.textContent = BREAK_TIPS[Math.floor(Math.random()*BREAK_TIPS.length)]
-    pomodoroCount.textContent = `${pomodoroN} Pomodoro${pomodoroN!==1?'s':''} completed today`
+    pomodoroCount.textContent = `${G.pomodoroN} Pomodoro${G.pomodoroN!==1?'s':''} completed today`
 
     breakRingFill.style.strokeDashoffset = 0
     breakDisplay.textContent = fmt(BREAK_SECS)
@@ -380,14 +630,14 @@
 
     breakOverlay.classList.add('visible')
 
-    breakInterval = setInterval(() => {
-      breakRemaining--
-      breakDisplay.textContent = fmt(breakRemaining)
-      breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - breakRemaining/BREAK_SECS)
-      if (breakRemaining <= 0) {
-        clearInterval(breakInterval)
+    G.breakInterval = setInterval(() => {
+      G.breakRemaining--
+      breakDisplay.textContent = fmt(G.breakRemaining)
+      breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
+      if (G.breakRemaining <= 0) {
+        clearInterval(G.breakInterval); G.breakInterval = null
         breakDisplay.textContent = '0:00'
-        breakLabel.textContent = 'Break over — let\'s go!'
+        breakLabel.textContent = "Break over — let's go!"
         if (window.api && window.api.scheduleNotify) {
           window.api.scheduleNotify({ title: 'Break Over!', startLabel: 'Time to focus again', link: null })
         }
@@ -396,20 +646,16 @@
   }
 
   function endBreak() {
-    clearInterval(breakInterval); breakInterval=null; inBreak=false
+    clearInterval(G.breakInterval); G.breakInterval = null; G.inBreak = false
     breakOverlay.classList.remove('visible')
     // Reset study timer
-    remaining=totalSecs; setDisplay()
-    display.className='timer-display'; status.textContent='Ready'
-    startBtn.textContent='▶ Start'; startBtn.disabled=false
+    G.remaining = G.totalSecs; setDisplay()
+    display.className = 'timer-display'; status.textContent = 'Ready'
+    startBtn.textContent = '▶ Start'; startBtn.disabled = false
   }
 
-  document.getElementById('nextPomodoroBtn').addEventListener('click', () => {
-    endBreak()
-  })
-  document.getElementById('skipBreakBtn').addEventListener('click', () => {
-    endBreak()
-  })
+  document.getElementById('nextPomodoroBtn').addEventListener('click', endBreak)
+  document.getElementById('skipBreakBtn').addEventListener('click', endBreak)
 
   setDisplay()
 
@@ -483,7 +729,6 @@
 
   let checkedApps = new Set(csGetJSON('guardAllowed',[]))
   let customApps  = csGetJSON('guardCustom',[])
-  let guardActive = false
 
   const GENERIC_LOGO = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#6b7280"/><rect x="7" y="10" width="18" height="12" rx="2" fill="white" opacity=".8"/><rect x="9" y="24" width="14" height="2" rx="1" fill="white" opacity=".5"/></svg>`
 
@@ -498,7 +743,7 @@
       div.innerHTML = `<input type="checkbox" ${checkedApps.has(name)?'checked':''}><div class="app-logo">${logo}</div><span>${name}</span>`
       const cb = div.querySelector('input')
       const toggle = () => {
-        if (guardActive) return
+        if (G.guardActive) return
         cb.checked = !cb.checked
         if (cb.checked) { checkedApps.add(name); div.classList.add('checked') }
         else            { checkedApps.delete(name); div.classList.remove('checked') }
@@ -527,15 +772,15 @@
 
   document.getElementById('scanAppsBtn').addEventListener('click', async () => {
     const btn = document.getElementById('scanAppsBtn')
-    const status = document.getElementById('scanStatus')
+    const scanSt = document.getElementById('scanStatus')
     if (!window.api?.scanApps) {
-      status.textContent = 'App scanning is only available in the desktop app.'
-      status.style.display = 'block'
+      scanSt.textContent = 'App scanning is only available in the desktop app.'
+      scanSt.style.display = 'block'
       return
     }
     btn.disabled = true
     btn.textContent = 'Scanning…'
-    status.style.display = 'none'
+    scanSt.style.display = 'none'
     try {
       const found = await window.api.scanApps()
       const presetNames = new Set(PRESET_APPS.map(a => a.name.toLowerCase()))
@@ -543,17 +788,17 @@
         !presetNames.has(name.toLowerCase()) && !customApps.includes(name)
       )
       if (newApps.length === 0) {
-        status.textContent = 'No new apps found — your list is already up to date.'
+        scanSt.textContent = 'No new apps found — your list is already up to date.'
       } else {
         newApps.forEach(name => customApps.push(name))
         csSetJSON('guardCustom', customApps)
         renderAppGrid()
-        status.textContent = `Added ${newApps.length} app${newApps.length !== 1 ? 's' : ''}: ${newApps.slice(0,5).join(', ')}${newApps.length > 5 ? ` + ${newApps.length - 5} more` : ''}.`
+        scanSt.textContent = `Added ${newApps.length} app${newApps.length !== 1 ? 's' : ''}: ${newApps.slice(0,5).join(', ')}${newApps.length > 5 ? ` + ${newApps.length - 5} more` : ''}.`
       }
     } catch(e) {
-      status.textContent = 'Scan failed: ' + e.message
+      scanSt.textContent = 'Scan failed: ' + e.message
     }
-    status.style.display = 'block'
+    scanSt.style.display = 'block'
     btn.disabled = false
     btn.textContent = 'Scan for Apps'
   })
@@ -571,26 +816,35 @@
       return
     }
     window.api.startGuard(allowed)
-    guardActive = true
+    G.guardActive = true
     guardStatusEl.className = 'guard-status on'
     guardLabel.textContent = `On · ${allowed.length} app${allowed.length!==1?'s':''} allowed`
     guardStartBtn.disabled = true
-    guardStopBtn.disabled  = false
+    // Lock guard to timer if timer has been started (running or paused mid-session)
+    const timerStarted = G.running || (G.remaining < G.totalSecs && G.remaining > 0)
+    G.timerLockedByGuard = timerStarted
+    guardStopBtn.disabled  = G.timerLockedByGuard
     document.getElementById('appGrid').classList.add('locked')
+    syncGuardLockUI()
   }
 
   function _stopGuard() {
     if (window.api) window.api.stopGuard()
-    guardActive = false
+    G.guardActive = false
+    G.timerLockedByGuard = false
     guardStatusEl.className = 'guard-status off'
     guardLabel.textContent = 'Off'
     guardStartBtn.disabled = false
     guardStopBtn.disabled  = true
     document.getElementById('appGrid').classList.remove('locked')
+    syncGuardLockUI()
   }
 
   guardStartBtn.addEventListener('click', _startGuard)
-  guardStopBtn.addEventListener('click',  _stopGuard)
+  guardStopBtn.addEventListener('click', () => {
+    if (G.timerLockedByGuard) return  // safety: button should be disabled
+    _stopGuard()
+  })
 
   function showNudge(msg) {
     const toast = document.getElementById('nudgeToast')
@@ -601,16 +855,13 @@
 
   if (window.api && window.api.onGuardNudge) {
     window.api.onGuardNudge(appName => {
-      // Show generic nudge immediately so there's no delay
       showNudge(`"${appName}" isn't allowed — get back on track!`)
-      // Then try to generate an AI motivational message
       _aiNudge(appName)
     })
   }
 
   let _nudgeCooldown = false
   async function _aiNudge(appName) {
-    // Rate-limit: only call AI once per 2 minutes max
     if (_nudgeCooldown || !window.api?.askAI) return
     _nudgeCooldown = true
     setTimeout(() => _nudgeCooldown = false, 120000)
@@ -622,7 +873,6 @@
     const model = localStorage.getItem('ai_model_' + provider) ||
       (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
 
-    // Pull study goals from welcome page storage
     const goals = localStorage.getItem(`cs_${localStorage.getItem('cs_currentUser')}_studyGoals`) || ''
 
     try {

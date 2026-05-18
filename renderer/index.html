@@ -302,6 +302,9 @@
       <button class="nav-item" data-page="ai-writer">
         <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h12v2H4zM4 8h8M4 11h10M4 14h6" stroke-linecap="round"/></svg></span><span class="nav-label">AI Writer</span>
       </button>
+      <button class="nav-item" data-page="settings">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke-linecap="round"/></svg></span><span class="nav-label">Settings</span>
+      </button>
     </nav>
     <div class="sidebar-footer"><div class="version" id="appVersion">v4.0</div></div>
   </aside>
@@ -508,8 +511,8 @@ document.addEventListener('click', e => {
 })
 function goToSettings() {
   closeUserMenu()
-  loadPage('welcome')
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === 'welcome'))
+  loadPage('settings')
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === 'settings'))
 }
 
 // ── Keyboard shortcuts for auth ───────────────────────────────────
@@ -534,6 +537,7 @@ const PAGES = {
   'ai-writer':  'pages/ai-writer.html',
   'study-kit':  'pages/study-kit.html',
   'assessment': 'pages/assessment.html',
+  'settings':   'pages/settings.html',
 }
 
 let _navVersion = 0
