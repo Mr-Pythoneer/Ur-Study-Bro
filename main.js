@@ -314,10 +314,18 @@ function _checkFrontmost() {
     if (!ok) {
       const win = BrowserWindow.getAllWindows()[0]
       if (win) {
-        // Minimise instead of stealing focus — less jarring, still a clear signal
-        win.minimize()
-        // Tell renderer to show a nudge toast (will show when user returns)
-        win.webContents.send('guard:nudge', frontmost)
+        // 1. Bring the offending app to the foreground so the user sees it clearly
+        try {
+          execSync(
+            `osascript -e 'tell application "${frontmost}" to activate'`,
+            { timeout: 1500, stdio: ['pipe','pipe','ignore'] }
+          )
+        } catch { /* best-effort */ }
+        // 2. Then minimise Ur Study Bro with a short delay so the switch is visible
+        setTimeout(() => {
+          win.minimize()
+          win.webContents.send('guard:nudge', frontmost)
+        }, 400)
       }
     }
   } catch { /* ignore — user may not have granted Accessibility access */ }
