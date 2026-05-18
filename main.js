@@ -314,9 +314,9 @@ function _checkFrontmost() {
     if (!ok) {
       const win = BrowserWindow.getAllWindows()[0]
       if (win) {
-        win.show()
-        app.focus({ steal: true })
-        // Tell renderer to show a toast
+        // Minimise instead of stealing focus — less jarring, still a clear signal
+        win.minimize()
+        // Tell renderer to show a nudge toast (will show when user returns)
         win.webContents.send('guard:nudge', frontmost)
       }
     }
