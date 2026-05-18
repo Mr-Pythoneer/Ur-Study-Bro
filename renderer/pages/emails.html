@@ -195,13 +195,13 @@
   document.getElementById('imapFetchBtn').addEventListener('click', async () => {
     const cfg = {
       user:  document.getElementById('imapUser').value.trim(),
-      pass:  document.getElementById('imapPass').value,
+      password: document.getElementById('imapPass').value,
       host:  document.getElementById('imapHost').value.trim() || 'imap.gmail.com',
       port:  parseInt(document.getElementById('imapPort').value) || 993,
       tls:   true,
       limit: 40,
     }
-    if (!cfg.user || !cfg.pass) { imapStatus('Enter your email and app password.', true); return }
+    if (!cfg.user || !cfg.password) { imapStatus('Enter your email and app password.', true); return }
 
     const btn = document.getElementById('imapFetchBtn')
     btn.disabled = true; btn.textContent = 'Connecting…'
@@ -277,7 +277,7 @@
 
   function addToCal(email) {
     const m = email.meeting
-    const events = JSON.parse(localStorage.getItem('cs_calendar_events')||'[]')
+    const events = csGetJSON('calEvents', [])
     if (events.find(e => e.id === 'em_'+email.id)) return
 
     let dateObj = new Date()
@@ -295,14 +295,14 @@
       id: 'em_'+email.id,
       title: email.subject,
       date: dateObj.toISOString().slice(0,10),
-      startTime: dateObj.toTimeString().slice(0,5),
-      endTime: new Date(dateObj.getTime()+3600000).toTimeString().slice(0,5),
+      start: dateObj.toTimeString().slice(0,5),
+      end: new Date(dateObj.getTime()+3600000).toTimeString().slice(0,5),
       link: m?.link||'',
       type: m?.link?.includes('zoom')?'zoom':m?.link?.includes('meet.google')?'meet':m?.link?.includes('teams')?'teams':'other',
       notes: `From: ${email.from}`,
       fromEmail: true,
     })
-    localStorage.setItem('cs_calendar_events', JSON.stringify(events))
+    csSetJSON('calEvents', events)
   }
 
   function showToast(msg) {

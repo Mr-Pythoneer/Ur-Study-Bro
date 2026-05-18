@@ -274,21 +274,24 @@
     addMessage('user', text)
     showTyping()
 
-    const res = await window.api.askAI({
-      provider:     providerSel.value,
-      apiKey:       apiKeyInput.value.trim(),
-      model:        modelSel.value,
-      systemPrompt: systemPrompt.value,
-      messages:     messages.map(m => ({ role: m.role, content: m.content })),
-    })
-
-    hideTyping()
-    sendBtn.disabled = false
-
-    if (res.error) {
-      addMessage('assistant', '⚠️ Error: ' + res.error)
-    } else {
-      addMessage('assistant', res.reply)
+    try {
+      const res = await window.api.askAI({
+        provider:     providerSel.value,
+        apiKey:       apiKeyInput.value.trim(),
+        model:        modelSel.value,
+        systemPrompt: systemPrompt.value,
+        messages:     messages.map(m => ({ role: m.role, content: m.content })),
+      })
+      if (res.error) {
+        addMessage('assistant', '⚠️ Error: ' + res.error)
+      } else {
+        addMessage('assistant', res.reply)
+      }
+    } catch (e) {
+      addMessage('assistant', '⚠️ Error: ' + (e.message || 'Something went wrong.'))
+    } finally {
+      hideTyping()
+      sendBtn.disabled = false
     }
   }
 

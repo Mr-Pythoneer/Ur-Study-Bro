@@ -735,14 +735,14 @@ function fmt12Time(t) {
     const typing = addMsg('bot', 'Thinking…', true)
 
     try {
-      const reply = await window.api.aiChat({
+      const res = await window.api.askAI({
         provider, apiKey,
         model: null,
         systemPrompt: 'You are a helpful, friendly study assistant. Keep answers concise and clear.',
         messages: history
       })
       typing.remove()
-      const botText = reply.trim()
+      const botText = (res.reply || '').trim()
       addMsg('bot', botText)
       history.push({ role: 'assistant', content: botText })
       // keep history bounded

@@ -222,7 +222,7 @@
   window._pageCleanup = () => {
     clearInterval(interval);   interval = null;   running = false
     clearInterval(breakInterval); breakInterval = null; inBreak = false
-    if (window.api) window.api.stopGuard()
+    if (window.api) { window.api.stopGuard(); window.api.offGuardNudge() }
   }
 
   const display  = document.getElementById('timerDisplay')
@@ -326,7 +326,7 @@
     const dateStr    = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
     const timeStr    = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
     const records    = csGetJSON('records',[])
-    records.push({id:Date.now().toString(),date:dateStr,time:timeStr,subject,duration:mins,rating:5,notes,source:'timer'})
+    records.push({id:Date.now().toString(),date:dateStr,time:timeStr,subject,duration:mins,rating:null,notes,source:'timer'})
     csSetJSON('records',records)
     const today=getToday(); today.sessions++; today.mins+=mins
     // Award Study Points for any completed timer (scaled by duration)

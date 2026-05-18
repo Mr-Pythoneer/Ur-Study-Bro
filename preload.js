@@ -12,7 +12,8 @@ contextBridge.exposeInMainWorld('api', {
   // ── Focus guard ─────────────────────────────────────────────────
   startGuard: (allowedApps) => ipcRenderer.send('guard:start', allowedApps),
   stopGuard:  ()            => ipcRenderer.send('guard:stop'),
-  onGuardNudge: (cb) => ipcRenderer.on('guard:nudge', (_e, app) => cb(app)),
+  onGuardNudge:  (cb) => ipcRenderer.on('guard:nudge', (_e, app) => cb(app)),
+  offGuardNudge: ()   => ipcRenderer.removeAllListeners('guard:nudge'),
 
   // ── Screen recorder ─────────────────────────────────────────────
   getSources:      ()                   => ipcRenderer.invoke('recorder:getSources'),

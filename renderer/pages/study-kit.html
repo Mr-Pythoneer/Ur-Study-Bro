@@ -177,7 +177,7 @@
         if(docs.length){const d=docs[0];ta.value=d.title+'\n\n'+d.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return}
         alert('No saved AI Writer docs found. Write and save something in AI Writer first.')
       } else if(src==='meeting'){
-        const notes=JSON.parse(localStorage.getItem('meetingNotes')||'[]')
+        const notes=csGetJSON('meetingNotes',[])
         if(notes.length){const n=notes[notes.length-1];ta.value=(n.title||'')+'\n\n'+n.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return}
         alert('No saved meeting notes found. Save notes in Meeting Records first.')
       }
