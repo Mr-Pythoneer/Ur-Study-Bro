@@ -293,6 +293,8 @@ const ALWAYS_ALLOWED = ['ur study bro', 'electron', 'finder', 'system preference
 
 ipcMain.on('guard:start', (_e, allowedApps) => {
   _guardAllowed = allowedApps.map(a => a.toLowerCase())
+  const win = BrowserWindow.getAllWindows()[0]
+  if (win) win.setAlwaysOnTop(true, 'floating')
   if (_guardInterval) return
   _guardInterval = setInterval(_checkFrontmost, 2000)
 })
@@ -300,7 +302,8 @@ ipcMain.on('guard:start', (_e, allowedApps) => {
 ipcMain.on('guard:stop', () => {
   clearInterval(_guardInterval)
   _guardInterval = null
-  _guardSuppressed = false
+  const win = BrowserWindow.getAllWindows()[0]
+  if (win) win.setAlwaysOnTop(false)
 })
 
 function _checkFrontmost() {
