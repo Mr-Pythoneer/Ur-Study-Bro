@@ -213,14 +213,14 @@
     transform:scale(.94);transition:transform .25s;
   " id="assessmentPromptBox">
     <div style="font-size:36px;margin-bottom:16px;">🧠</div>
-    <div style="font-size:19px;font-weight:900;letter-spacing:-.4px;color:#1a1a1a;margin-bottom:8px;">Want a personalised study plan?</div>
-    <div style="font-size:14px;color:#9b9a97;line-height:1.6;margin-bottom:24px;">Take a 9-question learning assessment and the AI will analyse how you study — then build a custom plan with timer recommendations, habits, and more. Takes about 3 minutes.</div>
+    <div style="font-size:19px;font-weight:900;letter-spacing:-.4px;color:#1a1a1a;margin-bottom:8px;">Discover how YOU study best</div>
+    <div style="font-size:14px;color:#9b9a97;line-height:1.6;margin-bottom:24px;">Take a short cognitive assessment — real timed tasks (memory, focus, processing speed, reasoning) — and the AI will build a fully personalised study plan just for you. Takes about 10–15 minutes.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button onclick="hideAssessmentPrompt();window.navigateTo('assessment')" style="
+      <button onclick="localStorage.setItem(csKey('assessmentDone'),'started');hideAssessmentPrompt();window.navigateTo('assessment')" style="
         background:#0f7b6c;color:#fff;border:none;border-radius:6px;
         padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
-      ">Take the Assessment</button>
-      <button onclick="hideAssessmentPrompt()" style="
+      ">Start Assessment</button>
+      <button onclick="localStorage.setItem(csKey('assessmentDone'),'skipped');hideAssessmentPrompt()" style="
         background:transparent;color:#9b9a97;border:1.5px solid #e9e9e7;border-radius:6px;
         padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
       ">Maybe later</button>
@@ -437,7 +437,11 @@ function launchApp(username, isNew = false) {
   loadPage('welcome')
   startScheduler()
   grantDailyLoginBonus()
-  if (isNew) setTimeout(() => showAssessmentPrompt(), 800)
+  if (isNew) {
+    // Show assessment prompt only if they haven't completed or already dismissed it
+    const alreadyDone = localStorage.getItem(csKey('assessmentDone'))
+    if (!alreadyDone) setTimeout(() => showAssessmentPrompt(), 800)
+  }
 }
 
 function showAssessmentPrompt() {
