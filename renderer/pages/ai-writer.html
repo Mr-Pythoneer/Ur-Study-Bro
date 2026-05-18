@@ -193,6 +193,28 @@
       <button class="ai-action-btn" id="btnELI5">
         Simplify
       </button>
+      <button class="ai-action-btn" id="btnSummarise">
+        Summarise
+      </button>
+
+      <div class="tb-sep" style="width:100%;height:1px;margin:10px 0;"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">TRANSLATE TO</div>
+      <select class="tone-select" id="translateLang">
+        <option value="Spanish">Spanish</option>
+        <option value="French">French</option>
+        <option value="German">German</option>
+        <option value="Mandarin Chinese">Mandarin Chinese</option>
+        <option value="Arabic">Arabic</option>
+        <option value="Hindi">Hindi</option>
+        <option value="Portuguese">Portuguese</option>
+        <option value="Japanese">Japanese</option>
+        <option value="Korean">Korean</option>
+      </select>
+      <button class="ai-action-btn" id="btnTranslate">
+        Translate
+      </button>
+
+      <div class="tb-sep" style="width:100%;height:1px;margin:10px 0;"></div>
 
       <button class="ai-action-btn" id="btnCite" style="margin-bottom:0;">
         Cite source
@@ -420,6 +442,16 @@
         system:'You are a brilliant teacher. Explain the given text as simply as possible using plain language, a relatable analogy, and short sentences — like explaining to a curious 12-year-old. Return ONLY the simplified explanation.',
         user: selected || fullText,
       },
+      btnSummarise: {
+        title:'Summarising…',
+        system:'Write a concise summary of the text in 3–5 bullet points. Capture all key ideas. Return ONLY the bullet-point summary.',
+        user: selected || fullText,
+      },
+      btnTranslate: {
+        title:'Translating…',
+        system:`Translate the following text to ${document.getElementById('translateLang').value}. Return ONLY the translated text, no explanations.`,
+        user: selected || fullText,
+      },
     }
 
     const action = actions[id]; if(!action)return
@@ -441,7 +473,7 @@
     }
   }
 
-  ['btnContinue','btnImprove','btnShorter','btnLonger','btnFix','btnTone','btnELI5'].forEach(id => {
+  ['btnContinue','btnImprove','btnShorter','btnLonger','btnFix','btnTone','btnELI5','btnSummarise','btnTranslate'].forEach(id => {
     document.getElementById(id).addEventListener('click', ()=>runAction(id))
   })
 
