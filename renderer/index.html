@@ -540,16 +540,25 @@ async function loadPage(name) {
   // Abort if the user navigated again before this fetch completed
   if (version !== _navVersion) return
 
-  document.getElementById('content').innerHTML = html
+  // Parse with DOMParser to safely handle large scripts and inline SVG strings
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const content = document.getElementById('content')
+  content.innerHTML = ''
 
-  // Re-inject <style> blocks (innerHTML strips them)
-  document.getElementById('content').querySelectorAll('style').forEach(old => {
+  // Import all nodes from the parsed document body
+  Array.from(doc.body.childNodes).forEach(node => {
+    content.appendChild(document.importNode(node, true))
+  })
+
+  // Re-inject <style> blocks so their rules apply to the live document
+  content.querySelectorAll('style').forEach(old => {
     const s = document.createElement('style')
     s.textContent = old.textContent
     old.replaceWith(s)
   })
 
-  document.getElementById('content').querySelectorAll('script').forEach(old => {
+  // Re-inject <script> blocks so they execute (importNode doesn't run scripts)
+  content.querySelectorAll('script').forEach(old => {
     const s = document.createElement('script')
     s.textContent = old.textContent
     old.replaceWith(s)
