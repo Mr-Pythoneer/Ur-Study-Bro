@@ -13,12 +13,13 @@
       --accent:      #0f7b6c;
       --accent-dark: #0a5a4e;
       --accent-light:#edf4f2;
-      --text:        #1a1a1a;
-      --text-sub:    #6b7280;
+      --text:        #37352f;
+      --text-sub:    #9b9a97;
       --bg:          #f7f6f3;
       --card:        #ffffff;
       --border:      #e9e9e7;
-      --radius:      12px;
+      --sidebar:     #191919;
+      --radius:      8px;
     }
 
     body {
@@ -32,20 +33,21 @@
     /* ── Nav ─────────────────────────────────────── */
     nav {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(247,246,243,.92);
+      background: rgba(25,25,25,.97);
       backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,.07);
       padding: 0 40px;
       display: flex; align-items: center; justify-content: space-between;
       height: 62px;
     }
-    .nav-logo { font-size: 16px; font-weight: 800; color: var(--accent); letter-spacing: -.3px; display:flex; align-items:center; gap:8px; }
+    .nav-logo { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -.3px; display:flex; align-items:center; gap:8px; }
+    .nav-logo svg { color: var(--accent); }
     .nav-links { display: flex; gap: 28px; align-items: center; }
-    .nav-link { color: var(--text-sub); font-size: 14px; font-weight: 500; text-decoration: none; transition: color .15s; }
-    .nav-link:hover { color: var(--text); }
+    .nav-link { color: rgba(255,255,255,.45); font-size: 13px; font-weight: 500; text-decoration: none; transition: color .15s; }
+    .nav-link:hover { color: #fff; }
     .nav-dl {
       background: var(--accent); color: #fff;
-      padding: 8px 20px; border-radius: 99px;
+      padding: 7px 18px; border-radius: 6px;
       font-size: 13px; font-weight: 600; text-decoration: none;
       transition: background .15s;
     }
@@ -55,61 +57,76 @@
     .hero {
       text-align: center;
       padding: 110px 24px 90px;
-      background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+      background: var(--sidebar);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(15,123,108,.22) 0%, transparent 70%);
+      pointer-events: none;
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      background: var(--accent-light); color: var(--accent);
-      font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
-      padding: 5px 14px; border-radius: 99px; margin-bottom: 28px;
+      background: rgba(15,123,108,.18); color: #6ee7b7;
+      border: 1px solid rgba(110,231,183,.2);
+      font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+      padding: 5px 14px; border-radius: 6px; margin-bottom: 28px;
     }
     .version-pill {
       display: inline-flex; align-items: center;
       background: var(--accent); color: #fff;
-      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
     }
     .hero h1 {
       font-size: clamp(40px, 7vw, 72px);
       font-weight: 900; letter-spacing: -2.5px; line-height: 1.04;
-      margin-bottom: 22px;
+      margin-bottom: 22px; color: #fff;
     }
-    .hero h1 .hl { color: var(--accent); }
+    .hero h1 .hl { color: #6ee7b7; }
     .hero-sub {
-      font-size: 18px; color: var(--text-sub);
-      max-width: 540px; margin: 0 auto 44px; line-height: 1.65;
+      font-size: 17px; color: rgba(255,255,255,.5);
+      max-width: 520px; margin: 0 auto 44px; line-height: 1.65;
     }
 
     /* ── Download buttons ─────────────────────────── */
-    .dl-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .dl-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .dl-primary-row { display: flex; gap: 0; justify-content: center; }
+    .dl-secondary-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
     .dl-btn {
       display: inline-flex; align-items: center; gap: 10px;
-      padding: 13px 22px; border-radius: var(--radius);
+      padding: 13px 24px; border-radius: var(--radius);
       font-size: 14px; font-weight: 600; text-decoration: none;
-      transition: transform .15s, box-shadow .15s;
+      transition: transform .15s, box-shadow .15s, background .15s;
     }
-    .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
-    .dl-btn.primary { background: var(--accent); color: #fff; }
-    .dl-btn.primary:hover { background: var(--accent-dark); transform: translateY(-2px); }
-    .dl-btn.ghost { background: var(--card); color: var(--text); border: 1.5px solid var(--border); }
+    .dl-btn:hover { transform: translateY(-2px); }
+    .dl-btn.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 24px rgba(15,123,108,.4); }
+    .dl-btn.primary:hover { background: var(--accent-dark); box-shadow: 0 8px 32px rgba(15,123,108,.5); }
+    .dl-btn.ghost { background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); border: 1px solid rgba(255,255,255,.12); font-size: 13px; padding: 10px 18px; }
+    .dl-btn.ghost:hover { background: rgba(255,255,255,.12); }
+    .dl-btn.ghost-light { background: var(--card); color: var(--text); border: 1.5px solid var(--border); font-size: 13px; padding: 10px 18px; }
+    .dl-btn.ghost-light:hover { border-color: var(--accent); color: var(--accent); }
     .dl-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
     .dl-os { font-size: 11px; font-weight: 500; opacity: .65; }
-    .dl-note { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
+    .dl-note { font-size: 12px; color: rgba(255,255,255,.3); margin-top: 2px; }
+    .dl-note-light { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
 
     /* ── App mockup ───────────────────────────────── */
     .mockup-outer { max-width: 900px; margin: 64px auto 0; padding: 0 24px; }
     .mockup-wrap {
-      background: var(--card); border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: 0 40px 100px rgba(0,0,0,.13);
+      background: var(--card); border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      box-shadow: 0 40px 100px rgba(0,0,0,.5);
       overflow: hidden;
     }
     .mockup-bar {
-      background: #f0f0ed; padding: 11px 16px;
+      background: #111; padding: 11px 16px;
       display: flex; align-items: center; gap: 7px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
     }
     .dot { width: 12px; height: 12px; border-radius: 50%; }
     .dot.r{background:#ff5f57;}.dot.y{background:#febc2e;}.dot.g{background:#28c840;}
-    .mockup-title { font-size: 12px; color: #999; font-weight: 500; margin-left: 8px; }
+    .mockup-title { font-size: 12px; color: rgba(255,255,255,.3); font-weight: 500; margin-left: 8px; }
     .mockup-body { display: grid; grid-template-columns: 220px 1fr; min-height: 380px; }
 
     .mock-sidebar {
@@ -153,7 +170,7 @@
     /* ── Sections ─────────────────────────────────── */
     .section { padding: 80px 24px; max-width: 1060px; margin: 0 auto; }
     .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
-    .section h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 900; letter-spacing: -1px; margin-bottom: 14px; }
+    .section h2 { font-size: clamp(26px, 4vw, 40px); font-weight: 900; letter-spacing: -1px; margin-bottom: 14px; color: var(--text); }
     .section-sub { font-size: 16px; color: var(--text-sub); max-width: 560px; margin-bottom: 52px; line-height: 1.6; }
 
     /* ── Feature grid ─────────────────────────────── */
@@ -220,15 +237,18 @@
 
     /* ── Download CTA ─────────────────────────────── */
     .dl-section {
-      background: #191919; color: #fff;
+      background: var(--sidebar); color: #fff;
       text-align: center; padding: 90px 24px;
+      position: relative; overflow: hidden;
+    }
+    .dl-section::before {
+      content:''; position:absolute; inset:0;
+      background: radial-gradient(ellipse 60% 60% at 50% 100%, rgba(15,123,108,.2) 0%, transparent 70%);
+      pointer-events:none;
     }
     .dl-section h2 { font-size: clamp(30px, 5vw, 48px); font-weight: 900; letter-spacing: -1.5px; margin-bottom: 14px; }
-    .dl-section p { font-size: 16px; color: rgba(255,255,255,.55); margin-bottom: 40px; }
-    .dl-section .dl-btn.primary { background: var(--accent); color: #fff; }
-    .dl-section .dl-btn.primary:hover { background: var(--accent-dark); }
-    .dl-section .dl-btn.ghost { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.15); }
-    .dl-section .dl-note { color: rgba(255,255,255,.35); }
+    .dl-section p { font-size: 16px; color: rgba(255,255,255,.45); margin-bottom: 40px; }
+    .dl-section .dl-note { color: rgba(255,255,255,.25); margin-top: 14px; }
 
     /* ── Footer ──────────────────────────────────── */
     footer {
@@ -280,23 +300,8 @@
   <h1>Study smarter.<br><span class="hl">Not harder.</span></h1>
   <p class="hero-sub">An AI-powered desktop study companion with focus timers, streaks, flashcard generation, a full AI writing suite, and a rewards system that actually motivates you.</p>
 
-  <div class="dl-buttons">
-    <a class="dl-btn primary" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-3.0.0-arm64.dmg">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      <div>
-        <div>Download for macOS</div>
-        <div class="dl-os">Apple Silicon — M1 / M2 / M3 / M4</div>
-      </div>
-    </a>
-    <a class="dl-btn ghost" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
-      <div>
-        <div>View Source</div>
-        <div class="dl-os">GitHub</div>
-      </div>
-    </a>
-  </div>
-  <p class="dl-note">Free forever · No account needed · macOS 12+</p>
+  <div class="dl-wrap" id="heroDl"><!-- filled by JS --></div>
+  <p class="dl-note" id="heroNote">Free forever · No account needed</p>
 
   <!-- App mockup -->
   <div class="mockup-outer">
@@ -581,23 +586,8 @@
 <section class="dl-section" id="download">
   <h2>Free. Open source. No sign-up.</h2>
   <p>Download v3.0.0 for macOS Apple Silicon — M1, M2, M3, M4.</p>
-  <div class="dl-buttons">
-    <a class="dl-btn primary" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-3.0.0-arm64.dmg">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      <div>
-        <div>Download for macOS</div>
-        <div class="dl-os">Apple Silicon · v3.0.0</div>
-      </div>
-    </a>
-    <a class="dl-btn ghost" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
-      <div>
-        <div>View on GitHub</div>
-        <div class="dl-os">Source code</div>
-      </div>
-    </a>
-  </div>
-  <p class="dl-note" style="margin-top:16px;">macOS 12 Monterey or later · Apple Silicon only · ~120 MB</p>
+  <div class="dl-wrap" id="ctaDl"><!-- filled by JS --></div>
+  <p class="dl-note" id="ctaNote" style="margin-top:14px;">Free forever · No account needed · v3.0.0</p>
 </section>
 
 <footer>
@@ -605,14 +595,83 @@
 </footer>
 
 <script>
-  // Generate demo heatmap
+  // ── Heatmap demo ───────────────────────────────────────────────
   const hm = document.getElementById('demoHeatmap')
   const pattern = [0,1,0,2,1,3,2,1,0,1,2,3,4,3,2,1,2,3,4,4,3,2,3,4,3,4,3,4,4,3]
-  pattern.forEach(l => {
-    const d = document.createElement('div')
-    d.className = 'hm l' + l
-    hm.appendChild(d)
-  })
+  pattern.forEach(l => { const d=document.createElement('div'); d.className='hm l'+l; hm.appendChild(d) })
+
+  // ── OS detection + smart download ordering ──────────────────────
+  const ua = navigator.userAgent
+  const isMac     = /Mac/.test(ua) && !/iPhone|iPad/.test(ua)
+  const isWindows = /Win/.test(ua)
+  const isLinux   = /Linux/.test(ua) && !/Android/.test(ua)
+
+  const PLATFORMS = {
+    mac: {
+      label: 'Download for macOS',
+      sub:   'Apple Silicon — M1 / M2 / M3 / M4',
+      note:  'macOS 12+ · ~120 MB',
+      href:  'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-3.0.0-arm64.dmg',
+      icon:  `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`,
+    },
+    win: {
+      label: 'Download for Windows',
+      sub:   'x64 · Windows 10 / 11',
+      note:  'Windows 10+ · ~90 MB',
+      href:  'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro.Setup.3.0.0.exe',
+      icon:  `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V3.25L11 2v10h9zM3 13h6v6.43l-6-1.29V13zm17 0h-9v10l9-1.75V13z"/></svg>`,
+    },
+    linux: {
+      label: 'Download for Linux',
+      sub:   'x64 · AppImage',
+      note:  'Ubuntu 20.04+ · ~95 MB',
+      href:  'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-3.0.0.AppImage',
+      icon:  `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20.581 19.049c-.55.366-1.78-.172-2.742-1.196-.96-1.025-1.433-2.277-.883-2.643.55-.365 1.78.172 2.742 1.197.96 1.025 1.432 2.276.883 2.642zm-18.69-2.698c-.508.364-.22 1.398.642 2.311.863.912 1.978 1.363 2.486 1 .509-.366.22-1.4-.64-2.312-.862-.912-1.978-1.364-2.488-1zm10.548-9.849c-1.364 1.283-1.843 3.094-1.06 4.12.781 1.025 2.657.93 4.077-.37 1.42-1.3 1.87-3.154 1.088-4.179-.782-1.025-2.741-.854-4.105.43zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/></svg>`,
+    },
+    github: {
+      label: 'View on GitHub',
+      sub:   'Source code',
+      href:  'https://github.com/Mr-Pythoneer/Ur-Study-Bro',
+      icon:  `<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>`,
+    },
+  }
+
+  // Determine primary platform
+  const primary = isMac ? 'mac' : isWindows ? 'win' : isLinux ? 'linux' : 'mac'
+  const others  = ['mac','win','linux'].filter(p => p !== primary)
+
+  function makePrimaryBtn(p, dark) {
+    const pl = PLATFORMS[p]
+    return `<a class="dl-btn primary" href="${pl.href}" ${p==='github'?'target="_blank"':''}>
+      ${pl.icon}
+      <div><div>${pl.label}</div><div class="dl-os">${pl.sub}</div></div>
+    </a>`
+  }
+  function makeSecondaryBtn(p, dark) {
+    const pl = PLATFORMS[p]
+    const cls = dark ? 'ghost' : 'ghost-light'
+    return `<a class="dl-btn ${cls}" href="${pl.href}" ${p==='github'?'target="_blank"':''}>
+      ${pl.icon}
+      <div><div>${pl.label}</div><div class="dl-os">${pl.sub}</div></div>
+    </a>`
+  }
+
+  function renderDl(containerId, dark) {
+    const el = document.getElementById(containerId)
+    const prim = makePrimaryBtn(primary, dark)
+    const sec  = others.map(p => makeSecondaryBtn(p, dark)).join('') +
+                 makeSecondaryBtn('github', dark)
+    el.innerHTML = `
+      <div class="dl-primary-row">${prim}</div>
+      <div class="dl-secondary-row">${sec}</div>`
+  }
+
+  renderDl('heroDl', true)   // dark hero bg — use ghost (dark) style
+  renderDl('ctaDl',  true)   // dark CTA bg — same
+
+  // Update note text with detected OS
+  const osName = isMac ? 'macOS' : isWindows ? 'Windows' : isLinux ? 'Linux' : 'your platform'
+  document.getElementById('heroNote').textContent = `Detected ${osName} · Free forever · No account needed`
 </script>
 
 </body>
