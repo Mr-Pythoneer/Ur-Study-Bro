@@ -303,10 +303,7 @@ ipcMain.on('guard:stop', () => {
   _guardSuppressed = false
 })
 
-let _guardSuppressed = false  // true while app is hidden — prevents re-firing
-
 function _checkFrontmost() {
-  if (_guardSuppressed) return
   try {
     const frontmost = execSync(
       `osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true'`,
@@ -316,16 +313,42 @@ function _checkFrontmost() {
     const allowed = [...ALWAYS_ALLOWED, ..._guardAllowed]
     const ok = allowed.some(a => frontmost.includes(a))
     if (!ok) {
+      // Build the AppleScript allowed-name list for comparison
+      const allowedNames = [...ALWAYS_ALLOWED, ..._guardAllowed]
+        .map(n => `"${n}"`)
+        .join(', ')
+
+      // Hide every process whose name doesn't match any allowed substring
+      const script = `
+        tell application "System Events"
+          set allowedList to {${allowedNames}}
+          repeat with proc in (every application process whose visible is true)
+            set pname to (name of proc) as text
+            set plow to do shell script "echo " & quoted form of pname & " | tr '[:upper:]' '[:lower:]'"
+            set isAllowed to false
+            repeat with a in allowedList
+              if plow contains a then
+                set isAllowed to true
+                exit repeat
+              end if
+            end repeat
+            if not isAllowed then
+              set visible of proc to false
+            end if
+          end repeat
+        end tell
+      `
+      spawnSync('osascript', ['-e', script], { timeout: 3000 })
+
+      // Bring our window to front and send the nudge
       const win = BrowserWindow.getAllWindows()[0]
       if (win) {
-        _guardSuppressed = true  // pause checks until we're visible again
-        app.hide()
-        // Resume checking once the user brings our window back
-        win.once('focus', () => { _guardSuppressed = false })
+        win.show()
+        win.focus()
         win.webContents.send('guard:nudge', frontmost)
       }
     }
-  } catch { /* ignore — user may not have granted Accessibility access */ }
+  } catch { /* ignore — Accessibility access not granted */ }
 }
 
 // ── Email: platform-aware fetch ───────────────────────────────────
