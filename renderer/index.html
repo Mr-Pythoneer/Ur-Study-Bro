@@ -545,12 +545,19 @@ async function loadPage(name) {
   const content = document.getElementById('content')
   content.innerHTML = ''
 
-  // Import all nodes from the parsed document body
+  // DOMParser hoists <style> tags into doc.head — pull them back into content first
+  Array.from(doc.head.querySelectorAll('style')).forEach(node => {
+    const s = document.createElement('style')
+    s.textContent = node.textContent
+    content.appendChild(s)
+  })
+
+  // Import all body nodes (includes remaining style/script elements)
   Array.from(doc.body.childNodes).forEach(node => {
     content.appendChild(document.importNode(node, true))
   })
 
-  // Re-inject <style> blocks so their rules apply to the live document
+  // Re-inject any remaining <style> blocks that landed in body
   content.querySelectorAll('style').forEach(old => {
     const s = document.createElement('style')
     s.textContent = old.textContent
