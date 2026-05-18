@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Website: https://urstudybro.netlify.app**
+**Website: https://mr-pythoneer.github.io/Ur-Study-Bro/**
 
 A free, open-source desktop study partner app built with Electron.
 
