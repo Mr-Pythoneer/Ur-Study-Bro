@@ -28,6 +28,11 @@
       "node_modules/encoding/**/*",
       "node_modules/charset-detector/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "Mr-Pythoneer",
+      "repo": "Ur-Study-Bro"
+    },
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.education",
@@ -70,6 +75,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "imap": "^0.8.19",
     "mailparser": "^3.9.8"
   }

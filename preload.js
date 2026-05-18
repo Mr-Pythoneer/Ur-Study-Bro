@@ -35,4 +35,8 @@ contextBridge.exposeInMainWorld('api', {
   // ── AI chat ─────────────────────────────────────────────────────
   askAI:          (payload) => ipcRenderer.invoke('ai:chat', payload),
   transcribeAudio:(payload) => ipcRenderer.invoke('ai:transcribe', payload),
+
+  // ── Generic IPC (used by auto-updater UI) ───────────────────────
+  send:    (channel, ...args) => ipcRenderer.send(channel, ...args),
+  receive: (channel, cb)      => ipcRenderer.on(channel, (_e, ...args) => cb(...args)),
 })

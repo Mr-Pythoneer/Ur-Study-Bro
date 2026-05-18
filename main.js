@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Mr_Pythoneer — MIT License
 const {
   app, BrowserWindow, ipcMain, shell,
-  Notification, desktopCapturer, session,
+  Notification, desktopCapturer, session, dialog,
 } = require('electron')
+const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs   = require('fs')
 const os   = require('os')
@@ -527,9 +528,35 @@ function detectMeeting(body, subject) {
   return { link, dateStr, timeStr, summary }
 }
 
+// ── Auto-updater ──────────────────────────────────────────────────
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true          // download silently in background
+  autoUpdater.autoInstallOnAppQuit = true  // install when user quits normally
+
+  autoUpdater.on('update-available', (info) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) win.webContents.send('update:available', info.version)
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) win.webContents.send('update:downloaded', info.version)
+  })
+
+  // Check once on launch, then every 2 hours
+  autoUpdater.checkForUpdates().catch(() => {})
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 2 * 60 * 60 * 1000)
+}
+
+ipcMain.on('update:install', () => {
+  autoUpdater.quitAndInstall()
+})
+
 // ── App lifecycle ─────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow()
+  // Only run updater in packaged app, not during dev
+  if (app.isPackaged) setupAutoUpdater()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

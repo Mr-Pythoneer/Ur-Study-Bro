@@ -147,6 +147,13 @@
 </head>
 <body>
 
+<!-- ══════════════════════ UPDATE BANNER ════════════════════════ -->
+<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#2e7d5e;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;display:none;align-items:center;gap:12px;-webkit-app-region:no-drag;">
+  <span id="updateBannerText">A new version is available — downloading…</span>
+  <button id="updateInstallBtn" onclick="window.api.send('update:install')" style="display:none;margin-left:auto;background:#fff;color:#2e7d5e;border:none;border-radius:8px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:12px;">Restart & Install</button>
+  <button onclick="document.getElementById('updateBanner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;line-height:1;margin-left:auto;">✕</button>
+</div>
+
 <!-- ══════════════════════ AUTH OVERLAY ══════════════════════════ -->
 <div id="auth-overlay">
   <div class="auth-box">
@@ -834,6 +841,25 @@ function fmt12Time(t) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   })
 })()
+</script>
+
+<script>
+// ── Auto-update notifications ─────────────────────────────────────
+if (window.api && window.api.receive) {
+  window.api.receive('update:available', (version) => {
+    const banner = document.getElementById('updateBanner')
+    document.getElementById('updateBannerText').textContent =
+      `v${version} is available — downloading in the background…`
+    banner.style.display = 'flex'
+  })
+  window.api.receive('update:downloaded', (version) => {
+    const banner = document.getElementById('updateBanner')
+    document.getElementById('updateBannerText').textContent =
+      `v${version} is ready to install!`
+    document.getElementById('updateInstallBtn').style.display = 'inline-block'
+    banner.style.display = 'flex'
+  })
+}
 </script>
 
 </body>
