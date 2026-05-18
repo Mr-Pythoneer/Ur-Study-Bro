@@ -1,0 +1,612 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  .asmnt-wrap { max-width: 640px; margin: 0 auto; padding: 0 0 60px; }
+
+  /* ── Progress bar ── */
+  .asmnt-progress-row { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
+  .asmnt-progress-track { flex:1; height:4px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .asmnt-progress-fill  { height:100%; background:var(--accent); border-radius:99px; transition:width .4s ease; }
+  .asmnt-progress-label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+
+  /* ── Step card ── */
+  .asmnt-step { display:none; animation:fadeUp .25s ease; }
+  .asmnt-step.active { display:block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  .asmnt-q-num { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+  .asmnt-q-text { font-size:20px; font-weight:800; letter-spacing:-.4px; color:var(--text-primary); margin-bottom:6px; line-height:1.3; }
+  .asmnt-q-sub  { font-size:13px; color:var(--text-secondary); margin-bottom:24px; }
+
+  /* ── Option cards ── */
+  .asmnt-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .asmnt-options.single { grid-template-columns:1fr; }
+  .asmnt-opt {
+    border:2px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; cursor:pointer; text-align:left;
+    background:var(--bg-card); transition:all .15s;
+    display:flex; align-items:flex-start; gap:12px;
+  }
+  .asmnt-opt:hover { border-color:var(--accent); background:var(--accent-light); }
+  .asmnt-opt.selected { border-color:var(--accent); background:var(--accent-light); }
+  .asmnt-opt.selected .asmnt-opt-radio { background:var(--accent); border-color:var(--accent); }
+  .asmnt-opt.selected .asmnt-opt-radio::after { opacity:1; }
+  .asmnt-opt-radio {
+    width:18px; height:18px; border-radius:50%; border:2px solid var(--border);
+    flex-shrink:0; margin-top:1px; position:relative; transition:all .15s;
+  }
+  .asmnt-opt-radio::after {
+    content:''; position:absolute; inset:3px; border-radius:50%;
+    background:#fff; opacity:0; transition:opacity .15s;
+  }
+  .asmnt-opt-body { flex:1; min-width:0; }
+  .asmnt-opt-label { font-size:14px; font-weight:600; color:var(--text-primary); }
+  .asmnt-opt-desc  { font-size:12px; color:var(--text-secondary); margin-top:2px; line-height:1.4; }
+
+  /* ── Multi-select note ── */
+  .asmnt-multi-note { font-size:11px; color:var(--text-secondary); font-style:italic; margin-bottom:12px; }
+
+  /* ── Nav buttons ── */
+  .asmnt-nav { display:flex; justify-content:space-between; align-items:center; margin-top:28px; }
+  .asmnt-back { background:none; border:1.5px solid var(--border); color:var(--text-secondary); font-family:var(--font); font-size:13px; font-weight:600; padding:9px 20px; border-radius:var(--radius-sm); cursor:pointer; transition:all .15s; }
+  .asmnt-back:hover { border-color:var(--accent); color:var(--accent); }
+  .asmnt-next { background:var(--accent); color:#fff; border:none; font-family:var(--font); font-size:13px; font-weight:700; padding:10px 28px; border-radius:var(--radius-sm); cursor:pointer; transition:opacity .15s; }
+  .asmnt-next:hover { opacity:.88; }
+  .asmnt-next:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* ── Results / plan ── */
+  .asmnt-analyzing { text-align:center; padding:60px 24px; }
+  .asmnt-spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 20px; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .asmnt-analyzing-text { font-size:15px; color:var(--text-secondary); }
+
+  .plan-wrap { display:flex; flex-direction:column; gap:16px; }
+  .plan-hero {
+    background:linear-gradient(135deg,#1e3a2f 0%,#0f7b6c 100%);
+    border-radius:var(--radius); padding:28px 32px; color:#fff;
+  }
+  .plan-hero-label { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6ee7b7; margin-bottom:8px; }
+  .plan-hero-title { font-size:22px; font-weight:900; letter-spacing:-.5px; margin-bottom:6px; }
+  .plan-hero-sub   { font-size:14px; color:rgba(255,255,255,.65); line-height:1.5; }
+
+  .plan-section { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:22px 24px; }
+  .plan-section-title { font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
+  .plan-items { display:flex; flex-direction:column; gap:10px; }
+  .plan-item { display:flex; align-items:flex-start; gap:12px; }
+  .plan-item-icon { font-size:18px; line-height:1; flex-shrink:0; margin-top:1px; }
+  .plan-item-body { flex:1; min-width:0; }
+  .plan-item-title { font-size:14px; font-weight:700; color:var(--text-primary); }
+  .plan-item-desc  { font-size:13px; color:var(--text-secondary); margin-top:2px; line-height:1.5; }
+
+  .plan-timer-rec {
+    display:flex; align-items:center; gap:14px;
+    background:var(--accent-light); border-radius:var(--radius-sm); padding:14px 16px;
+    margin-bottom:12px;
+  }
+  .plan-timer-num { font-size:32px; font-weight:900; color:var(--accent); line-height:1; }
+  .plan-timer-info { flex:1; }
+  .plan-timer-label { font-size:13px; font-weight:700; color:var(--accent); }
+  .plan-timer-why   { font-size:12px; color:var(--text-secondary); margin-top:2px; }
+
+  .plan-cta { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+  .plan-cta-btn { padding:10px 20px; border-radius:var(--radius-sm); font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; border:none; }
+  .plan-cta-btn.primary { background:var(--accent); color:#fff; }
+  .plan-cta-btn.primary:hover { opacity:.88; }
+  .plan-cta-btn.ghost { background:var(--bg-main); border:1.5px solid var(--border); color:var(--text-secondary); }
+  .plan-cta-btn.ghost:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ── Intro screen ── */
+  .asmnt-intro { text-align:center; padding:32px 0; }
+  .asmnt-intro-icon { font-size:56px; margin-bottom:20px; }
+  .asmnt-intro-title { font-size:26px; font-weight:900; letter-spacing:-.6px; color:var(--text-primary); margin-bottom:10px; }
+  .asmnt-intro-sub { font-size:15px; color:var(--text-secondary); max-width:440px; margin:0 auto 28px; line-height:1.6; }
+  .asmnt-intro-chips { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:32px; }
+  .asmnt-chip { background:var(--accent-light); color:var(--accent); font-size:12px; font-weight:600; padding:4px 12px; border-radius:99px; }
+  .asmnt-intro-btns { display:flex; gap:10px; justify-content:center; }
+</style>
+
+<div class="page-header">
+  <div class="page-title">Learning Profile</div>
+  <div class="page-subtitle">A personalised study plan built around how you think.</div>
+</div>
+
+<div class="asmnt-wrap" id="asmntWrap">
+
+  <!-- ══ INTRO ════════════════════════════════════════════════════ -->
+  <div id="asmntIntro">
+    <div class="asmnt-intro">
+      <div class="asmnt-intro-icon">🧠</div>
+      <div class="asmnt-intro-title">What kind of learner are you?</div>
+      <div class="asmnt-intro-sub">Answer 9 quick questions about how you study. The AI will analyse your responses and build a personalised learning plan — timer settings, study habits, app features — tailored just for you.</div>
+      <div class="asmnt-intro-chips">
+        <span class="asmnt-chip">9 questions</span>
+        <span class="asmnt-chip">~3 minutes</span>
+        <span class="asmnt-chip">AI-generated plan</span>
+        <span class="asmnt-chip">Saved forever</span>
+      </div>
+      <div class="asmnt-intro-btns">
+        <button class="btn btn-primary" id="startAssessmentBtn" style="padding:11px 28px;font-size:14px;">Start Assessment</button>
+        <button class="btn btn-ghost" id="viewPlanBtn" style="padding:11px 20px;font-size:14px;display:none;">View My Plan</button>
+      </div>
+      <div id="existingPlanNote" style="margin-top:14px;font-size:13px;color:var(--text-secondary);display:none;">
+        You already have a learning plan. Retaking will replace it.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ QUIZ ═════════════════════════════════════════════════════ -->
+  <div id="asmntQuiz" style="display:none;">
+    <div class="asmnt-progress-row">
+      <div class="asmnt-progress-track"><div class="asmnt-progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="asmnt-progress-label" id="progressLabel">1 / 9</div>
+    </div>
+
+    <!-- Q1 -->
+    <div class="asmnt-step active" id="step-0">
+      <div class="asmnt-q-num">Question 1 of 9</div>
+      <div class="asmnt-q-text">When do you feel most focused and sharp?</div>
+      <div class="asmnt-q-sub">Pick the time of day when studying feels easiest.</div>
+      <div class="asmnt-options">
+        <div class="asmnt-opt" data-q="0" data-val="early_morning"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Early morning</div><div class="asmnt-opt-desc">6am – 9am, before the world wakes up</div></div></div>
+        <div class="asmnt-opt" data-q="0" data-val="late_morning"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Late morning</div><div class="asmnt-opt-desc">9am – 12pm, after coffee kicks in</div></div></div>
+        <div class="asmnt-opt" data-q="0" data-val="afternoon"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Afternoon</div><div class="asmnt-opt-desc">12pm – 5pm, mid-day energy</div></div></div>
+        <div class="asmnt-opt" data-q="0" data-val="night"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Night owl</div><div class="asmnt-opt-desc">Evening or late night, quiet and calm</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <span></span>
+        <button class="asmnt-next" id="next-0" disabled onclick="nextStep(0)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="asmnt-step" id="step-1">
+      <div class="asmnt-q-num">Question 2 of 9</div>
+      <div class="asmnt-q-text">How long can you stay focused before your brain checks out?</div>
+      <div class="asmnt-q-sub">Be honest — this shapes your recommended timer.</div>
+      <div class="asmnt-options">
+        <div class="asmnt-opt" data-q="1" data-val="15"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">15 – 20 min</div><div class="asmnt-opt-desc">Short bursts, frequent breaks</div></div></div>
+        <div class="asmnt-opt" data-q="1" data-val="25"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">25 – 30 min</div><div class="asmnt-opt-desc">Classic Pomodoro zone</div></div></div>
+        <div class="asmnt-opt" data-q="1" data-val="45"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">45 – 60 min</div><div class="asmnt-opt-desc">Deep focus, fewer interruptions</div></div></div>
+        <div class="asmnt-opt" data-q="1" data-val="90"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">90+ min</div><div class="asmnt-opt-desc">Marathon sessions, total immersion</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(1)">← Back</button>
+        <button class="asmnt-next" id="next-1" disabled onclick="nextStep(1)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="asmnt-step" id="step-2">
+      <div class="asmnt-q-num">Question 3 of 9</div>
+      <div class="asmnt-q-text">How do you best absorb new information?</div>
+      <div class="asmnt-q-sub">Think about what actually sticks when you're learning something new.</div>
+      <div class="asmnt-options">
+        <div class="asmnt-opt" data-q="2" data-val="reading"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Reading & notes</div><div class="asmnt-opt-desc">Writing things out, re-reading, summarising</div></div></div>
+        <div class="asmnt-opt" data-q="2" data-val="visual"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Videos & diagrams</div><div class="asmnt-opt-desc">Watching explanations, seeing it drawn out</div></div></div>
+        <div class="asmnt-opt" data-q="2" data-val="practice"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Practice problems</div><div class="asmnt-opt-desc">Doing > reading, learning by making mistakes</div></div></div>
+        <div class="asmnt-opt" data-q="2" data-val="teaching"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Explaining it out loud</div><div class="asmnt-opt-desc">Teaching someone else or talking through it</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(2)">← Back</button>
+        <button class="asmnt-next" id="next-2" disabled onclick="nextStep(2)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="asmnt-step" id="step-3">
+      <div class="asmnt-q-num">Question 4 of 9</div>
+      <div class="asmnt-q-text">When you hit a concept you just don't get, what do you do?</div>
+      <div class="asmnt-q-sub">Your natural instinct — not what you think you should do.</div>
+      <div class="asmnt-options">
+        <div class="asmnt-opt" data-q="3" data-val="reread"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Read it again (slowly)</div><div class="asmnt-opt-desc">Go back to the source material</div></div></div>
+        <div class="asmnt-opt" data-q="3" data-val="lookup"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Find another explanation</div><div class="asmnt-opt-desc">YouTube, Google, different textbook</div></div></div>
+        <div class="asmnt-opt" data-q="3" data-val="skip"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Skip it for now</div><div class="asmnt-opt-desc">Come back later with fresh eyes</div></div></div>
+        <div class="asmnt-opt" data-q="3" data-val="ask"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Ask someone or an AI</div><div class="asmnt-opt-desc">Get a quick explanation from another source</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(3)">← Back</button>
+        <button class="asmnt-next" id="next-3" disabled onclick="nextStep(3)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="asmnt-step" id="step-4">
+      <div class="asmnt-q-num">Question 5 of 9</div>
+      <div class="asmnt-q-text">What kills your focus the fastest?</div>
+      <div class="asmnt-q-sub">Select all that apply.</div>
+      <div class="asmnt-multi-note">You can pick more than one.</div>
+      <div class="asmnt-options single" id="distractors">
+        <div class="asmnt-opt multi" data-q="4" data-val="phone"><div class="asmnt-opt-radio" style="border-radius:4px;"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Phone & notifications</div><div class="asmnt-opt-desc">Texts, social media, app alerts</div></div></div>
+        <div class="asmnt-opt multi" data-q="4" data-val="noise"><div class="asmnt-opt-radio" style="border-radius:4px;"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Background noise</div><div class="asmnt-opt-desc">Conversations, TV, general commotion</div></div></div>
+        <div class="asmnt-opt multi" data-q="4" data-val="body"><div class="asmnt-opt-radio" style="border-radius:4px;"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Hunger, tiredness, discomfort</div><div class="asmnt-opt-desc">Physical state matters a lot to me</div></div></div>
+        <div class="asmnt-opt multi" data-q="4" data-val="thoughts"><div class="asmnt-opt-radio" style="border-radius:4px;"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">My own thoughts</div><div class="asmnt-opt-desc">Worrying about other tasks, mind wandering</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(4)">← Back</button>
+        <button class="asmnt-next" id="next-4" disabled onclick="nextStep(4)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="asmnt-step" id="step-5">
+      <div class="asmnt-q-num">Question 6 of 9</div>
+      <div class="asmnt-q-text">How do you handle deadlines?</div>
+      <div class="asmnt-q-sub">Which one sounds most like you?</div>
+      <div class="asmnt-options single">
+        <div class="asmnt-opt" data-q="5" data-val="pressure"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">I work best under pressure</div><div class="asmnt-opt-desc">Deadlines are my fuel — I thrive last-minute</div></div></div>
+        <div class="asmnt-opt" data-q="5" data-val="early"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">I like to finish early</div><div class="asmnt-opt-desc">Getting it done ahead of time feels great</div></div></div>
+        <div class="asmnt-opt" data-q="5" data-val="procrastinate"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">I plan ahead but still procrastinate</div><div class="asmnt-opt-desc">Good intentions, mixed execution</div></div></div>
+        <div class="asmnt-opt" data-q="5" data-val="stress"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Deadlines stress me out a lot</div><div class="asmnt-opt-desc">Anxiety makes it hard to even start</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(5)">← Back</button>
+        <button class="asmnt-next" id="next-5" disabled onclick="nextStep(5)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="asmnt-step" id="step-6">
+      <div class="asmnt-q-num">Question 7 of 9</div>
+      <div class="asmnt-q-text">What motivates you most to keep studying?</div>
+      <div class="asmnt-q-sub">What actually drives you — not what sounds good.</div>
+      <div class="asmnt-options">
+        <div class="asmnt-opt" data-q="6" data-val="rewards"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Treats & breaks</div><div class="asmnt-opt-desc">Promising myself something nice</div></div></div>
+        <div class="asmnt-opt" data-q="6" data-val="progress"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Seeing progress</div><div class="asmnt-opt-desc">Streaks, stats, ticking things off</div></div></div>
+        <div class="asmnt-opt" data-q="6" data-val="grades"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Grades & results</div><div class="asmnt-opt-desc">The outcome matters more than the process</div></div></div>
+        <div class="asmnt-opt" data-q="6" data-val="curiosity"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Genuine curiosity</div><div class="asmnt-opt-desc">I enjoy learning when I find it interesting</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(6)">← Back</button>
+        <button class="asmnt-next" id="next-6" disabled onclick="nextStep(6)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="asmnt-step" id="step-7">
+      <div class="asmnt-q-num">Question 8 of 9</div>
+      <div class="asmnt-q-text">How would you describe your current study system?</div>
+      <div class="asmnt-q-sub">Be honest — this helps the AI know where to start.</div>
+      <div class="asmnt-options single">
+        <div class="asmnt-opt" data-q="7" data-val="solid"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Solid — it works well</div><div class="asmnt-opt-desc">I have a routine and mostly stick to it</div></div></div>
+        <div class="asmnt-opt" data-q="7" data-val="tweaks"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Okay — needs small tweaks</div><div class="asmnt-opt-desc">I study but it feels inefficient sometimes</div></div></div>
+        <div class="asmnt-opt" data-q="7" data-val="overhaul"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Rough — needs a major overhaul</div><div class="asmnt-opt-desc">I know I need to change things but don't know how</div></div></div>
+        <div class="asmnt-opt" data-q="7" data-val="none"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Non-existent — I wing it</div><div class="asmnt-opt-desc">No real system, just reactive studying</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(7)">← Back</button>
+        <button class="asmnt-next" id="next-7" disabled onclick="nextStep(7)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Q9 -->
+    <div class="asmnt-step" id="step-8">
+      <div class="asmnt-q-num">Question 9 of 9</div>
+      <div class="asmnt-q-text">What's one thing you struggle with most when studying?</div>
+      <div class="asmnt-q-sub">Pick the biggest obstacle.</div>
+      <div class="asmnt-options single">
+        <div class="asmnt-opt" data-q="8" data-val="starting"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Actually starting</div><div class="asmnt-opt-desc">Procrastination is my #1 enemy</div></div></div>
+        <div class="asmnt-opt" data-q="8" data-val="staying"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Staying focused once I start</div><div class="asmnt-opt-desc">I start fine but drift after a few minutes</div></div></div>
+        <div class="asmnt-opt" data-q="8" data-val="retention"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Retaining what I study</div><div class="asmnt-opt-desc">I study it but forget it quickly</div></div></div>
+        <div class="asmnt-opt" data-q="8" data-val="consistency"><div class="asmnt-opt-radio"></div><div class="asmnt-opt-body"><div class="asmnt-opt-label">Staying consistent over time</div><div class="asmnt-opt-desc">Good for a week, then life gets in the way</div></div></div>
+      </div>
+      <div class="asmnt-nav">
+        <button class="asmnt-back" onclick="prevStep(8)">← Back</button>
+        <button class="asmnt-next" id="next-8" disabled onclick="analyzeResults()">Analyse My Results →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ANALYZING ════════════════════════════════════════════════ -->
+  <div id="asmntAnalyzing" style="display:none;">
+    <div class="asmnt-analyzing">
+      <div class="asmnt-spinner"></div>
+      <div class="asmnt-analyzing-text" id="analyzingText">Analysing your learning style…</div>
+    </div>
+  </div>
+
+  <!-- ══ PLAN ══════════════════════════════════════════════════════ -->
+  <div id="asmntPlan" style="display:none;">
+    <div class="plan-wrap" id="planWrap"></div>
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="plan-cta-btn primary" onclick="window.navigateTo('study')">Start Focus Timer</button>
+      <button class="plan-cta-btn ghost" onclick="retake()">Retake Assessment</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const TOTAL = 9
+  let current = 0
+  const answers = {}  // { qIndex: value or [values] }
+
+  // ── Check for existing plan ─────────────────────────────────────
+  const existing = csGetJSON('learningPlan', null)
+  if (existing) {
+    document.getElementById('viewPlanBtn').style.display = ''
+    document.getElementById('existingPlanNote').style.display = ''
+  }
+
+  document.getElementById('startAssessmentBtn').addEventListener('click', () => {
+    document.getElementById('asmntIntro').style.display = 'none'
+    document.getElementById('asmntQuiz').style.display = ''
+    updateProgress()
+  })
+
+  document.getElementById('viewPlanBtn').addEventListener('click', () => {
+    document.getElementById('asmntIntro').style.display = 'none'
+    showPlan(csGetJSON('learningPlan', null))
+  })
+
+  // ── Option selection ────────────────────────────────────────────
+  document.querySelectorAll('.asmnt-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const q    = parseInt(opt.dataset.q)
+      const val  = opt.dataset.val
+      const multi = opt.classList.contains('multi')
+
+      if (multi) {
+        // Toggle multi-select
+        opt.classList.toggle('selected')
+        const sel = [...document.querySelectorAll(`.asmnt-opt.multi[data-q="${q}"].selected`)]
+          .map(o => o.dataset.val)
+        answers[q] = sel.length ? sel : undefined
+      } else {
+        // Single select — deselect siblings
+        document.querySelectorAll(`.asmnt-opt[data-q="${q}"]:not(.multi)`).forEach(o => o.classList.remove('selected'))
+        opt.classList.add('selected')
+        answers[q] = val
+      }
+
+      // Enable next button
+      const nextBtn = document.getElementById(`next-${q}`)
+      if (nextBtn) nextBtn.disabled = !answers[q] || (Array.isArray(answers[q]) && answers[q].length === 0)
+    })
+  })
+
+  // ── Navigation ──────────────────────────────────────────────────
+  window.nextStep = function(from) {
+    document.getElementById(`step-${from}`).classList.remove('active')
+    current = from + 1
+    const next = document.getElementById(`step-${current}`)
+    if (next) { next.classList.add('active'); updateProgress() }
+  }
+
+  window.prevStep = function(from) {
+    document.getElementById(`step-${from}`).classList.remove('active')
+    current = from - 1
+    document.getElementById(`step-${current}`).classList.add('active')
+    updateProgress()
+  }
+
+  function updateProgress() {
+    const pct = Math.round((current / TOTAL) * 100)
+    document.getElementById('progressFill').style.width = pct + '%'
+    document.getElementById('progressLabel').textContent = `${current + 1} / ${TOTAL}`
+  }
+
+  // ── AI Analysis ──────────────────────────────────────────────────
+  window.analyzeResults = async function() {
+    document.getElementById('asmntQuiz').style.display = 'none'
+    document.getElementById('asmntAnalyzing').style.display = ''
+
+    const msgs = [
+      'Analysing your learning style…',
+      'Mapping your focus patterns…',
+      'Building your personalised plan…',
+      'Almost done…',
+    ]
+    let mi = 0
+    const txtEl = document.getElementById('analyzingText')
+    const msgInterval = setInterval(() => { mi = (mi+1)%msgs.length; txtEl.textContent = msgs[mi] }, 1800)
+
+    // Build a rich context summary for the AI
+    const qLabels = [
+      'Peak focus time',
+      'Attention span',
+      'Learning style',
+      'Strategy when stuck',
+      'Distractors',
+      'Deadline style',
+      'Primary motivation',
+      'Current study system',
+      'Biggest struggle',
+    ]
+    const answerSummary = qLabels.map((label, i) => {
+      const a = answers[i]
+      return `${label}: ${Array.isArray(a) ? a.join(', ') : (a || 'not answered')}`
+    }).join('\n')
+
+    const subjects = csGetJSON('subjects', []).join(', ') || 'not specified'
+    const dailyGoal = csGet('dailyGoalHours') || 'not set'
+    const displayName = csGet('displayName') || currentUser()
+
+    const prompt = `You are an expert learning coach and educational psychologist. A student just completed a learning-style assessment. Analyse their responses and produce a highly personalised study plan.
+
+Student: ${displayName}
+Subjects: ${subjects}
+Daily study goal: ${dailyGoal} hours
+
+Assessment results:
+${answerSummary}
+
+Return a JSON object with this exact structure (no markdown, just raw JSON):
+{
+  "learnerType": "short label like 'The Night-Owl Sprinter' or 'The Visual Deep-Diver'",
+  "summary": "2-3 sentence personalised summary of how this person learns and what holds them back",
+  "recommendedTimer": "one of: Pomodoro 25, Focus 45, Deep Work 60, Marathon 90",
+  "timerReason": "one sentence explaining why this timer suits them specifically",
+  "dailySchedule": [
+    {"time": "e.g. 9:00 PM", "activity": "e.g. Main study block — 2 × Focus 45 sessions", "why": "Because you peak at night and have a 45-min attention span"}
+  ],
+  "habits": [
+    {"icon": "single emoji", "title": "Habit title", "desc": "Specific, actionable advice tailored to their answers"}
+  ],
+  "appFeatures": [
+    {"icon": "single emoji", "feature": "Feature name from the app", "why": "Why this specific feature helps this specific learner"}
+  ],
+  "watchOut": "One honest warning about a pattern in their answers that could hold them back"
+}
+
+Rules:
+- dailySchedule: 3 items
+- habits: 4 items, very specific to their answers (not generic)
+- appFeatures: 3 items chosen from: Focus Guard, Pomodoro Timer, Study Kit, AI Tutor, AI Writer, Streaks & Badges, Rewards Shop, Session Records, Study Kit Flashcards
+- Be direct, specific, and avoid generic advice. Reference their actual answers.`
+
+    try {
+      const provider = localStorage.getItem('ai_provider') || 'gemini'
+      const apiKey   = localStorage.getItem('ai_key_' + provider)
+
+      let plan
+      if (apiKey) {
+        const res = await window.api.askAI({
+          provider, apiKey, model: null,
+          systemPrompt: 'You are an expert educational psychologist and learning coach. Always respond with valid JSON only.',
+          messages: [{ role: 'user', content: prompt }],
+        })
+        clearInterval(msgInterval)
+        const raw = (res.reply || '').trim()
+        const match = raw.match(/\{[\s\S]*\}/)
+        plan = JSON.parse(match ? match[0] : raw)
+      } else {
+        // No API key — generate a solid rule-based fallback plan
+        clearInterval(msgInterval)
+        plan = buildFallbackPlan()
+      }
+
+      plan._generatedAt = new Date().toISOString()
+      plan._answers = answers
+      csSetJSON('learningPlan', plan)
+      document.getElementById('asmntAnalyzing').style.display = 'none'
+      showPlan(plan)
+    } catch(e) {
+      clearInterval(msgInterval)
+      // Fallback on AI error
+      const plan = buildFallbackPlan()
+      plan._generatedAt = new Date().toISOString()
+      plan._answers = answers
+      csSetJSON('learningPlan', plan)
+      document.getElementById('asmntAnalyzing').style.display = 'none'
+      showPlan(plan)
+    }
+  }
+
+  // ── Rule-based fallback (no API key) ────────────────────────────
+  function buildFallbackPlan() {
+    const span = answers[1] || '25'
+    const timerMap = { '15':'Pomodoro 25', '25':'Pomodoro 25', '45':'Focus 45', '90':'Marathon 90' }
+    const timer = timerMap[span] || 'Pomodoro 25'
+    const style = answers[2] || 'reading'
+    const struggle = answers[8] || 'consistency'
+    const motivation = answers[6] || 'progress'
+    const peak = answers[0] || 'afternoon'
+    const peakLabel = { early_morning:'early morning', late_morning:'late morning', afternoon:'afternoon', night:'the evening' }[peak] || 'afternoon'
+    return {
+      learnerType: 'The ' + {reading:'Methodical Note-Taker',visual:'Visual Conceptualist',practice:'Hands-On Practitioner',teaching:'Verbal Processor'}[style] || 'Focused Learner',
+      summary: `You study best in ${peakLabel} and learn most effectively through ${style === 'reading' ? 'reading and note-taking' : style === 'visual' ? 'visual aids and videos' : style === 'practice' ? 'hands-on practice' : 'explaining ideas out loud'}. Your biggest challenge is ${struggle}, which a structured timer system and streak tracking will directly address.`,
+      recommendedTimer: timer,
+      timerReason: `Your ${span}-minute attention span maps perfectly to the ${timer} — it keeps sessions short enough to maintain focus without breaking your flow.`,
+      dailySchedule: [
+        { time: 'Start of session', activity: 'Review yesterday\'s notes for 5 min', why: 'Activates memory before new learning' },
+        { time: 'Main block', activity: `2–3 × ${timer} sessions on hardest subject first`, why: 'Tackle difficult material when your focus is freshest' },
+        { time: 'End of session', activity: 'Write 3 things you learned today', why: 'Consolidates memory and gives a sense of progress' },
+      ],
+      habits: [
+        { icon: '⏰', title: 'Study in your peak window', desc: `Block time in ${peakLabel} for your hardest subjects — that\'s when your brain is at full capacity.` },
+        { icon: '📵', title: 'Use Focus Guard seriously', desc: 'Add only essential apps to the allowlist. Every off-task switch costs you 15-20 minutes of recovery time.' },
+        { icon: '🔥', title: 'Protect your streak above all', desc: 'Even on bad days, do one 25-min session. Streaks are the most reliable predictor of long-term consistency.' },
+        { icon: '📝', title: 'End every session with a note', desc: 'One sentence: what did I actually understand today? This habit alone doubles retention.' },
+      ],
+      appFeatures: [
+        { icon: '⏱', feature: timer + ' Timer', why: 'Perfectly matched to your natural attention span — not too long, not too short.' },
+        { icon: '🔥', feature: 'Streaks & Badges', why: `Since ${motivation === 'progress' ? 'seeing progress' : motivation === 'rewards' ? 'rewards' : 'accountability'} motivates you, the streak system will keep you coming back daily.` },
+        { icon: '🃏', feature: 'Study Kit Flashcards', why: 'Generated from your own notes — the fastest way to convert ${style === "reading" ? "your written notes" : "what you\'ve learned"} into active recall practice.' },
+      ],
+      watchOut: `Watch out for ${struggle === 'starting' ? 'the "I\'ll start in 5 minutes" trap — set a 2-minute rule: if you open the app and start the timer, you\'ve already won' : struggle === 'staying' ? 'phone distractions during sessions — put it in another room, not just face-down' : struggle === 'retention' ? 'passive re-reading — it feels productive but doesn\'t build memory. Use flashcards instead' : 'all-or-nothing thinking — missing one day doesn\'t break your progress, quitting does'}.`,
+    }
+  }
+
+  // ── Render plan ──────────────────────────────────────────────────
+  function showPlan(plan) {
+    document.getElementById('asmntPlan').style.display = ''
+    const wrap = document.getElementById('planWrap')
+    const timerMins = { 'Pomodoro 25':'25', 'Focus 45':'45', 'Deep Work 60':'60', 'Marathon 90':'90' }
+    const mins = timerMins[plan.recommendedTimer] || '25'
+
+    wrap.innerHTML = `
+      <div class="plan-hero">
+        <div class="plan-hero-label">Your Learning Profile</div>
+        <div class="plan-hero-title">${esc(plan.learnerType)}</div>
+        <div class="plan-hero-sub">${esc(plan.summary)}</div>
+      </div>
+
+      <div class="plan-section">
+        <div class="plan-section-title">Recommended Timer</div>
+        <div class="plan-timer-rec">
+          <div class="plan-timer-num">${esc(mins)}<span style="font-size:16px;font-weight:600;opacity:.6;">min</span></div>
+          <div class="plan-timer-info">
+            <div class="plan-timer-label">${esc(plan.recommendedTimer)}</div>
+            <div class="plan-timer-why">${esc(plan.timerReason)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plan-section">
+        <div class="plan-section-title">Daily Study Schedule</div>
+        <div class="plan-items">
+          ${(plan.dailySchedule||[]).map(s => `
+            <div class="plan-item">
+              <div class="plan-item-icon">⟶</div>
+              <div class="plan-item-body">
+                <div class="plan-item-title">${esc(s.time)} — ${esc(s.activity)}</div>
+                <div class="plan-item-desc">${esc(s.why)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="plan-section">
+        <div class="plan-section-title">Habits to Build</div>
+        <div class="plan-items">
+          ${(plan.habits||[]).map(h => `
+            <div class="plan-item">
+              <div class="plan-item-icon">${esc(h.icon)}</div>
+              <div class="plan-item-body">
+                <div class="plan-item-title">${esc(h.title)}</div>
+                <div class="plan-item-desc">${esc(h.desc)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="plan-section">
+        <div class="plan-section-title">App Features for Your Style</div>
+        <div class="plan-items">
+          ${(plan.appFeatures||[]).map(f => `
+            <div class="plan-item">
+              <div class="plan-item-icon">${esc(f.icon)}</div>
+              <div class="plan-item-body">
+                <div class="plan-item-title">${esc(f.feature)}</div>
+                <div class="plan-item-desc">${esc(f.why)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="plan-section" style="border-color:#ef4444;background:#fff5f5;">
+        <div class="plan-section-title" style="color:#ef4444;">Watch Out For</div>
+        <div style="font-size:14px;color:#7f1d1d;line-height:1.55;">${esc(plan.watchOut)}</div>
+      </div>`
+  }
+
+  window.retake = function() {
+    document.getElementById('asmntPlan').style.display = 'none'
+    document.getElementById('asmntIntro').style.display = ''
+  }
+
+  function esc(s) {
+    return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+})()
+</script>
