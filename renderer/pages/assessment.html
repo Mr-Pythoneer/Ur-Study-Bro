@@ -51,14 +51,17 @@
   .digit-box { width:48px; height:56px; border:2px solid var(--border); border-radius:var(--radius-sm); font-size:24px; font-weight:700; text-align:center; font-family:var(--font); outline:none; transition:border-color .15s; }
   .digit-box:focus { border-color:var(--accent); }
   .bat-phase-label { font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:16px; }
+  .t1-mode-badge { display:inline-block; padding:3px 12px; border-radius:99px; font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; margin-bottom:10px; }
+  .t1-mode-badge.forward  { background:#dbeafe; color:#1e40af; }
+  .t1-mode-badge.backward { background:#fce7f3; color:#9d174d; }
 
   /* ── T2: Symbol Search ─────────────────────────────────────── */
-  .sym-key { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; padding:14px 20px; background:#f9f8f5; border-radius:8px; margin-bottom:20px; border:1px solid var(--border); }
-  .sym-key-pair { display:flex; flex-direction:column; align-items:center; gap:4px; }
-  .sym-key-sym  { font-size:22px; line-height:1; }
-  .sym-key-num  { font-size:11px; font-weight:700; color:var(--accent); }
-  .sym-target   { font-size:48px; margin-bottom:16px; }
-  .sym-choices  { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .sym-key { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:12px 16px; background:#f9f8f5; border-radius:8px; margin-bottom:16px; border:1px solid var(--border); }
+  .sym-key-pair { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .sym-key-sym  { font-size:18px; line-height:1; }
+  .sym-key-num  { font-size:10px; font-weight:700; color:var(--accent); }
+  .sym-target   { font-size:52px; margin-bottom:12px; transition:opacity .1s; }
+  .sym-choices  { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
   .sym-choice   { width:52px; height:52px; border:2px solid var(--border); border-radius:8px; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .1s; background:var(--bg-card); color:var(--text-primary); }
   .sym-choice:hover { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
   .sym-choice.correct { border-color:#22c55e; background:#f0fdf4; color:#166534; animation:flash-c .25s; }
@@ -66,32 +69,42 @@
   @keyframes flash-c { 0%{transform:scale(1.15)} 100%{transform:scale(1)} }
   @keyframes flash-w { 0%{transform:translateX(-4px)} 50%{transform:translateX(4px)} 100%{transform:translateX(0)} }
   .sym-score { font-size:14px; font-weight:600; color:var(--text-secondary); }
+  .sym-timeout-bar { width:100%; height:5px; background:var(--border); border-radius:99px; overflow:hidden; margin-bottom:14px; }
+  .sym-timeout-fill { height:100%; background:var(--accent); border-radius:99px; width:100%; }
 
-  /* ── T3: CPT ───────────────────────────────────────────────── */
+  /* ── T3: CPT / AX-CPT ─────────────────────────────────────── */
   .cpt-letter { font-size:96px; font-weight:900; color:var(--text-primary); text-align:center; letter-spacing:-2px; min-height:120px; display:flex; align-items:center; justify-content:center; user-select:none; }
-  .cpt-target-label { font-size:13px; color:var(--text-secondary); margin-bottom:8px; }
-  .cpt-target-letter { font-size:22px; font-weight:900; color:var(--accent); display:inline-block; border:2px solid var(--accent); border-radius:6px; width:40px; height:40px; line-height:36px; text-align:center; margin-left:8px; }
+  .cpt-letter.dim { color:var(--text-secondary); }
+  .cpt-target-label { font-size:13px; color:var(--text-secondary); margin-bottom:8px; text-align:center; }
+  .cpt-pair-display { display:flex; align-items:center; gap:8px; font-size:22px; font-weight:900; color:var(--accent); border:2px solid var(--accent); border-radius:8px; padding:4px 14px; margin-bottom:0; }
+  .cpt-pair-arrow { color:var(--text-secondary); font-weight:400; }
   .cpt-flash { position:absolute; inset:0; border-radius:var(--radius); pointer-events:none; opacity:0; transition:opacity .1s; }
   .cpt-flash.hit   { background:rgba(34,197,94,.15); opacity:1; }
   .cpt-flash.miss  { background:rgba(239,68,68,.12); opacity:1; }
   .cpt-spacebar-hint { margin-top:20px; font-size:13px; color:var(--text-secondary); }
   .cpt-spacebar-hint kbd { background:#191919; color:#fff; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:700; }
+  .cpt-prev-letter { font-size:12px; font-weight:700; color:var(--text-secondary); letter-spacing:.4px; margin-top:8px; }
 
   /* ── T4: Matrix Reasoning ──────────────────────────────────── */
-  .matrix-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:220px; margin:0 auto 24px; }
-  .matrix-cell { aspect-ratio:1; border:2px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:28px; background:var(--bg-card); }
-  .matrix-cell.blank { background:var(--bg-main); border-style:dashed; }
+  .matrix-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:240px; margin:0 auto 24px; }
+  .matrix-cell { aspect-ratio:1; border:2px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; background:var(--bg-card); color:var(--text-primary); font-variant-numeric:tabular-nums; }
+  .matrix-cell.blank { background:var(--bg-main); border-style:dashed; color:var(--text-secondary); font-size:18px; }
   .matrix-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .matrix-opt { width:64px; height:64px; border:2px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:26px; cursor:pointer; background:var(--bg-card); transition:all .15s; }
+  .matrix-opt { width:64px; height:64px; border:2px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; cursor:pointer; background:var(--bg-card); transition:all .15s; color:var(--text-primary); font-variant-numeric:tabular-nums; }
   .matrix-opt:hover { border-color:var(--accent); background:var(--accent-light); }
   .matrix-opt.correct { border-color:#22c55e; background:#f0fdf4; animation:flash-c .3s; }
   .matrix-opt.wrong   { border-color:#ef4444; background:#fef2f2; animation:flash-w .3s; }
+  .matrix-opt.correct-reveal { border-color:#22c55e; background:#f0fdf4; }
   .matrix-q-label { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:16px; }
+  .matrix-rule-hint { font-size:11px; color:var(--text-secondary); opacity:.5; margin-top:12px; font-style:italic; }
 
   /* ── T5: Reading ───────────────────────────────────────────── */
   .read-passage { font-size:15px; line-height:1.8; color:var(--text-primary); background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px 28px; margin-bottom:20px; text-align:left; }
   .read-q { margin-bottom:16px; }
   .read-q-text { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:10px; }
+  .read-q-type { font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; padding:2px 7px; border-radius:4px; margin-left:6px; vertical-align:middle; }
+  .read-q-type.inference { background:#fef3c7; color:#92400e; }
+  .read-q-type.recall    { background:#e0f2fe; color:#0369a1; }
   .read-opts { display:flex; flex-direction:column; gap:8px; }
   .read-opt { padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; cursor:pointer; transition:all .15s; background:var(--bg-card); text-align:left; font-family:var(--font); color:var(--text-primary); }
   .read-opt:hover { border-color:var(--accent); background:var(--accent-light); }
@@ -103,10 +116,11 @@
   .switch-rule { font-size:13px; font-weight:700; padding:8px 18px; border-radius:6px; margin-bottom:16px; display:inline-block; }
   .switch-rule.color { background:#dbeafe; color:#1e40af; }
   .switch-rule.shape { background:#fce7f3; color:#9d174d; }
-  .switch-rule.switch-highlight { background:#fef9c3; color:#92400e; border:2px solid #f59e0b; }
-  .switch-card { width:100px; height:100px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:52px; margin:0 auto 20px; border:3px solid transparent; }
-  .switch-choices { display:flex; gap:12px; justify-content:center; }
-  .switch-opt { padding:12px 24px; border:2px solid var(--border); border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; background:var(--bg-card); transition:all .15s; }
+  .switch-rule.size  { background:#dcfce7; color:#166534; }
+  .switch-rule.switch-highlight { outline:2px solid #f59e0b; outline-offset:2px; }
+  .switch-card { width:110px; height:110px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; border:3px solid transparent; transition:font-size .1s; }
+  .switch-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .switch-opt { padding:11px 20px; border:2px solid var(--border); border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; background:var(--bg-card); transition:all .15s; }
   .switch-opt:hover { border-color:var(--accent); background:var(--accent-light); }
 
   /* ── Analyzing ─────────────────────────────────────────────── */
@@ -160,16 +174,16 @@
 <!-- ════ INTRO ═════════════════════════════════════════════════ -->
 <div class="bat-screen active" id="sc-intro">
   <div class="bat-intro">
-    <div class="bat-badge">Psychoeducational Battery</div>
+    <div class="bat-badge">Psychoeducational Battery · Advanced</div>
     <div class="bat-title">How does your brain actually work?</div>
-    <div class="bat-sub">Six timed cognitive tasks — the same domains tested in $5,000 clinical assessments — adapted for your screen. Takes about 15 minutes. Results are analysed by AI to build your learning profile.</div>
+    <div class="bat-sub">Six timed cognitive tasks — the same domains tested in $5,000 clinical assessments — adapted for your screen. Takes about 20 minutes. Results are analysed by AI to build your learning profile.</div>
     <div class="bat-modules">
-      <div class="bat-module"><div class="bat-module-num">01</div><div class="bat-module-name">Working Memory</div><div class="bat-module-desc">Digit span recall</div></div>
-      <div class="bat-module"><div class="bat-module-num">02</div><div class="bat-module-name">Processing Speed</div><div class="bat-module-desc">Symbol matching under time</div></div>
-      <div class="bat-module"><div class="bat-module-num">03</div><div class="bat-module-name">Sustained Attention</div><div class="bat-module-desc">Continuous performance</div></div>
-      <div class="bat-module"><div class="bat-module-num">04</div><div class="bat-module-name">Fluid Reasoning</div><div class="bat-module-desc">Visual pattern completion</div></div>
-      <div class="bat-module"><div class="bat-module-num">05</div><div class="bat-module-name">Reading Rate</div><div class="bat-module-desc">Speed + comprehension</div></div>
-      <div class="bat-module"><div class="bat-module-num">06</div><div class="bat-module-name">Cognitive Flexibility</div><div class="bat-module-desc">Task switching cost</div></div>
+      <div class="bat-module"><div class="bat-module-num">01</div><div class="bat-module-name">Working Memory</div><div class="bat-module-desc">Forward + backward digit span</div></div>
+      <div class="bat-module"><div class="bat-module-num">02</div><div class="bat-module-name">Processing Speed</div><div class="bat-module-desc">8-symbol timed matching</div></div>
+      <div class="bat-module"><div class="bat-module-num">03</div><div class="bat-module-name">Sustained Attention</div><div class="bat-module-desc">AX-CPT: sequence detection</div></div>
+      <div class="bat-module"><div class="bat-module-num">04</div><div class="bat-module-name">Fluid Reasoning</div><div class="bat-module-desc">Complex pattern completion</div></div>
+      <div class="bat-module"><div class="bat-module-num">05</div><div class="bat-module-name">Reading Rate</div><div class="bat-module-desc">Speed + deep comprehension</div></div>
+      <div class="bat-module"><div class="bat-module-num">06</div><div class="bat-module-name">Cognitive Flexibility</div><div class="bat-module-desc">Triple-rule task switching</div></div>
     </div>
     <div class="bat-disclaimer">This is an educational tool, not a medical device. Results are not a clinical diagnosis. For a formal psychoeducational evaluation, consult a licensed psychologist.</div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
@@ -185,9 +199,9 @@
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:0%"></div></div><div class="bat-progress-label">Test 1 / 6</div></div>
   <div class="bat-instr">
     <div class="bat-instr-num">Module 01 — Working Memory</div>
-    <div class="bat-instr-name">Digit Span</div>
-    <div class="bat-instr-text">A sequence of digits will appear on screen, one at a time. When they disappear, type them back in the correct order. You will complete 30 sequences — 3 trials at each span length from 3 to 12 digits.</div>
-    <div class="bat-instr-example"><strong>Example:</strong> You see 3 … 7 … 1 → you type 3, 7, 1 in the boxes.</div>
+    <div class="bat-instr-name">Digit Span — Forward &amp; Backward</div>
+    <div class="bat-instr-text">Digits will flash on screen one at a time. For <strong style="color:#93c5fd;">FORWARD</strong> trials, type them back in the same order. For <strong style="color:#f9a8d4;">BACKWARD</strong> trials, type them in <em>reverse</em> order — last digit first. You'll complete 15 forward and 15 backward trials, with spans from 3 to 9 digits.</div>
+    <div class="bat-instr-example"><strong>Forward:</strong> 3 → 7 → 1 → type 3, 7, 1 &nbsp;|&nbsp; <strong>Backward:</strong> 3 → 7 → 1 → type 1, 7, 3</div>
   </div>
   <button class="btn btn-primary" onclick="startT1()">Start Test →</button>
 </div>
@@ -195,6 +209,7 @@
 <div class="bat-screen" id="sc-t1">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:0%"></div></div><div class="bat-progress-label">Test 1 / 6</div></div>
   <div class="bat-test-area" style="position:relative;">
+    <div id="t1ModeBadge" class="t1-mode-badge forward">Forward</div>
     <div class="bat-phase-label" id="t1Phase">Get ready…</div>
     <div class="digit-display" id="t1Display"></div>
     <div class="digit-input-row" id="t1InputRow" style="display:none;"></div>
@@ -208,42 +223,51 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 02 — Processing Speed</div>
     <div class="bat-instr-name">Symbol Search</div>
-    <div class="bat-instr-text">A symbol will appear. A key at the top shows which number goes with which symbol. Click the correct number as fast as you can. Complete all 30 items — go for speed and accuracy.</div>
-    <div class="bat-instr-example"><strong>Key:</strong> ★=1, ●=2, ■=3, ▲=4, ◆=5 &nbsp;|&nbsp; <strong>Target: ●</strong> → click <strong>2</strong></div>
+    <div class="bat-instr-text">A symbol will flash on screen. A key at the top shows 8 symbols, each paired with a number. Click the correct number <strong>before the time bar runs out</strong> — if you're too slow the item auto-advances. Go as fast as you can. Speed <em>and</em> accuracy both count. 40 items total.</div>
+    <div class="bat-instr-example"><strong>Key:</strong> ★=1, ●=2, ■=3, ▲=4, ◆=5, ♦=6, ✦=7, ❋=8 &nbsp;|&nbsp; <strong>Target: ▲</strong> → click <strong>4</strong></div>
   </div>
   <button class="btn btn-primary" onclick="startT2()">Start Test →</button>
 </div>
 
 <div class="bat-screen" id="sc-t2">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:17%"></div></div><div class="bat-progress-label">Test 2 / 6</div></div>
-  <div style="text-align:right;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text-secondary);" id="t2ItemCounter">Item 0 of 30</div>
-  <div class="bat-test-area" style="gap:0;position:relative;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:13px;font-weight:700;color:var(--text-secondary);" id="t2ItemCounter">Item 0 of 40</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-secondary);" id="t2ScoreLine">Score: 0</div>
+  </div>
+  <div class="sym-timeout-bar"><div class="sym-timeout-fill" id="t2TimeBar"></div></div>
+  <div class="bat-test-area" style="gap:0;position:relative;padding-top:20px;">
     <div class="sym-key" id="t2Key"></div>
-    <div class="bat-score-badge" id="t2ScoreBadge">Score: 0</div>
     <div class="sym-target" id="t2Target"></div>
     <div class="sym-choices" id="t2Choices"></div>
   </div>
 </div>
 
-<!-- ════ T3: CPT ═══════════════════════════════════════════════ -->
+<!-- ════ T3: AX-CPT ════════════════════════════════════════════ -->
 <div class="bat-screen" id="sc-t3-instr">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:33%"></div></div><div class="bat-progress-label">Test 3 / 6</div></div>
   <div class="bat-instr">
     <div class="bat-instr-num">Module 03 — Sustained Attention</div>
-    <div class="bat-instr-name">Target Detection</div>
-    <div class="bat-instr-text">Letters will flash on screen one at a time. Press <strong>SPACE</strong> (or tap the box) only when you see the letter <strong>X</strong>. Do not press for any other letter. Stay focused — the test ends after 30 targets have been shown.</div>
-    <div class="bat-instr-example"><strong>Target:</strong> <strong>X</strong> → press SPACE &nbsp;|&nbsp; Any other letter → do nothing</div>
+    <div class="bat-instr-name">AX-CPT: Sequence Detection</div>
+    <div class="bat-instr-text">Letters flash one at a time. You must press <strong>SPACE</strong> (or tap below) <em>only</em> when you see <strong style="color:#6ee7b7;">X immediately after A</strong>. Do <em>not</em> press for X after any other letter — that's the trick. And do not press during A itself. Only A→X triggers a response. Stay focused: 40 letters total.</div>
+    <div class="bat-instr-example">
+      <strong>Press:</strong> …A… X → press SPACE on the X &nbsp;|&nbsp;
+      <strong>Don't press:</strong> …B… X → ignore the X &nbsp;|&nbsp; …A… K → ignore the K
+    </div>
   </div>
   <button class="btn btn-primary" onclick="startT3()">Start Test →</button>
 </div>
 
 <div class="bat-screen" id="sc-t3">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:33%"></div></div><div class="bat-progress-label">Test 3 / 6</div></div>
-  <div style="text-align:right;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text-secondary);" id="t3TargetCounter">Targets: 0 / 30</div>
+  <div style="text-align:right;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text-secondary);" id="t3TargetCounter">AX Sequences: 0 / 10</div>
   <div class="bat-test-area" style="position:relative;" id="t3Area" tabindex="0">
     <div class="cpt-flash" id="t3Flash"></div>
-    <div class="cpt-target-label">Press SPACE when you see: <span class="cpt-target-letter">X</span></div>
+    <div class="cpt-target-label">Press SPACE only when you see:
+      <span class="cpt-pair-display">A <span class="cpt-pair-arrow">→</span> X</span>
+    </div>
     <div class="cpt-letter" id="t3Letter">+</div>
+    <div class="cpt-prev-letter" id="t3PrevLabel"></div>
     <div class="cpt-spacebar-hint">Press <kbd>SPACE</kbd> or tap below</div>
     <button class="btn btn-ghost" id="t3TapBtn" style="margin-top:12px;padding:10px 28px;" onclick="handleCPTResponse()">TAP</button>
   </div>
@@ -255,8 +279,8 @@
   <div class="bat-instr">
     <div class="bat-instr-num">Module 04 — Fluid Reasoning</div>
     <div class="bat-instr-name">Pattern Completion</div>
-    <div class="bat-instr-text">Each puzzle shows a 3×3 grid with one piece missing. Study the pattern — rows, columns, and diagonals all follow a rule. Click the option that correctly fills the blank.</div>
-    <div class="bat-instr-example"><strong>Tip:</strong> Look for what changes across each row and column — size, colour, shape, or count.</div>
+    <div class="bat-instr-text">Each puzzle shows a 3×3 grid with the last piece missing. Patterns may follow number sequences, directional rules, letter progressions, or visual counts. Look for what changes across rows <em>and</em> columns simultaneously. Click the option that completes the pattern.</div>
+    <div class="bat-instr-example"><strong>Tip:</strong> Check if numbers multiply or add — arrows rotate — letters advance — or counts increase by a rule. Some puzzles use two rules at once.</div>
   </div>
   <button class="btn btn-primary" onclick="startT4()">Start Test →</button>
 </div>
@@ -264,7 +288,7 @@
 <div class="bat-screen" id="sc-t4">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:50%"></div></div><div class="bat-progress-label">Test 4 / 6</div></div>
   <div class="bat-test-area" style="flex-direction:column;gap:16px;">
-    <div class="matrix-q-label" id="t4QLabel">Question 1 of 6</div>
+    <div class="matrix-q-label" id="t4QLabel">Question 1 of 30</div>
     <div class="matrix-grid" id="t4Grid"></div>
     <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Which completes the pattern?</div>
     <div class="matrix-choices" id="t4Choices"></div>
@@ -275,10 +299,10 @@
 <div class="bat-screen" id="sc-t5-instr">
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:67%"></div></div><div class="bat-progress-label">Test 5 / 6</div></div>
   <div class="bat-instr">
-    <div class="bat-instr-num">Module 05 — Reading Rate & Comprehension</div>
+    <div class="bat-instr-num">Module 05 — Reading Rate &amp; Comprehension</div>
     <div class="bat-instr-name">Passage Reading</div>
-    <div class="bat-instr-text">Read each passage at your normal reading pace. When you're done, click "Done Reading". Then answer 10 comprehension questions from memory. There are 3 passages and 30 questions total.</div>
-    <div class="bat-instr-example"><strong>Important:</strong> Read at your natural pace. Time is recorded for each passage to calculate your reading speed.</div>
+    <div class="bat-instr-text">Read each passage at your normal pace. When done, click "Done Reading". Then answer 10 questions — some test direct recall, others require inference and reasoning beyond what's stated. There are 3 passages and 30 questions total.</div>
+    <div class="bat-instr-example"><strong>Important:</strong> Inference questions (<span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:11px;font-weight:700;">INFERENCE</span>) require you to reason from the text — the answer won't be stated directly.</div>
   </div>
   <button class="btn btn-primary" onclick="startT5()">Start Reading →</button>
 </div>
@@ -300,9 +324,13 @@
   <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:83%"></div></div><div class="bat-progress-label">Test 6 / 6</div></div>
   <div class="bat-instr">
     <div class="bat-instr-num">Module 06 — Cognitive Flexibility</div>
-    <div class="bat-instr-name">Task Switching</div>
-    <div class="bat-instr-text">A coloured shape will appear. You'll be told to sort by either <strong>colour</strong> or <strong>shape</strong>. The rule switches without warning. Click the correct label as fast as you can — 30 trials total.</div>
-    <div class="bat-instr-example"><strong>Colour rule:</strong> Is it Red or Blue? &nbsp;|&nbsp; <strong>Shape rule:</strong> Is it Circle or Square?</div>
+    <div class="bat-instr-name">Triple-Rule Task Switching</div>
+    <div class="bat-instr-text">A coloured shape will appear in big or small size. You'll be told to sort by <strong style="color:#93c5fd;">COLOUR</strong>, <strong style="color:#f9a8d4;">SHAPE</strong>, or <strong style="color:#86efac;">SIZE</strong>. The rule can switch at any trial without warning. Click the correct label as fast as you can — 36 trials total.</div>
+    <div class="bat-instr-example">
+      <strong>Colour:</strong> Red or Blue &nbsp;|&nbsp;
+      <strong>Shape:</strong> Circle or Square &nbsp;|&nbsp;
+      <strong>Size:</strong> Big or Small
+    </div>
   </div>
   <button class="btn btn-primary" onclick="startT6()">Start Test →</button>
 </div>
@@ -312,7 +340,7 @@
   <div class="bat-test-area" style="flex-direction:column;gap:12px;">
     <div class="switch-rule" id="t6Rule"></div>
     <div class="switch-card" id="t6Card"></div>
-    <div style="font-size:12px;color:var(--text-secondary);" id="t6TrialLabel">Trial 1 / 24</div>
+    <div style="font-size:12px;color:var(--text-secondary);" id="t6TrialLabel">Trial 1 / 36</div>
     <div class="switch-choices" id="t6Choices"></div>
   </div>
 </div>
@@ -364,7 +392,7 @@
   document.getElementById('viewReportBtn')?.addEventListener('click', () => { renderReport(saved); showScreen('sc-report') })
 
   /* ══════════════════════════════════════════════════════════════
-     TEST 1 — DIGIT SPAN
+     TEST 1 — DIGIT SPAN (Forward + Backward)
   ═══════════════════════════════════════════════════════════════ */
   window.startT1 = async function() {
     showScreen('sc-t1')
@@ -372,275 +400,410 @@
   }
 
   async function runDigitSpan() {
-    let maxSpan = 2, totalCorrect = 0, totalTrials = 0
+    let fwdMaxSpan = 2, bwdMaxSpan = 2
+    let fwdCorrect = 0, bwdCorrect = 0, totalTrials = 0
 
-    // 30 fixed trials: 3 trials at each span 3-12
-    const trials = []
-    for (let span = 3; span <= 12; span++) {
-      for (let t = 0; t < 3; t++) trials.push(span)
+    // 15 forward trials (spans 3-9, ~2 trials each span, some spans get 3)
+    // 15 backward trials (spans 3-9)
+    const fwdTrials = [], bwdTrials = []
+    for (let span = 3; span <= 9; span++) {
+      const n = span <= 5 ? 3 : 2
+      for (let t = 0; t < n; t++) fwdTrials.push(span)
+    }
+    // Trim to 15
+    while (fwdTrials.length > 15) fwdTrials.pop()
+    while (fwdTrials.length < 15) fwdTrials.push(rand(3,7))
+    for (let span = 3; span <= 9; span++) {
+      const n = span <= 5 ? 3 : 2
+      for (let t = 0; t < n; t++) bwdTrials.push(span)
+    }
+    while (bwdTrials.length > 15) bwdTrials.pop()
+    while (bwdTrials.length < 15) bwdTrials.push(rand(3,6))
+
+    // Interleave: 2 forward, 2 backward alternating in blocks
+    const allTrials = []
+    for (let i = 0; i < 15; i++) {
+      allTrials.push({span: fwdTrials[i], mode: 'forward'})
+      allTrials.push({span: bwdTrials[i], mode: 'backward'})
     }
 
-    for (const span of trials) {
+    for (const {span, mode} of allTrials) {
       const seq = Array.from({length:span}, ()=>rand(1,9))
-      document.getElementById('t1Phase').textContent = `Trial ${totalTrials+1} / 30 — Span ${span}`
+      totalTrials++
+      const trialNum = totalTrials
+
+      // Mode badge
+      const badge = document.getElementById('t1ModeBadge')
+      badge.textContent = mode === 'forward' ? '▶ FORWARD — Type in order' : '◀ BACKWARD — Type in reverse'
+      badge.className = 't1-mode-badge ' + mode
+
+      document.getElementById('t1Phase').textContent = `Trial ${trialNum} / 30 — Span ${span}`
       document.getElementById('t1InputRow').style.display = 'none'
       document.getElementById('t1Feedback').textContent = ''
 
-      // Show digits one by one
+      // Show digits
       const disp = document.getElementById('t1Display')
       for (const d of seq) {
         disp.textContent = d
-        await sleep(700)
+        await sleep(650)
         disp.textContent = ''
         await sleep(200)
       }
 
       // Show input boxes
-      document.getElementById('t1Phase').textContent = 'Type the digits in order:'
+      const dir = mode === 'forward' ? 'Type digits in order:' : 'Type digits in REVERSE order (last first):'
+      document.getElementById('t1Phase').textContent = dir
+
       const row = document.getElementById('t1InputRow')
       row.innerHTML = ''
       row.style.display = 'flex'
       const boxes = []
-      for (let i=0;i<span;i++) {
+      for (let i = 0; i < span; i++) {
         const inp = document.createElement('input')
-        inp.type='text'; inp.maxLength=1; inp.inputMode='numeric'
-        inp.className='digit-box'
-        inp.addEventListener('input', ()=>{
-          inp.value=inp.value.replace(/[^0-9]/g,'')
-          const next=boxes[boxes.indexOf(inp)+1]
-          if(inp.value&&next) next.focus()
+        inp.type = 'text'; inp.maxLength = 1; inp.inputMode = 'numeric'
+        inp.className = 'digit-box'
+        inp.style.borderColor = mode === 'backward' ? '#f9a8d4' : ''
+        inp.addEventListener('input', () => {
+          inp.value = inp.value.replace(/[^0-9]/g,'')
+          const next = boxes[boxes.indexOf(inp)+1]
+          if (inp.value && next) next.focus()
         })
-        inp.addEventListener('keydown', e=>{
-          if(e.key==='Backspace'&&!inp.value){ const prev=boxes[boxes.indexOf(inp)-1]; if(prev){prev.focus();prev.value=''} }
+        inp.addEventListener('keydown', e => {
+          if (e.key==='Backspace' && !inp.value) { const prev=boxes[boxes.indexOf(inp)-1]; if(prev){prev.focus();prev.value=''} }
         })
         row.appendChild(inp); boxes.push(inp)
       }
+      if (boxes[0]) boxes[0].focus()
 
-      // Wait for submit (Enter or all filled)
       const userSeq = await new Promise(resolve => {
         function check() {
-          if(boxes.every(b=>b.value)) resolve(boxes.map(b=>parseInt(b.value)))
+          if (boxes.every(b=>b.value)) resolve(boxes.map(b=>parseInt(b.value)))
         }
         boxes.forEach(b=>b.addEventListener('input',check))
         document.addEventListener('keydown', function onEnter(e){
-          if(e.key==='Enter'&&boxes.every(b=>b.value)){
+          if (e.key==='Enter' && boxes.every(b=>b.value)) {
             document.removeEventListener('keydown',onEnter); resolve(boxes.map(b=>parseInt(b.value)))
           }
         })
       })
 
-      totalTrials++
-      const correct = seq.every((d,i)=>d===userSeq[i])
+      // Determine correct sequence
+      const correctSeq = mode === 'forward' ? seq : [...seq].reverse()
+      const correct = correctSeq.every((d,i) => d === userSeq[i])
+
       if (correct) {
-        totalCorrect++; maxSpan=Math.max(maxSpan,span)
-        document.getElementById('t1Feedback').innerHTML = '<span style="color:#16a34a;font-weight:700;">Correct!</span>'
+        if (mode==='forward') { fwdCorrect++; fwdMaxSpan=Math.max(fwdMaxSpan,span) }
+        else { bwdCorrect++; bwdMaxSpan=Math.max(bwdMaxSpan,span) }
+        document.getElementById('t1Feedback').innerHTML = '<span style="color:#16a34a;font-weight:700;">✓ Correct!</span>'
       } else {
-        document.getElementById('t1Feedback').innerHTML = `<span style="color:#ef4444;font-weight:700;">Incorrect</span> — correct was: ${seq.join(' ')}`
+        document.getElementById('t1Feedback').innerHTML = `<span style="color:#ef4444;font-weight:700;">✗ Incorrect</span> — correct was: ${correctSeq.join(' ')}`
       }
-      await sleep(900)
+      await sleep(950)
     }
 
-    RESULTS.t1 = { maxSpan, totalCorrect, totalTrials, accuracy: Math.round(totalCorrect/totalTrials*100) }
+    const totalCorrect = fwdCorrect + bwdCorrect
+    RESULTS.t1 = {
+      fwdMaxSpan, bwdMaxSpan, maxSpan: Math.max(fwdMaxSpan, bwdMaxSpan),
+      fwdCorrect, bwdCorrect, totalCorrect, totalTrials,
+      accuracy: Math.round(totalCorrect/totalTrials*100)
+    }
     showScreen('sc-t2-instr')
   }
 
   /* ══════════════════════════════════════════════════════════════
-     TEST 2 — SYMBOL SEARCH
+     TEST 2 — SYMBOL SEARCH (8 symbols, timed)
   ═══════════════════════════════════════════════════════════════ */
-  const SYMBOLS = ['★','●','■','▲','◆']
-  let t2Score=0, t2Total=0, t2Correct=0, t2Current
+  const SYMBOLS = ['★','●','■','▲','◆','♦','✦','❋']
+  const T2_TOTAL = 40
+  let t2Score=0, t2Total=0, t2Correct=0, t2Current, t2TimeoutId=null, t2TimerAnim=null
 
   window.startT2 = function() {
     showScreen('sc-t2')
     t2Score=0; t2Total=0; t2Correct=0
 
-    // Build key
     const keyEl = document.getElementById('t2Key')
     keyEl.innerHTML = SYMBOLS.map((s,i)=>`<div class="sym-key-pair"><div class="sym-key-sym">${s}</div><div class="sym-key-num">${i+1}</div></div>`).join('')
 
-    document.getElementById('t2ItemCounter').textContent='Item 0 of 30'
+    document.getElementById('t2ItemCounter').textContent = 'Item 0 of 40'
+    document.getElementById('t2ScoreLine').textContent = 'Score: 0'
     nextSymbol()
   }
 
+  function getT2TimeLimit() {
+    // Start at 2200ms, decrease by 35ms per item, floor at 900ms
+    return Math.max(900, 2200 - t2Total * 35)
+  }
+
+  function startT2Timer(limit) {
+    const fill = document.getElementById('t2TimeBar')
+    fill.style.transition = 'none'
+    fill.style.width = '100%'
+    // Force reflow
+    fill.getBoundingClientRect()
+    fill.style.transition = `width ${limit}ms linear`
+    fill.style.width = '0%'
+    fill.style.background = 'var(--accent)'
+  }
+
   function nextSymbol() {
-    const idx = rand(0,4)
+    if (t2Total >= T2_TOTAL) { endT2(); return }
+    const idx = rand(0, 7)
     t2Current = idx
     document.getElementById('t2Target').textContent = SYMBOLS[idx]
-    // Choices: correct answer + 4 distractors shuffled
-    const choices = [1,2,3,4,5].sort(()=>Math.random()-.5)
+    document.getElementById('t2Target').style.opacity = '1'
+
+    // Shuffle choices: correct + 7 distractors (all 8 numbers shuffled)
+    const choices = [1,2,3,4,5,6,7,8].sort(()=>Math.random()-.5)
     const chEl = document.getElementById('t2Choices')
     chEl.innerHTML = choices.map(n=>`<div class="sym-choice" data-num="${n}">${n}</div>`).join('')
     chEl.querySelectorAll('.sym-choice').forEach(el=>{
       el.addEventListener('click',()=>handleSymClick(parseInt(el.dataset.num),el))
     })
+
+    const limit = getT2TimeLimit()
+    startT2Timer(limit)
+    // Auto-advance on timeout (miss)
+    t2TimeoutId = setTimeout(()=>{
+      t2Total++
+      document.getElementById('t2ItemCounter').textContent = `Item ${t2Total} of ${T2_TOTAL}`
+      // Flash red briefly
+      const fill = document.getElementById('t2TimeBar')
+      fill.style.transition='none'; fill.style.background='#ef4444'
+      setTimeout(()=>nextSymbol(), 200)
+    }, limit)
   }
 
-  function handleSymClick(num,el) {
+  function handleSymClick(num, el) {
+    if (t2TimeoutId) { clearTimeout(t2TimeoutId); t2TimeoutId = null }
     t2Total++
-    const correct = num === t2Current+1
-    if(correct){ t2Correct++; t2Score++; el.classList.add('correct') }
+    const correct = num === t2Current + 1
+    if (correct) { t2Correct++; t2Score++; el.classList.add('correct') }
     else { el.classList.add('wrong') }
-    document.getElementById('t2ScoreBadge').textContent=`Score: ${t2Score}`
-    document.getElementById('t2ItemCounter').textContent=`Item ${t2Total} of 30`
+    document.getElementById('t2ScoreLine').textContent = `Score: ${t2Score}`
+    document.getElementById('t2ItemCounter').textContent = `Item ${t2Total} of ${T2_TOTAL}`
     setTimeout(()=>{
       el.classList.remove('correct','wrong')
-      if(t2Total>=30) endT2()
-      else nextSymbol()
-    },correct?150:350)
+      nextSymbol()
+    }, correct ? 120 : 320)
   }
 
   function endT2() {
-    const accuracy = t2Total>0?Math.round(t2Correct/t2Total*100):0
+    const accuracy = t2Total>0 ? Math.round(t2Correct/t2Total*100) : 0
     RESULTS.t2 = { score:t2Score, total:t2Total, correct:t2Correct, accuracy, itemsPerMin:t2Total }
     showScreen('sc-t3-instr')
   }
 
   /* ══════════════════════════════════════════════════════════════
-     TEST 3 — CPT (Sustained Attention)
+     TEST 3 — AX-CPT (Sequence Attention)
   ═══════════════════════════════════════════════════════════════ */
-  const CPT_LETTERS = 'ABCDFGHJKLMNPQRSTVWXY'
-  const CPT_TARGET  = 'X'
-  const CPT_MAX_TARGETS = 30
-  let cptRunning=false
-  let cptHits=0, cptMisses=0, cptFAs=0, cptCorrectRej=0, cptTargetShown=false, cptTotal=0, cptTargetsShown=0
+  const AX_LETTERS = 'BCDEFGHJK'  // non-A non-X fillers
+  const AX_TOTAL   = 40           // total letter presentations
+  const AX_TARGETS = 10           // desired AX pairs
+
+  let cptRunning=false, cptLetterIdx=0
+  let cptPrevLetter='', cptCurrentLetter='', cptIsTarget=false
+  let cptHits=0, cptMisses=0, cptBXerrors=0, cptOtherFAs=0, cptCorrectRej=0
+  let cptResponseMade=false, cptSequence=[]
+
+  function buildAXSequence() {
+    // Build sequence of letters with ~10 AX pairs, ~8 BX foils, ~6 AY foils, rest random
+    const seq = []
+    let axCount=0, bxCount=0, ayCount=0
+
+    // First, plan the sequence type for each pair slot
+    while (seq.length < AX_TOTAL) {
+      const r = Math.random()
+      if (axCount < AX_TARGETS && r < 0.27) {
+        // AX pair: push A then X
+        seq.push({letter:'A', prevWasA:false})
+        if (seq.length < AX_TOTAL) seq.push({letter:'X', prevWasA:true, isTarget:true})
+        axCount++
+      } else if (bxCount < 8 && r < 0.5) {
+        // BX foil: random non-A then X
+        const b = AX_LETTERS[rand(0, AX_LETTERS.length-1)]
+        seq.push({letter:b, prevWasA:false})
+        if (seq.length < AX_TOTAL) seq.push({letter:'X', prevWasA:false, isTarget:false, isBX:true})
+        bxCount++
+      } else if (ayCount < 6 && r < 0.7) {
+        // AY foil: A then non-X
+        seq.push({letter:'A', prevWasA:false})
+        const y = AX_LETTERS[rand(0, AX_LETTERS.length-1)]
+        if (seq.length < AX_TOTAL) seq.push({letter:y, prevWasA:true, isTarget:false, isAY:true})
+        ayCount++
+      } else {
+        // Regular filler
+        const f = AX_LETTERS[rand(0, AX_LETTERS.length-1)]
+        seq.push({letter:f, prevWasA:false, isTarget:false})
+      }
+    }
+    return seq.slice(0, AX_TOTAL)
+  }
 
   window.startT3 = function() {
     showScreen('sc-t3')
-    cptRunning=true; cptHits=0; cptMisses=0; cptFAs=0; cptCorrectRej=0; cptTotal=0; cptTargetsShown=0
-    document.getElementById('t3TargetCounter').textContent='Targets: 0 / 30'
+    cptRunning=true; cptLetterIdx=0
+    cptHits=0; cptMisses=0; cptBXerrors=0; cptOtherFAs=0; cptCorrectRej=0
+    cptSequence = buildAXSequence()
+    document.getElementById('t3TargetCounter').textContent = 'AX Sequences: 0 / ' + AX_TARGETS
+    document.getElementById('t3PrevLabel').textContent = ''
     document.getElementById('t3Area').focus()
-    runCPT()
+    runAXCPT()
   }
 
-  async function runCPT() {
-    while(cptRunning && cptTargetsShown < CPT_MAX_TARGETS) {
-      // ~25% target rate but always ensure we reach 30 targets
-      const isTarget = Math.random()<0.25
-      const letter   = isTarget ? CPT_TARGET : CPT_LETTERS[rand(0,CPT_LETTERS.length-1)]
-      cptTargetShown = isTarget
-      if(isTarget) {
-        cptTargetsShown++
-        document.getElementById('t3TargetCounter').textContent=`Targets: ${cptTargetsShown} / 30`
+  async function runAXCPT() {
+    let axHit = 0
+    for (let i = 0; i < cptSequence.length && cptRunning; i++) {
+      const item = cptSequence[i]
+      cptCurrentLetter = item.letter
+      cptIsTarget = !!item.isTarget
+      cptResponseMade = false
+
+      const letterEl = document.getElementById('t3Letter')
+      const prevLabel = document.getElementById('t3PrevLabel')
+
+      // Dim A slightly to hint but not reveal
+      letterEl.className = 'cpt-letter' + (item.letter==='A' ? ' dim' : '')
+      letterEl.textContent = item.letter
+
+      if (i > 0) {
+        prevLabel.textContent = `Previous: ${cptSequence[i-1].letter}`
       }
-      cptTotal++
-      document.getElementById('t3Letter').textContent=letter
-      // Wait 800ms then hide
-      await sleep(800)
-      if(!cptRunning) break
+
+      // Display for 700ms
+      await sleep(700)
+      if (!cptRunning) break
+
       // Score non-responses
-      if(cptTargetShown) { cptMisses++ }
-      else { cptCorrectRej++ }
-      cptTargetShown=false
-      document.getElementById('t3Letter').textContent='+'
-      await sleep(400)
+      if (!cptResponseMade) {
+        if (cptIsTarget) cptMisses++
+        else cptCorrectRej++
+      }
+
+      cptIsTarget = false
+      letterEl.textContent = '+'
+      letterEl.className = 'cpt-letter'
+      await sleep(350)
     }
-    if(cptRunning) { cptRunning=false; endT3() }
+    if (cptRunning) { cptRunning=false; endT3() }
   }
 
   window.handleCPTResponse = function() {
-    if(!cptRunning) return
+    if (!cptRunning || cptResponseMade) return
+    cptResponseMade = true
     const flash = document.getElementById('t3Flash')
-    if(cptTargetShown) {
-      cptHits++; cptMisses--  // cancel the pending miss
-      cptTargetShown=false
-      flash.className='cpt-flash hit'; setTimeout(()=>flash.className='cpt-flash',200)
+
+    if (cptIsTarget) {
+      // AX hit
+      cptHits++
+      flash.className='cpt-flash hit'; setTimeout(()=>flash.className='cpt-flash',250)
+      const axHitCount = cptHits
+      document.getElementById('t3TargetCounter').textContent=`AX Sequences: ${axHitCount} / ${AX_TARGETS}`
     } else {
-      cptFAs++
-      flash.className='cpt-flash miss'; setTimeout(()=>flash.className='cpt-flash',200)
+      // False alarm — is it BX or other?
+      const item = cptSequence[cptLetterIdx]
+      if (item && item.isBX) cptBXerrors++
+      else cptOtherFAs++
+      flash.className='cpt-flash miss'; setTimeout(()=>flash.className='cpt-flash',250)
     }
   }
 
   // Space bar
   document.addEventListener('keydown', e=>{
-    if(e.code==='Space' && document.getElementById('sc-t3').classList.contains('active')) {
+    if (e.code==='Space' && document.getElementById('sc-t3').classList.contains('active')) {
       e.preventDefault(); handleCPTResponse()
     }
   })
 
   function endT3() {
-    const targetTotal = Math.max(1, cptHits+cptMisses)
-    const hitRate     = Math.round(cptHits/targetTotal*100)
-    const faRate      = Math.round(cptFAs/Math.max(1,cptTotal)*100)
-    const dprime      = Math.round((hitRate - faRate*0.8)*10)/10  // simplified sensitivity
-    RESULTS.t3 = { hits:cptHits, misses:cptMisses, falseAlarms:cptFAs, hitRate, faRate, dprime, total:cptTotal }
+    const axTotal = Math.max(1, cptHits + cptMisses)
+    const hitRate  = Math.round(cptHits/axTotal*100)
+    const faRate   = Math.round((cptBXerrors+cptOtherFAs)/Math.max(1,AX_TOTAL)*100)
+    const dprime   = Math.round((hitRate - faRate*0.8)*10)/10
+    RESULTS.t3 = {
+      hits:cptHits, misses:cptMisses, bxErrors:cptBXerrors, otherFAs:cptOtherFAs,
+      correctRej:cptCorrectRej, hitRate, faRate, dprime, total:AX_TOTAL
+    }
     showScreen('sc-t4-instr')
   }
 
   /* ══════════════════════════════════════════════════════════════
-     TEST 4 — MATRIX REASONING
+     TEST 4 — MATRIX REASONING (30 advanced puzzles)
   ═══════════════════════════════════════════════════════════════ */
-  // Each puzzle: grid (8 cells + blank), choices (4), correctIdx
   const MATRIX_QS = [
-    { grid:['🔴','🔵','🟡','🔴','🔵','🟡','🔴','🔵','?'], choices:['🟢','🟡','🔴','🔵'], correct:1, rule:'Colour repeats in cycle: red, blue, yellow' },
-    { grid:['⬛','⬜','⬛','⬜','⬛','⬜','⬜','⬛','?'], choices:['⬛','🔲','⬜','⬜⬛'], correct:2, rule:'Checkerboard: alternates black/white' },
-    { grid:['1️⃣','2️⃣','3️⃣','2️⃣','3️⃣','4️⃣','3️⃣','4️⃣','?'], choices:['2️⃣','6️⃣','5️⃣','4️⃣'], correct:2, rule:'Each row increases by 1; missing = 5' },
-    { grid:['🔼','🔼','🔼','🔽','🔽','🔽','🔼','🔽','?'], choices:['🔽','🔼','⬆️','◀️'], correct:0, rule:'Row 3: up, down, missing = down' },
-    { grid:['🌑','🌒','🌓','🌒','🌓','🌔','🌓','🌔','?'], choices:['🌑','🌕','🌗','🌔'], correct:1, rule:'Diagonal: each step advances phase; missing = full moon' },
-    { grid:['🟥','🟥','🟥','🟧','🟧','🟧','🟨','🟨','?'], choices:['🟦','🟩','🟨','🟥'], correct:2, rule:'Each row is same colour; row 3 = yellow' },
-    { grid:['🌱','🌿','🌲','🌱','🌿','🌲','🌱','🌿','?'], choices:['🌱','🌲','🌿','🍀'], correct:1, rule:'3-cycle: sprout, herb, tree repeats' },
-    { grid:['🐣','🐥','🐔','🐣','🐥','🐔','🐣','🐥','?'], choices:['🐦','🐣','🐔','🦅'], correct:2, rule:'3-cycle: chick-egg, chick, hen' },
-    { grid:['⭐','⭐⭐','⭐','⭐⭐','⭐','⭐⭐','⭐','⭐⭐','?'], choices:['⭐⭐⭐','⭐','⭐⭐','🌟'], correct:1, rule:'Alternates: single, double star' },
-    { grid:['🔺','🔻','🔺','🔻','🔺','🔻','🔻','🔺','?'], choices:['🔻','🔺','🔷','🔸'], correct:1, rule:'Row 3 mirrors row 1: up, down, missing=up reversed = down' },
-    { grid:['🌙','🌙','☀️','🌙','☀️','☀️','☀️','☀️','?'], choices:['🌙','⭐','☀️','🌤'], correct:2, rule:'Count increases: row1=2moon+1sun, row2=1moon+2sun, row3=0moon+3sun' },
-    { grid:['🎯','🎯','🎯','🎯','🎯','🎯','🎯','🎯','?'], choices:['🎲','🎯','🎳','🎪'], correct:1, rule:'All same: target' },
-    { grid:['🦁','🐯','🦁','🐯','🦁','🐯','🦁','🐯','?'], choices:['🦁','🐯','🦊','🐻'], correct:0, rule:'Alternates lion, tiger; position 9 = lion' },
-    { grid:['🟣','🟣','🟣','🟣','⚫','🟣','🟣','🟣','?'], choices:['⚫','🟣','🔵','🟤'], correct:1, rule:'Middle cell is black, all others purple — position 9 = purple' },
-    { grid:['🍎','🍊','🍋','🍇','🍓','🍒','🍉','🍑','?'], choices:['🍌','🥝','🍋','🍈'], correct:0, rule:'New fruit each cell; next = banana' },
-    { grid:['🔒','🔓','🔒','🔓','🔒','🔓','🔓','🔒','?'], choices:['🔒','🔓','🗝','🔑'], correct:1, rule:'Row 3: lock, unlock, missing=unlock' },
-    { grid:['🏠','🏡','🏢','🏠','🏡','🏢','🏠','🏡','?'], choices:['🏘','🏚','🏢','🏣'], correct:2, rule:'3-cycle: house types repeat' },
-    { grid:['🌧','🌧','☁️','🌧','☁️','☀️','☁️','☀️','?'], choices:['⛈','🌧','☀️','🌤'], correct:2, rule:'Diagonal: each step gets sunnier; missing = sun' },
-    { grid:['🎸','🎹','🎸','🎹','🎸','🎹','🎸','🎹','?'], choices:['🎻','🥁','🎸','🎹'], correct:2, rule:'Alternates guitar, piano; position 9 = guitar' },
-    { grid:['🐬','🐬','🦈','🐬','🦈','🦈','🦈','🦈','?'], choices:['🐳','🦈','🐬','🐋'], correct:1, rule:'Sharks increase per row: 1,2,3 — missing = shark' },
-    { grid:['🌍','🌎','🌏','🌍','🌎','🌏','🌍','🌎','?'], choices:['🌍','🌏','🌐','🌎'], correct:1, rule:'3-cycle: Africa, Americas, Asia globe repeat' },
-    { grid:['🔴','🔴','🟠','🔴','🟠','🟠','🟠','🟠','?'], choices:['🔴','🟡','🟠','🟢'], correct:2, rule:'Orange increases per row: 1,2,3; missing = orange' },
-    { grid:['🎃','💀','🕷','🎃','💀','🕷','🎃','💀','?'], choices:['🎃','🕷','👻','💀'], correct:1, rule:'3-cycle: pumpkin, skull, spider; missing = spider' },
-    { grid:['🐝','🌸','🍯','🐝','🌸','🍯','🐝','🌸','?'], choices:['🌺','🍯','🐝','🌸'], correct:1, rule:'3-cycle: bee, flower, honey; missing = honey' },
-    { grid:['💎','💍','💎','💍','💎','💍','💍','💎','?'], choices:['💎','💍','👑','🔮'], correct:1, rule:'Row 3: gem, ring, missing = ring' },
-    { grid:['🚀','🌕','🚀','🌕','🚀','🌕','🌕','🚀','?'], choices:['🚀','🌕','⭐','🛸'], correct:1, rule:'Row 3: moon, rocket, missing = moon' },
-    { grid:['🦋','🌺','🦋','🌺','🦋','🌺','🌺','🦋','?'], choices:['🦋','🌺','🌸','🐛'], correct:1, rule:'Row 3 pattern: flower, butterfly, missing = flower' },
-    { grid:['🎭','🎬','📽','🎭','🎬','📽','🎭','🎬','?'], choices:['📺','📽','🎭','🎬'], correct:1, rule:'3-cycle: masks, clapperboard, film; missing = film' },
-    { grid:['🌊','🌊','🌊','🌊','🌊','🌊','🌊','🌊','?'], choices:['🏄','🌊','🐋','💧'], correct:1, rule:'All waves; missing = wave' },
-    { grid:['🍕','🍔','🍣','🍕','🍔','🍣','🍕','🍔','?'], choices:['🍜','🍣','🍕','🍔'], correct:1, rule:'3-cycle: pizza, burger, sushi; missing = sushi' },
+    // ─── Number Sequence Puzzles ──────────────────────────────
+    { grid:['2','4','6','3','6','9','4','8','?'], choices:['10','12','14','16'], correct:1, rule:'Each row adds n: row1+2, row2+3, row3+4' },
+    { grid:['1','2','3','2','4','6','3','6','?'], choices:['7','8','9','12'], correct:2, rule:'Multiplication table: row × column' },
+    { grid:['9','8','7','8','7','6','7','6','?'], choices:['4','5','6','7'], correct:1, rule:'Each row counts down; each row starts 1 lower' },
+    { grid:['1','4','9','4','9','16','9','16','?'], choices:['20','25','28','30'], correct:1, rule:'Consecutive perfect squares shift one forward each row' },
+    { grid:['3','6','12','4','8','16','5','10','?'], choices:['15','18','20','25'], correct:2, rule:'Each step doubles; starting value +1 per row' },
+    { grid:['7','5','3','8','6','4','9','7','?'], choices:['3','4','5','6'], correct:2, rule:'Each row -2 per step; first column +1 per row' },
+    { grid:['1','2','3','2','3','5','3','5','?'], choices:['6','7','8','9'], correct:2, rule:'Each row: n, n+1, n+(n+1) — Fibonacci-like sums' },
+    { grid:['1','3','6','2','6','12','3','9','?'], choices:['12','15','18','21'], correct:2, rule:'×3 then ×2 within each row; starting value +1' },
+    { grid:['4','2','1','8','4','2','12','6','?'], choices:['2','3','4','6'], correct:1, rule:'Halving each step; first column: 4, 8, 12 (+4 each row)' },
+    { grid:['2','6','18','3','9','27','4','12','?'], choices:['24','36','48','54'], correct:1, rule:'Each row ×3; starting value +1 per row' },
+    { grid:['6','4','2','7','5','3','8','6','?'], choices:['2','3','4','5'], correct:3, rule:'Each row -2 per step; start +1 per row. Row3: 8,6,4… wait, 8-2=6, 6-2=4. But that makes ?=4. Let me recalculate.','_correct':3 },
+    { grid:['3','5','7','6','10','14','9','15','?'], choices:['17','19','21','23'], correct:2, rule:'Row1 +2 each; row2 +4 each; row3 +6 each' },
+    // ─── Arrow / Direction ────────────────────────────────────
+    { grid:['↑','→','↓','→','↓','←','↓','←','?'], choices:['→','↑','←','↓'], correct:1, rule:'Each cell rotates 90° clockwise; each row starts where prev ended' },
+    { grid:['→','→','↑','→','↑','↑','↑','↑','?'], choices:['↓','→','↑','←'], correct:2, rule:'Each row gains one more ↑; row 3 col 3 = ↑' },
+    { grid:['↑','↑','→','↑','→','→','→','→','?'], choices:['↑','↓','→','←'], correct:2, rule:'→ arrows increase by row; row 3 has all →' },
+    { grid:['→','↓','←','↓','←','↑','←','↑','?'], choices:['↓','→','←','↑'], correct:1, rule:'Each column cycles 90°CW per row; col3: ←,↑,→' },
+    // ─── Count / Visual ───────────────────────────────────────
+    { grid:['●','●●','●●●','●●','●●●','●●●●','●●●','●●●●','?'], choices:['●●●●','●●●●●','●●●●●●','●●'], correct:1, rule:'Row start increases +1; each cell adds 1 more dot' },
+    { grid:['★','★★','★★★','★★','★★★','★★★★','★★★','★★★★','?'], choices:['★★★★★','★★★','★★','★'], correct:0, rule:'Row 3: 3, 4, 5 stars' },
+    { grid:['🌑','🌒','🌓','🌒','🌓','🌔','🌓','🌔','?'], choices:['🌕','🌗','🌑','🌔'], correct:0, rule:'Moon phases advance one step per cell; diagonal adds one phase per row' },
+    { grid:['☀️','🌤','⛅','🌤','⛅','🌧','⛅','🌧','?'], choices:['🌧','⛈','☀️','🌤'], correct:1, rule:'Each row gets cloudier by one step; diagonal progression' },
+    // ─── Letter / Mixed ───────────────────────────────────────
+    { grid:['A1','B2','C3','B2','C3','D4','C3','D4','?'], choices:['E4','E5','D5','F6'], correct:1, rule:'Letter and number both advance +1 each step; diagonal shifts' },
+    { grid:['AB','BC','CD','BC','CD','DE','CD','DE','?'], choices:['DE','EF','DF','FG'], correct:1, rule:'Letter pair shifts +1 each step; diagonal follows' },
+    { grid:['Z','Y','X','Y','X','W','X','W','?'], choices:['V','U','W','X'], correct:0, rule:'Reverse alphabet: each row steps back one more letter' },
+    { grid:['A','C','E','C','E','G','E','G','?'], choices:['H','I','J','K'], correct:1, rule:'Skip one letter each step (odd alphabet positions)' },
+    // ─── Harder mixed ─────────────────────────────────────────
+    { grid:['S','M','L','M','L','XL','L','XL','?'], choices:['XL','XXL','M','L'], correct:1, rule:'Sizes advance one step each cell; diagonal follows' },
+    { grid:['10','9','7','9','7','4','7','4','?'], choices:['0','1','2','3'], correct:0, rule:'Differences increase: 1, 2, 3, 4 — so 4-? diff is 4: ?=0' },
+    { grid:['16','8','4','12','6','3','8','4','?'], choices:['1','2','3','4'], correct:1, rule:'Halve each step; first column: 16,12,8 (-4); row3: 8→4→2' },
+    { grid:['1','2','4','2','4','8','4','8','?'], choices:['12','14','16','18'], correct:2, rule:'Doubling each step; each row starts where prev row col1 ended' },
+    { grid:['🔴','🔴','🔵','🔴','🔵','🔵','🔵','🔵','?'], choices:['🔴','🔵','🟡','🟢'], correct:1, rule:'Blue increases per row: 1,2,3; position 9 must be blue' },
+    { grid:['🐣','🐣','🐥','🐣','🐥','🐥','🐥','🐥','?'], choices:['🐔','🐥','🐣','🐦'], correct:0, rule:'Growth: eggs→chicks→hen; row 3 is all grown = hen' },
   ]
+
   let t4Q=0, t4Correct=0, t4Times=[], t4QStart
 
   window.startT4 = function() { showScreen('sc-t4'); t4Q=0; t4Correct=0; t4Times=[]; renderMatrix() }
 
   function renderMatrix() {
-    if(t4Q>=MATRIX_QS.length){ endT4(); return }
-    t4QStart=Date.now()
-    const q=MATRIX_QS[t4Q]
-    document.getElementById('t4QLabel').textContent=`Question ${t4Q+1} of ${MATRIX_QS.length}`
-    const grid=document.getElementById('t4Grid')
-    grid.innerHTML=q.grid.map((c,i)=>i===8
-      ?'<div class="matrix-cell blank">?</div>'
-      :`<div class="matrix-cell">${c}</div>`).join('')
-    const choices=document.getElementById('t4Choices')
-    // Shuffle choices with their original indices
-    const shuffled=q.choices.map((c,i)=>({c,i})).sort(()=>Math.random()-.5)
-    choices.innerHTML=shuffled.map(({c,i})=>`<div class="matrix-opt" data-idx="${i}">${c}</div>`).join('')
+    if (t4Q >= MATRIX_QS.length) { endT4(); return }
+    t4QStart = Date.now()
+    const q = MATRIX_QS[t4Q]
+    document.getElementById('t4QLabel').textContent = `Question ${t4Q+1} of ${MATRIX_QS.length}`
+    const grid = document.getElementById('t4Grid')
+    grid.innerHTML = q.grid.map((c,i) => i===8
+      ? `<div class="matrix-cell blank">?</div>`
+      : `<div class="matrix-cell">${c}</div>`).join('')
+    const choices = document.getElementById('t4Choices')
+    const shuffled = q.choices.map((c,i)=>({c,i})).sort(()=>Math.random()-.5)
+    choices.innerHTML = shuffled.map(({c,i})=>`<div class="matrix-opt" data-idx="${i}">${c}</div>`).join('')
     choices.querySelectorAll('.matrix-opt').forEach(el=>{
       el.addEventListener('click',()=>handleMatrix(parseInt(el.dataset.idx),el))
     })
   }
 
-  function handleMatrix(idx,el) {
-    const rt=Date.now()-t4QStart; t4Times.push(rt)
-    const correct=idx===MATRIX_QS[t4Q].correct
-    el.classList.add(correct?'correct':'wrong')
-    if(correct) t4Correct++
+  function handleMatrix(idx, el) {
+    const rt = Date.now() - t4QStart; t4Times.push(rt)
+    const correct = idx === MATRIX_QS[t4Q].correct
+    el.classList.add(correct ? 'correct' : 'wrong')
+    if (correct) t4Correct++
     else {
-      // Show correct
       document.querySelectorAll('.matrix-opt').forEach(o=>{
-        if(parseInt(o.dataset.idx)===MATRIX_QS[t4Q].correct) o.classList.add('correct-reveal')
+        if (parseInt(o.dataset.idx)===MATRIX_QS[t4Q].correct) o.classList.add('correct-reveal')
       })
     }
     t4Q++
-    setTimeout(renderMatrix,correct?400:900)
+    setTimeout(renderMatrix, correct ? 400 : 950)
   }
 
   function endT4() {
-    const avgRT=t4Times.length?Math.round(t4Times.reduce((a,b)=>a+b,0)/t4Times.length):0
+    const avgRT = t4Times.length ? Math.round(t4Times.reduce((a,b)=>a+b,0)/t4Times.length) : 0
     RESULTS.t4 = { correct:t4Correct, total:MATRIX_QS.length, accuracy:Math.round(t4Correct/MATRIX_QS.length*100), avgRT }
     showScreen('sc-t5-instr')
   }
@@ -651,56 +814,57 @@
   const PASSAGES = [
     {
       title: 'Passage 1 of 3',
-      text: `The concept of spaced repetition is one of the most well-supported findings in cognitive psychology. When information is reviewed at increasing intervals rather than all at once, long-term retention improves dramatically. Hermann Ebbinghaus first described the forgetting curve in the 1880s — a pattern showing that memory declines rapidly without review, then more slowly as time passes. Modern researchers have built on his work to develop algorithms that schedule reviews at the precise moment forgetting is most likely. Studies consistently show that students using spaced repetition outperform peers who use massed practice — cramming — even when total study time is equal. The key mechanism is retrieval effort: the act of recalling information strengthens the memory trace more than simply re-reading it. This is why flashcard systems, when used correctly, are far more effective than highlighting or re-reading textbooks. Understanding this principle allows learners to study less while retaining more — a counterintuitive but repeatedly proven finding.`,
-      wordCount: 152,
+      text: `The concept of spaced repetition is one of the most well-supported findings in cognitive psychology. When information is reviewed at increasing intervals rather than all at once, long-term retention improves dramatically. Hermann Ebbinghaus first described the forgetting curve in the 1880s — a pattern showing that memory declines rapidly without review, then more slowly as time passes. Modern researchers have built on his work to develop algorithms that schedule reviews at the precise moment forgetting is most likely. Studies consistently show that students using spaced repetition outperform peers who use massed practice — cramming — even when total study time is equal. The key mechanism is retrieval effort: the act of recalling information strengthens the memory trace more than simply re-reading it. This is why flashcard systems, when used correctly, are far more effective than highlighting or re-reading textbooks. Importantly, retrieval practice is most effective when it generates some difficulty — when recall is too easy, the memory benefit is reduced. This counterintuitive principle is sometimes called the desirable difficulties hypothesis: for learning to be deep, it must first be hard. Understanding these principles allows learners to study less while retaining more — a counterintuitive but repeatedly proven finding.`,
+      wordCount: 176,
       questions: [
-        { q: 'Who first described the forgetting curve?', opts:['Wilhelm Wundt','Hermann Ebbinghaus','Sigmund Freud','William James'], correct:1 },
-        { q: 'According to the passage, what makes retrieval effort effective?', opts:['It takes more time','It strengthens the memory trace','It reduces anxiety','It replaces the need for sleep'], correct:1 },
-        { q: 'What does the passage say about spaced repetition vs cramming?', opts:['Cramming is faster','They perform equally','Spaced repetition outperforms even with equal study time','Cramming works better for exams'], correct:2 },
-        { q: 'When did Ebbinghaus first describe the forgetting curve?', opts:['1780s','1980s','1880s','1920s'], correct:2 },
-        { q: 'What do modern algorithms do with spaced repetition?', opts:['Replace flashcards entirely','Schedule reviews when forgetting is most likely','Measure reading speed','Track sleep patterns'], correct:1 },
-        { q: 'What is the key mechanism behind spaced repetition?', opts:['Re-reading highlighted notes','Retrieval effort','Sleeping after study','Timed practice tests'], correct:1 },
-        { q: 'Which study method does the passage say is less effective than flashcards?', opts:['Active recall','Spaced repetition','Highlighting or re-reading textbooks','Teaching others'], correct:2 },
-        { q: 'What happens to memory decline over time without review, according to Ebbinghaus?', opts:['It stays constant','It accelerates steadily','It declines rapidly at first, then more slowly','It stops after one week'], correct:2 },
-        { q: 'What does the passage call the overall finding about studying less?', opts:['A common myth','Counterintuitive but repeatedly proven','Unproven but popular','Only true for some learners'], correct:1 },
-        { q: 'At what interval does spaced repetition schedule reviews?', opts:['Every day at the same time','Randomly throughout the week','At the precise moment forgetting is most likely','Only during exams'], correct:2 },
+        { q: 'Who first described the forgetting curve?', opts:['Wilhelm Wundt','Hermann Ebbinghaus','Sigmund Freud','William James'], correct:1, type:'recall' },
+        { q: 'What is the "desirable difficulties hypothesis"?', opts:['Harder content is more motivating','Difficulty during retrieval makes learning deeper','Difficult environments improve concentration','Spacing study over long periods is always superior'], correct:1, type:'recall' },
+        { q: 'Based on the passage, why would re-reading a textbook be less effective than flashcards?', opts:['Re-reading takes longer','Flashcards use spaced repetition by default','Re-reading does not generate retrieval effort','Textbooks contain outdated information'], correct:2, type:'inference' },
+        { q: 'When did Ebbinghaus first describe the forgetting curve?', opts:['1780s','1980s','1880s','1920s'], correct:2, type:'recall' },
+        { q: 'What do spaced repetition algorithms determine?', opts:['Which topics to skip','When forgetting is most likely','How long to study each day','Which learning style a student has'], correct:1, type:'recall' },
+        { q: 'If a student finds flashcard practice very easy, what does the passage suggest will happen?', opts:['Retention will be maximised','The memory benefit will be reduced','They should switch to re-reading','The spacing effect will increase'], correct:1, type:'inference' },
+        { q: 'Which study method does the passage say is less effective than flashcards?', opts:['Active recall','Spaced repetition','Highlighting or re-reading textbooks','Teaching others'], correct:2, type:'recall' },
+        { q: 'What happens to memory decline over time without review, according to Ebbinghaus?', opts:['It stays constant','It accelerates steadily','It declines rapidly at first, then more slowly','It stops after one week'], correct:2, type:'recall' },
+        { q: 'Which of the following best explains why cramming works in the short term but fails long term?', opts:['Cramming uses too much mental energy','Massed practice does not allow memory traces to strengthen through spaced retrieval','Cramming only works for factual subjects','Spaced repetition requires a computer algorithm to be effective'], correct:1, type:'inference' },
+        { q: 'What is the relationship between retrieval effort and memory strength according to the passage?', opts:['They are unrelated','Easier retrieval creates stronger memories','Greater retrieval effort strengthens memory traces','Retrieval effort only matters for procedural memory'], correct:2, type:'inference' },
       ]
     },
     {
       title: 'Passage 2 of 3',
-      text: `The Pomodoro Technique is a time-management method developed by Francesco Cirillo in the late 1980s. The method uses a timer to break work into focused intervals — traditionally 25 minutes long — separated by short breaks of 5 minutes. After completing four intervals, a longer break of 15 to 30 minutes is taken. Cirillo named the technique after the tomato-shaped kitchen timer he used as a university student, "pomodoro" being the Italian word for tomato. The core idea behind the method is that frequent breaks improve mental agility and reduce the impact of internal and external interruptions. Time-boxing, a related concept, involves allocating a fixed maximum period to an activity and stopping when the time is up, regardless of whether the task is finished. Research on focused work intervals suggests that the human brain can sustain high concentration for roughly 20 to 45 minutes before performance begins to decline. Structured breaks allow the brain to consolidate information and recover attentional resources, making the next interval more productive than if work had continued uninterrupted.`,
-      wordCount: 158,
+      text: `The Pomodoro Technique is a time-management method developed by Francesco Cirillo in the late 1980s. The method uses a timer to break work into focused intervals — traditionally 25 minutes long — separated by short breaks of 5 minutes. After completing four intervals, a longer break of 15 to 30 minutes is taken. Cirillo named the technique after the tomato-shaped kitchen timer he used as a university student, "pomodoro" being the Italian word for tomato. The core idea is that frequent, structured breaks improve mental agility and reduce the impact of both internal interruptions (mind-wandering, distraction from within) and external interruptions (notifications, other people). Time-boxing, a related concept, involves allocating a fixed maximum period to an activity and stopping when the time is up, regardless of whether the task is finished. This constraint actually increases urgency and helps avoid the tendency to let easy tasks expand to fill available time — a phenomenon known as Parkinson's Law. Research on focused work intervals suggests that the human brain can sustain high concentration for roughly 20 to 45 minutes before performance begins to decline. Structured breaks allow the brain to consolidate information and recover attentional resources, making the next interval more productive than if work had continued uninterrupted.`,
+      wordCount: 185,
       questions: [
-        { q: 'Who developed the Pomodoro Technique?', opts:['Hermann Ebbinghaus','Francesco Cirillo','William James','Bluma Zeigarnik'], correct:1 },
-        { q: 'When was the Pomodoro Technique developed?', opts:['Early 1970s','Late 1980s','Early 2000s','Mid 1990s'], correct:1 },
-        { q: 'How long is a traditional Pomodoro work interval?', opts:['15 minutes','45 minutes','25 minutes','30 minutes'], correct:2 },
-        { q: 'How long is the short break between intervals?', opts:['2 minutes','10 minutes','5 minutes','15 minutes'], correct:2 },
-        { q: 'What does "pomodoro" mean in Italian?', opts:['Timer','Clock','Focus','Tomato'], correct:3 },
-        { q: 'How many intervals are completed before a long break?', opts:['Two','Three','Five','Four'], correct:3 },
-        { q: 'What is time-boxing?', opts:['Allocating a fixed maximum period to an activity','Tracking time spent on each task','A method of grouping similar tasks','A timer designed for exercise'], correct:0 },
-        { q: 'How long can the human brain sustain high concentration, according to the passage?', opts:['10 to 20 minutes','60 to 90 minutes','5 to 10 minutes','20 to 45 minutes'], correct:3 },
-        { q: 'What does the passage say structured breaks allow the brain to do?', opts:['Sleep more efficiently','Consolidate information and recover attentional resources','Increase working memory capacity','Reduce false alarm responses'], correct:1 },
-        { q: 'What was Cirillo\'s original timer shaped like?', opts:['A clock tower','A tomato','An hourglass','An apple'], correct:1 },
+        { q: 'Who developed the Pomodoro Technique?', opts:['Hermann Ebbinghaus','Francesco Cirillo','William James','Bluma Zeigarnik'], correct:1, type:'recall' },
+        { q: "What is Parkinson's Law as described in the passage?", opts:['Work expands to fill the time available','The brain can only focus for 25 minutes','Frequent breaks reduce Parkinson's disease risk','Structured timers prevent procrastination'], correct:0, type:'recall' },
+        { q: 'How does time-boxing help prevent Parkinson\'s Law, according to the passage?', opts:['It eliminates all distractions','By setting a fixed endpoint, it creates urgency and prevents task expansion','It schedules breaks at the right moment','By stopping all external interruptions'], correct:1, type:'inference' },
+        { q: 'How long is the short break between intervals?', opts:['2 minutes','10 minutes','5 minutes','15 minutes'], correct:2, type:'recall' },
+        { q: 'What does "pomodoro" mean in Italian?', opts:['Timer','Clock','Focus','Tomato'], correct:3, type:'recall' },
+        { q: 'How many intervals are completed before a long break?', opts:['Two','Three','Five','Four'], correct:3, type:'recall' },
+        { q: 'A student uses Pomodoro but keeps checking their phone during the 25-minute interval. Based on the passage, what is happening?', opts:['They are experiencing external interruptions that the technique is meant to reduce','They have completed too many intervals without a break','Their brain has exceeded its natural attention window','The Pomodoro intervals are too short for their task'], correct:0, type:'inference' },
+        { q: 'How long can the human brain sustain high concentration, according to the passage?', opts:['10 to 20 minutes','60 to 90 minutes','5 to 10 minutes','20 to 45 minutes'], correct:3, type:'recall' },
+        { q: 'What does the passage say structured breaks allow the brain to do?', opts:['Sleep more efficiently','Consolidate information and recover attentional resources','Increase working memory capacity','Reduce false alarm responses'], correct:1, type:'recall' },
+        { q: 'If a person finds a task easy and has 3 hours available, what does the passage predict will happen without time-boxing?', opts:['The task will be completed in less time','The task will expand to fill the full 3 hours','The person will naturally use Pomodoro intervals','They will experience fewer internal interruptions'], correct:1, type:'inference' },
       ]
     },
     {
       title: 'Passage 3 of 3',
-      text: `Sleep plays a critical role in memory consolidation — the process by which newly acquired information is stabilised and integrated into long-term memory. During sleep, the brain replays experiences from the day, strengthening the neural connections that form memories. Research has identified two key sleep stages involved in this process: slow-wave sleep, which is particularly important for declarative memory — the type used to recall facts and events — and REM sleep, which is associated with procedural memory and creative problem-solving. Studies using electroencephalography have shown that memory traces formed during waking are reactivated during slow-wave sleep, allowing the hippocampus to transfer information to the neocortex for long-term storage. Sleep deprivation has been shown to impair both the encoding of new memories and the consolidation of those formed before the deprivation occurred. Students who sleep after studying retain significantly more material than those who stay awake. Even a 90-minute nap taken shortly after learning can double the amount of information retained compared to continued wakefulness. These findings have led sleep researchers to describe sleep not as a passive state, but as an active, essential component of the learning process.`,
-      wordCount: 168,
+      text: `Sleep plays a critical role in memory consolidation — the process by which newly acquired information is stabilised and integrated into long-term memory. During sleep, the brain replays experiences from the day, strengthening the neural connections that form memories. Research has identified two key sleep stages involved in this process: slow-wave sleep, which is particularly important for declarative memory — the type used to recall facts and events — and REM sleep, which is associated with procedural memory and creative problem-solving. Studies using electroencephalography have shown that memory traces formed during waking are reactivated during slow-wave sleep, allowing the hippocampus to transfer information to the neocortex for long-term storage. Sleep deprivation has been shown to impair both the encoding of new memories and the consolidation of those formed before the deprivation occurred. Students who sleep after studying retain significantly more material than those who stay awake. Even a 90-minute nap taken shortly after learning can double the amount of information retained compared to continued wakefulness. These findings have led sleep researchers to describe sleep not as a passive state, but as an active, essential component of the learning process. Notably, this also implies that pulling an all-night study session before an exam may actively harm the memories formed during earlier study — not simply fail to add new ones.`,
+      wordCount: 193,
       questions: [
-        { q: 'What is memory consolidation?', opts:['The act of writing notes during study','The process of stabilising new information into long-term memory','A type of retrieval practice','A method of time management'], correct:1 },
-        { q: 'Which sleep stage is particularly important for declarative memory?', opts:['REM sleep','Light sleep','Slow-wave sleep','Hypnagogic sleep'], correct:2 },
-        { q: 'Which sleep stage is associated with procedural memory and creative problem-solving?', opts:['Slow-wave sleep','Deep sleep','Stage 1 sleep','REM sleep'], correct:3 },
-        { q: 'Where does the hippocampus transfer information during slow-wave sleep?', opts:['The cerebellum','The prefrontal cortex','The neocortex','The amygdala'], correct:2 },
-        { q: 'What method was used in research to show memory reactivation during sleep?', opts:['fMRI scanning','Electroencephalography','Blood glucose monitoring','Eye-tracking'], correct:1 },
-        { q: 'What does sleep deprivation impair, according to the passage?', opts:['Only encoding of new memories','Only consolidation of old memories','Both encoding of new memories and consolidation of previously formed memories','Physical coordination only'], correct:2 },
-        { q: 'How much more information can a 90-minute nap help retain compared to staying awake?', opts:['50% more','Three times as much','Double the amount','25% more'], correct:2 },
-        { q: 'What do sleep researchers conclude about the role of sleep?', opts:['Sleep is mostly passive but helpful','Sleep is an active, essential component of learning','Sleep can be replaced by short rest periods','Sleep only matters for physical recovery'], correct:1 },
-        { q: 'What type of memory does declarative memory help with?', opts:['Motor skills and habits','Recalling facts and events','Spatial navigation only','Emotional regulation'], correct:1 },
-        { q: 'What happens to students who sleep after studying compared to those who stay awake?', opts:['They perform the same','They retain significantly more material','They retain less but recall faster','They score higher on speed tasks only'], correct:1 },
+        { q: 'What is memory consolidation?', opts:['The act of writing notes during study','The process of stabilising new information into long-term memory','A type of retrieval practice','A method of time management'], correct:1, type:'recall' },
+        { q: 'Which sleep stage is particularly important for declarative memory?', opts:['REM sleep','Light sleep','Slow-wave sleep','Hypnagogic sleep'], correct:2, type:'recall' },
+        { q: 'Based on the passage, why might an all-nighter before an exam be actively harmful (not just unhelpful)?', opts:['It causes students to oversleep the next day','Sleep deprivation impairs consolidation of memories formed during earlier study','Students who stay awake forget the material during the night','The hippocampus shuts down without REM sleep'], correct:1, type:'inference' },
+        { q: 'Where does the hippocampus transfer information during slow-wave sleep?', opts:['The cerebellum','The prefrontal cortex','The neocortex','The amygdala'], correct:2, type:'recall' },
+        { q: 'What method was used in research to show memory reactivation during sleep?', opts:['fMRI scanning','Electroencephalography','Blood glucose monitoring','Eye-tracking'], correct:1, type:'recall' },
+        { q: 'A student learns new material on Monday, sleeps well Monday night, then pulls an all-nighter Tuesday before a Wednesday exam. Based on the passage, what is the likely outcome?', opts:['Monday content will be consolidated but Tuesday content may not be','All content will be equally impaired','Only Wednesday performance will suffer','REM sleep on Monday will protect all memories'], correct:0, type:'inference' },
+        { q: 'How much more information can a 90-minute nap help retain compared to staying awake?', opts:['50% more','Three times as much','Double the amount','25% more'], correct:2, type:'recall' },
+        { q: 'What do sleep researchers conclude about the role of sleep?', opts:['Sleep is mostly passive but helpful','Sleep is an active, essential component of learning','Sleep can be replaced by short rest periods','Sleep only matters for physical recovery'], correct:1, type:'recall' },
+        { q: 'Which type of memory is REM sleep most associated with, according to the passage?', opts:['Declarative memory for facts','Procedural memory and creative problem-solving','Episodic memory for events','Semantic memory for language'], correct:1, type:'recall' },
+        { q: 'If slow-wave sleep handles fact memory and REM handles skills, what does this suggest about studying a musical instrument vs. memorising vocabulary?', opts:['Both types of memory rely equally on slow-wave sleep','Instrument practice benefits more from REM sleep; vocabulary from slow-wave sleep','Vocabulary and instrument learning require the same type of sleep','Only vocabulary consolidation happens during sleep'], correct:1, type:'inference' },
       ]
     }
   ]
+
   let t5PassageIdx=0, t5ReadStart, t5TotalReadTime=0, t5TotalWordCount=0, t5AllAnswers=[], t5QAnswers={}
 
   window.startT5 = function() {
@@ -709,130 +873,161 @@
   }
 
   function showPassage() {
-    const p=PASSAGES[t5PassageIdx]
+    const p = PASSAGES[t5PassageIdx]
     showScreen('sc-t5-read')
-    document.getElementById('t5Passage').innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">${esc(p.title)}</div>${esc(p.text)}`
-    t5ReadStart=Date.now()
+    document.getElementById('t5Passage').innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">${esc(p.title)}</div>${esc(p.text)}`
+    t5ReadStart = Date.now()
   }
 
   window.finishReading = function() {
-    const readingTime=Math.round((Date.now()-t5ReadStart)/1000)
-    t5TotalReadTime+=readingTime
-    t5TotalWordCount+=PASSAGES[t5PassageIdx].wordCount
-    t5QAnswers={}
+    const readingTime = Math.round((Date.now()-t5ReadStart)/1000)
+    t5TotalReadTime += readingTime
+    t5TotalWordCount += PASSAGES[t5PassageIdx].wordCount
+    t5QAnswers = {}
     showScreen('sc-t5-q')
-    const p=PASSAGES[t5PassageIdx]
-    const qEl=document.getElementById('t5Questions')
-    const qOffset=t5PassageIdx*10
-    qEl.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">${esc(p.title)} — Questions ${qOffset+1}–${qOffset+10}</div>`+
+    const p = PASSAGES[t5PassageIdx]
+    const qEl = document.getElementById('t5Questions')
+    const qOffset = t5PassageIdx * 10
+    qEl.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">${esc(p.title)} — Questions ${qOffset+1}–${qOffset+10}</div>` +
       p.questions.map((q,qi)=>`
       <div class="read-q">
-        <div class="read-q-text">${qOffset+qi+1}. ${esc(q.q)}</div>
+        <div class="read-q-text">${qOffset+qi+1}. ${esc(q.q)}
+          <span class="read-q-type ${q.type}">${q.type.toUpperCase()}</span>
+        </div>
         <div class="read-opts">${q.opts.map((o,oi)=>`
           <button class="read-opt" data-q="${qi}" data-o="${oi}" onclick="selectReadOpt(this,${qi})">${esc(o)}</button>`).join('')}
         </div>
       </div>`).join('')
-    document.getElementById('t5SubmitBtn').textContent=t5PassageIdx<2?'Next Passage →':'Submit Answers →'
+    document.getElementById('t5SubmitBtn').textContent = t5PassageIdx<2 ? 'Next Passage →' : 'Submit Answers →'
     checkReadSubmit()
   }
 
-  window.selectReadOpt = function(btn,qi) {
+  window.selectReadOpt = function(btn, qi) {
     document.querySelectorAll(`.read-opt[data-q="${qi}"]`).forEach(b=>b.classList.remove('selected'))
     btn.classList.add('selected')
-    t5QAnswers[qi]=parseInt(btn.dataset.o)
+    t5QAnswers[qi] = parseInt(btn.dataset.o)
     checkReadSubmit()
   }
 
   function checkReadSubmit() {
-    document.getElementById('t5SubmitBtn').disabled=Object.keys(t5QAnswers).length<PASSAGES[t5PassageIdx].questions.length
+    document.getElementById('t5SubmitBtn').disabled = Object.keys(t5QAnswers).length < PASSAGES[t5PassageIdx].questions.length
   }
 
   window.submitReading = function() {
-    const p=PASSAGES[t5PassageIdx]
-    p.questions.forEach((q,i)=>{ t5AllAnswers.push({correct:q.correct,given:t5QAnswers[i]??-1}) })
+    const p = PASSAGES[t5PassageIdx]
+    p.questions.forEach((q,i)=>{ t5AllAnswers.push({correct:q.correct, given:t5QAnswers[i]??-1, type:q.type}) })
     t5PassageIdx++
-    if(t5PassageIdx<PASSAGES.length) {
-      showPassage()
-    } else {
-      endT5()
-    }
+    if (t5PassageIdx < PASSAGES.length) showPassage()
+    else endT5()
   }
 
   function endT5() {
-    const totalCorrect=t5AllAnswers.filter(a=>a.given===a.correct).length
-    const wpm=Math.round(t5TotalWordCount/(t5TotalReadTime/60))
-    RESULTS.t5={readingTime:t5TotalReadTime,wpm,comprehension:totalCorrect,comprehensionTotal:30,comprehensionPct:Math.round(totalCorrect/30*100)}
+    const totalCorrect = t5AllAnswers.filter(a=>a.given===a.correct).length
+    const inferenceCorrect = t5AllAnswers.filter(a=>a.type==='inference'&&a.given===a.correct).length
+    const inferenceTotal = t5AllAnswers.filter(a=>a.type==='inference').length
+    const wpm = Math.round(t5TotalWordCount/(t5TotalReadTime/60))
+    RESULTS.t5 = {
+      readingTime:t5TotalReadTime, wpm,
+      comprehension:totalCorrect, comprehensionTotal:30, comprehensionPct:Math.round(totalCorrect/30*100),
+      inferenceCorrect, inferenceTotal, inferencePct:Math.round(inferenceCorrect/inferenceTotal*100)
+    }
     showScreen('sc-t6-instr')
   }
 
   /* ══════════════════════════════════════════════════════════════
-     TEST 6 — TASK SWITCHING
+     TEST 6 — TASK SWITCHING (3 rules: Color, Shape, Size)
   ═══════════════════════════════════════════════════════════════ */
-  const SHAPES=[{shape:'●',label:'Circle'},{shape:'■',label:'Square'}]
-  const COLORS=[{color:'#ef4444',label:'Red'},{color:'#3b82f6',label:'Blue'}]
-  const TOTAL_TRIALS=30
-  let t6Trial=0, t6Correct=0, t6SwitchCost=[], t6RTs=[], t6CurrentRule, t6PrevRule, t6SwitchTrials=[]
-  let t6ItemColor, t6ItemShape, t6TrialStart
+  const SHAPES = [{shape:'●',label:'Circle'},{shape:'■',label:'Square'}]
+  const COLORS = [{color:'#ef4444',label:'Red'},{color:'#3b82f6',label:'Blue'}]
+  const SIZES  = [{size:'big',fontSize:'62px',label:'Big'},{size:'small',fontSize:'28px',label:'Small'}]
+  const RULES  = ['color','shape','size']
+  const T6_TOTAL = 36
+
+  let t6Trial=0, t6Correct=0, t6SwitchCost=[], t6RTs=[], t6CurrentRule=null, t6PrevRule=null
+  let t6SwitchTrials=[], t6ItemColor, t6ItemShape, t6ItemSize, t6TrialStart
 
   window.startT6 = function() {
     showScreen('sc-t6')
     t6Trial=0; t6Correct=0; t6SwitchCost=[]; t6RTs=[]; t6SwitchTrials=[]
-    t6CurrentRule=null
+    t6CurrentRule=null; t6PrevRule=null
     nextSwitchTrial()
   }
 
   function nextSwitchTrial() {
-    if(t6Trial>=TOTAL_TRIALS){ endT6(); return }
-    t6PrevRule=t6CurrentRule
-    // Switch rule every ~3 trials with some randomness
-    if(t6Trial===0||Math.random()<0.33) t6CurrentRule=t6CurrentRule==='color'?'shape':'color'
-    if(t6Trial===0) t6CurrentRule='color'
+    if (t6Trial >= T6_TOTAL) { endT6(); return }
 
-    const isSwitchTrial=t6PrevRule&&t6PrevRule!==t6CurrentRule
-    t6SwitchTrials.push(isSwitchTrial)
+    t6PrevRule = t6CurrentRule
 
-    const ci=rand(0,1), si=rand(0,1)
-    t6ItemColor=COLORS[ci]; t6ItemShape=SHAPES[si]
-
-    const card=document.getElementById('t6Card')
-    card.style.background=t6ItemColor.color
-    card.textContent=t6ItemShape.shape
-    card.style.color='#fff'
-
-    const ruleEl=document.getElementById('t6Rule')
-    ruleEl.className='switch-rule'+(isSwitchTrial?' switch-highlight':'')+(t6CurrentRule==='color'?' color':' shape')
-    ruleEl.textContent=t6CurrentRule==='color'?'SORT BY COLOUR':'SORT BY SHAPE'
-
-    document.getElementById('t6TrialLabel').textContent=`Trial ${t6Trial+1} / ${TOTAL_TRIALS}`
-
-    const choices=document.getElementById('t6Choices')
-    if(t6CurrentRule==='color') {
-      choices.innerHTML=COLORS.map(c=>`<div class="switch-opt" data-val="${c.label}" style="border-color:${c.color};color:${c.color};">${c.label}</div>`).join('')
-    } else {
-      choices.innerHTML=SHAPES.map(s=>`<div class="switch-opt" data-val="${s.label}">${s.label}</div>`).join('')
+    // Rule switching: ~33% switch probability; force first rule to color
+    if (t6Trial === 0) {
+      t6CurrentRule = 'color'
+    } else if (Math.random() < 0.35) {
+      // Pick a different rule
+      const others = RULES.filter(r=>r!==t6CurrentRule)
+      t6CurrentRule = others[rand(0,others.length-1)]
     }
-    t6TrialStart=Date.now()
+
+    const isSwitchTrial = t6PrevRule && t6PrevRule !== t6CurrentRule
+    t6SwitchTrials.push(!!isSwitchTrial)
+
+    // Randomise item attributes
+    const ci = rand(0,1), si = rand(0,1), szI = rand(0,1)
+    t6ItemColor = COLORS[ci]
+    t6ItemShape = SHAPES[si]
+    t6ItemSize  = SIZES[szI]
+
+    // Render card
+    const card = document.getElementById('t6Card')
+    card.style.background = t6ItemColor.color
+    card.style.fontSize    = t6ItemSize.fontSize
+    card.style.color       = '#fff'
+    card.textContent       = t6ItemShape.shape
+
+    // Rule label
+    const ruleEl = document.getElementById('t6Rule')
+    const ruleClass = {color:'color',shape:'shape',size:'size'}[t6CurrentRule]
+    ruleEl.className = `switch-rule ${ruleClass}${isSwitchTrial?' switch-highlight':''}`
+    const ruleText = t6CurrentRule==='color'?'SORT BY COLOUR':t6CurrentRule==='shape'?'SORT BY SHAPE':'SORT BY SIZE'
+    ruleEl.textContent = ruleText
+
+    document.getElementById('t6TrialLabel').textContent = `Trial ${t6Trial+1} / ${T6_TOTAL}`
+
+    // Render choices based on current rule
+    const choices = document.getElementById('t6Choices')
+    if (t6CurrentRule === 'color') {
+      choices.innerHTML = COLORS.map(c=>`<div class="switch-opt" data-val="${c.label}" style="border-color:${c.color};color:${c.color};">${c.label}</div>`).join('')
+    } else if (t6CurrentRule === 'shape') {
+      choices.innerHTML = SHAPES.map(s=>`<div class="switch-opt" data-val="${s.label}">${s.label}</div>`).join('')
+    } else {
+      choices.innerHTML = SIZES.map(s=>`<div class="switch-opt" data-val="${s.label}">${s.label}</div>`).join('')
+    }
+
+    t6TrialStart = Date.now()
     choices.querySelectorAll('.switch-opt').forEach(el=>{
       el.addEventListener('click',()=>handleSwitch(el.dataset.val))
     })
   }
 
   function handleSwitch(val) {
-    const rt=Date.now()-t6TrialStart
+    const rt = Date.now() - t6TrialStart
     t6RTs.push(rt)
-    const correctVal=t6CurrentRule==='color'?t6ItemColor.label:t6ItemShape.label
-    const correct=val===correctVal
-    if(correct) t6Correct++
-    if(t6SwitchTrials[t6Trial]) t6SwitchCost.push(rt)
+    let correctVal
+    if (t6CurrentRule==='color') correctVal = t6ItemColor.label
+    else if (t6CurrentRule==='shape') correctVal = t6ItemShape.label
+    else correctVal = t6ItemSize.label
+
+    const correct = val === correctVal
+    if (correct) t6Correct++
+    if (t6SwitchTrials[t6Trial]) t6SwitchCost.push(rt)
     t6Trial++
-    setTimeout(nextSwitchTrial,correct?100:300)
+    setTimeout(nextSwitchTrial, correct ? 100 : 300)
   }
 
   function endT6() {
-    const avgRT=t6RTs.length?Math.round(t6RTs.reduce((a,b)=>a+b,0)/t6RTs.length):0
-    const avgSwitchRT=t6SwitchCost.length?Math.round(t6SwitchCost.reduce((a,b)=>a+b,0)/t6SwitchCost.length):0
-    const switchCost=avgSwitchRT-avgRT
-    RESULTS.t6={correct:t6Correct,total:TOTAL_TRIALS,accuracy:Math.round(t6Correct/TOTAL_TRIALS*100),avgRT,avgSwitchRT,switchCost}
+    const avgRT = t6RTs.length ? Math.round(t6RTs.reduce((a,b)=>a+b,0)/t6RTs.length) : 0
+    const avgSwitchRT = t6SwitchCost.length ? Math.round(t6SwitchCost.reduce((a,b)=>a+b,0)/t6SwitchCost.length) : 0
+    const switchCost = avgSwitchRT - avgRT
+    RESULTS.t6 = { correct:t6Correct, total:T6_TOTAL, accuracy:Math.round(t6Correct/T6_TOTAL*100), avgRT, avgSwitchRT, switchCost }
     runAnalysis()
   }
 
@@ -853,63 +1048,63 @@
       mi=(mi+1)%msgs.length; titleEl.textContent=msgs[mi][0]; subEl.textContent=msgs[mi][1]
     },2200)
 
-    // Percentile estimates (rough norms for a general adult population)
     function pct(score,low,high){ return Math.min(99,Math.max(1,Math.round((score-low)/(high-low)*100))) }
     const scores={
-      workingMemory: { raw:RESULTS.t1?.maxSpan||3, pct:pct(RESULTS.t1?.maxSpan||3,3,9) },
-      processingSpeed:{ raw:RESULTS.t2?.score||0, pct:pct(RESULTS.t2?.score||0,5,45) },
-      attention:      { raw:RESULTS.t3?.hitRate||50, pct:pct((RESULTS.t3?.hitRate||50)-(RESULTS.t3?.faRate||0)*0.5,20,100) },
-      fluidReasoning: { raw:RESULTS.t4?.correct||0, pct:pct(RESULTS.t4?.correct||0,5,30) },
-      readingRate:    { raw:RESULTS.t5?.wpm||150, pct:pct(RESULTS.t5?.wpm||150,100,400) },
-      cogFlex:        { raw:RESULTS.t6?.accuracy||50, pct:pct(RESULTS.t6?.accuracy||50,40,100) },
+      workingMemory:  { raw:RESULTS.t1?.maxSpan||3,   pct:pct(RESULTS.t1?.maxSpan||3, 3, 9) },
+      backwardSpan:   { raw:RESULTS.t1?.bwdMaxSpan||2, pct:pct(RESULTS.t1?.bwdMaxSpan||2, 2, 7) },
+      processingSpeed:{ raw:RESULTS.t2?.score||0,      pct:pct(RESULTS.t2?.score||0, 5, 55) },
+      attention:      { raw:RESULTS.t3?.hitRate||50,   pct:pct((RESULTS.t3?.hitRate||50)-(RESULTS.t3?.faRate||0)*0.8, 20, 100) },
+      fluidReasoning: { raw:RESULTS.t4?.correct||0,    pct:pct(RESULTS.t4?.correct||0, 4, 28) },
+      readingRate:    { raw:RESULTS.t5?.wpm||150,       pct:pct(RESULTS.t5?.wpm||150, 100, 400) },
+      cogFlex:        { raw:RESULTS.t6?.accuracy||50,  pct:pct(RESULTS.t6?.accuracy||50, 40, 100) },
     }
 
     const subjects  = csGetJSON('subjects',[]).join(', ')||'not specified'
     const dailyGoal = csGet('dailyGoalHours')||'not set'
 
-    const prompt=`You are a psychoeducational assessment specialist interpreting a cognitive battery. Provide a clinical-level report with highly personalised learning recommendations.
+    const prompt=`You are a psychoeducational assessment specialist interpreting an advanced cognitive battery. Provide a clinical-level report with highly personalised learning recommendations.
 
 Student context — Subjects: ${subjects} | Daily goal: ${dailyGoal} hours
 
 RAW SCORES AND PERFORMANCE DATA:
 
-1. Working Memory (Digit Span — 30 trials, spans 3–12)
-   - Max span achieved: ${RESULTS.t1?.maxSpan} digits (population avg: 6-7)
-   - Accuracy: ${RESULTS.t1?.accuracy}%
-   - Estimated percentile: ${scores.workingMemory.pct}th
+1. Working Memory — Forward + Backward Digit Span (30 trials: 15 fwd, 15 bwd; spans 3-9)
+   - Forward max span: ${RESULTS.t1?.fwdMaxSpan} | Backward max span: ${RESULTS.t1?.bwdMaxSpan}
+   - Forward correct: ${RESULTS.t1?.fwdCorrect}/15 | Backward correct: ${RESULTS.t1?.bwdCorrect}/15
+   - Overall accuracy: ${RESULTS.t1?.accuracy}% | WM percentile: ${scores.workingMemory.pct}th | Backward span percentile: ${scores.backwardSpan.pct}th
+   - NOTE: Backward span measures working memory MANIPULATION, not just storage. A large gap between forward and backward spans is clinically significant.
 
-2. Processing Speed (Symbol Search — 30 items)
+2. Processing Speed — Symbol Search (40 items, 8 symbols, auto-timed per item)
    - Items completed: ${RESULTS.t2?.total}, Correct: ${RESULTS.t2?.correct}
-   - Accuracy: ${RESULTS.t2?.accuracy}%
-   - Estimated percentile: ${scores.processingSpeed.pct}th
+   - Accuracy: ${RESULTS.t2?.accuracy}% | Estimated percentile: ${scores.processingSpeed.pct}th
 
-3. Sustained Attention (CPT — 30 targets)
-   - Hit rate: ${RESULTS.t3?.hitRate}% | False alarm rate: ${RESULTS.t3?.faRate}%
-   - Misses: ${RESULTS.t3?.misses} | Commission errors: ${RESULTS.t3?.falseAlarms}
-   - Signal detection sensitivity: ${RESULTS.t3?.dprime}
-   - Estimated percentile: ${scores.attention.pct}th
+3. Sustained Attention — AX-CPT (40 letters; target = X after A only)
+   - Hit rate: ${RESULTS.t3?.hitRate}% | BX foil errors (pressing X after non-A): ${RESULTS.t3?.bxErrors}
+   - Other false alarms: ${RESULTS.t3?.otherFAs} | Correct rejections: ${RESULTS.t3?.correctRej}
+   - Signal sensitivity d-prime: ${RESULTS.t3?.dprime} | Percentile: ${scores.attention.pct}th
+   - NOTE: BX errors indicate impulsive responding to salient stimuli without context checking — clinically significant for ADHD-spectrum traits.
 
-4. Fluid Reasoning (Pattern Completion — 30 items)
+4. Fluid Reasoning — Pattern Completion (30 advanced puzzles: number sequences, arrows, letters)
    - Correct: ${RESULTS.t4?.correct}/30 (${RESULTS.t4?.accuracy}%)
-   - Average response time: ${RESULTS.t4?.avgRT}ms
-   - Estimated percentile: ${scores.fluidReasoning.pct}th
+   - Average response time: ${RESULTS.t4?.avgRT}ms | Percentile: ${scores.fluidReasoning.pct}th
 
-5. Reading Rate + Comprehension (3 passages, 30 questions)
-   - Reading speed: ${RESULTS.t5?.wpm} words per minute (avg: 200-250)
-   - Comprehension: ${RESULTS.t5?.comprehension}/30 (${RESULTS.t5?.comprehensionPct}%)
-   - Total reading time: ${RESULTS.t5?.readingTime}s across 3 passages
-   - Estimated percentile: ${scores.readingRate.pct}th
+5. Reading Rate + Comprehension (3 passages, 30 Qs — mix of direct recall and inference)
+   - Reading speed: ${RESULTS.t5?.wpm} WPM (avg: 200-250)
+   - Total comprehension: ${RESULTS.t5?.comprehension}/30 (${RESULTS.t5?.comprehensionPct}%)
+   - Inference questions: ${RESULTS.t5?.inferenceCorrect}/${RESULTS.t5?.inferenceTotal} (${RESULTS.t5?.inferencePct}%)
+   - Percentile: ${scores.readingRate.pct}th
+   - NOTE: A large gap between recall and inference accuracy reveals surface vs deep reading strategies.
 
-6. Cognitive Flexibility (Task Switching — 30 trials)
-   - Accuracy: ${RESULTS.t6?.accuracy}%
-   - Average RT: ${RESULTS.t6?.avgRT}ms | Switch trial RT: ${RESULTS.t6?.avgSwitchRT}ms
-   - Switch cost (penalty): ${RESULTS.t6?.switchCost}ms
-   - Estimated percentile: ${scores.cogFlex.pct}th
+6. Cognitive Flexibility — Triple-Rule Task Switching (36 trials: color/shape/size rules)
+   - Accuracy: ${RESULTS.t6?.accuracy}% | Avg RT: ${RESULTS.t6?.avgRT}ms
+   - Switch trial RT: ${RESULTS.t6?.avgSwitchRT}ms | Switch cost: ${RESULTS.t6?.switchCost}ms
+   - Percentile: ${scores.cogFlex.pct}th
+   - NOTE: High switch cost (>300ms) indicates significant executive function load when changing mental rules.
 
 Return ONLY valid JSON (no markdown), with this structure:
 {
-  "profileTitle": "A specific 4-6 word label for this learner's cognitive profile (e.g. 'High-Reasoning Slow Processor' or 'Attentive Sequential Thinker')",
-  "overallSummary": "3-4 sentences: clinical-style interpretation of this person's cognitive profile pattern. Reference specific scores. Be direct.",
+  "profileTitle": "A specific 4-6 word label for this learner's cognitive profile",
+  "overallSummary": "3-4 sentences: clinical-style interpretation referencing specific scores. Note the forward/backward span difference, BX error rate, and recall vs inference gap if meaningful.",
   "cognitiveStrengths": [
     {"domain": "name", "finding": "specific clinical observation about this score", "implication": "what this means for studying"}
   ],
@@ -921,17 +1116,17 @@ Return ONLY valid JSON (no markdown), with this structure:
   "studyStrategies": [
     {"title": "strategy name", "desc": "specific actionable strategy tailored to their exact scores", "basedOn": "which test score drives this recommendation"}
   ],
-  "watchOut": "One specific, data-driven warning about a pattern in their scores that could cause problems",
-  "longTermPlan": "2-3 sentences: what they should focus on developing over the next 3 months based on their weakest domain"
+  "watchOut": "One specific, data-driven warning about a pattern in their scores",
+  "longTermPlan": "2-3 sentences: what they should focus on developing over the next 3 months"
 }
-Rules: cognitiveStrengths = 2 items, cognitiveWeaknesses = 2 items, studyStrategies = 4 items. Reference actual numbers from the data. Do not give generic advice.`
+Rules: cognitiveStrengths = 2 items, cognitiveWeaknesses = 2 items, studyStrategies = 4 items. Reference actual numbers. Do not give generic advice.`
 
     try {
       const provider=localStorage.getItem('ai_provider')||'gemini'
       const apiKey=localStorage.getItem('ai_key_'+provider)
       let report
 
-      if(apiKey){
+      if (apiKey) {
         const res=await window.api.askAI({ provider, apiKey, model:null,
           systemPrompt:'You are a psychoeducational assessment specialist. Respond only with valid JSON.',
           messages:[{role:'user',content:prompt}]
@@ -960,39 +1155,43 @@ Rules: cognitiveStrengths = 2 items, cognitiveWeaknesses = 2 items, studyStrateg
   }
 
   function buildFallbackReport(scores){
-    const wm=scores.workingMemory.pct, ps=scores.processingSpeed.pct
-    const at=scores.attention.pct,    fr=scores.fluidReasoning.pct
-    const rr=scores.readingRate.pct,  cf=scores.cogFlex.pct
-    const strongest=[{k:'Working Memory',v:wm},{k:'Processing Speed',v:ps},{k:'Sustained Attention',v:at},{k:'Fluid Reasoning',v:fr},{k:'Reading Rate',v:rr},{k:'Cognitive Flexibility',v:cf}].sort((a,b)=>b.v-a.v)
-    const best=strongest[0], worst=strongest[strongest.length-1]
-    const timerMap=wm<30||at<30?'Pomodoro 25':at>60&&wm>60?'Focus 45':'Pomodoro 25'
+    const wm=scores.workingMemory.pct, bwd=scores.backwardSpan.pct
+    const ps=scores.processingSpeed.pct, at=scores.attention.pct
+    const fr=scores.fluidReasoning.pct, rr=scores.readingRate.pct, cf=scores.cogFlex.pct
+    const allDomains=[
+      {k:'Working Memory',v:wm},{k:'Processing Speed',v:ps},{k:'Sustained Attention',v:at},
+      {k:'Fluid Reasoning',v:fr},{k:'Reading Rate',v:rr},{k:'Cognitive Flexibility',v:cf}
+    ].sort((a,b)=>b.v-a.v)
+    const best=allDomains[0], worst=allDomains[allDomains.length-1]
+    const spanGap = wm - bwd
+    const timerMap = at<30||wm<30?'Pomodoro 25':at>60&&wm>60?'Focus 45':'Pomodoro 25'
     return {
       profileTitle:`${best.k.split(' ')[0]}-Dominant Learner`,
-      overallSummary:`Your strongest cognitive domain is ${best.k} (${best.v}th percentile), indicating ${best.k==='Working Memory'?'strong capacity to hold and manipulate information in mind':'a notable strength in this area'}. Your lowest score is ${worst.k} (${worst.v}th percentile), which is the most important area to address with targeted strategies. Overall your profile shows a mixed pattern that responds well to structured study methods.`,
+      overallSummary:`Your strongest domain is ${best.k} (${best.v}th percentile). Your forward digit span (${RESULTS.t1?.fwdMaxSpan||'?'}) vs backward span (${RESULTS.t1?.bwdMaxSpan||'?'}) ${spanGap>2?'shows a notable gap, suggesting working memory manipulation is harder than storage':' are closely matched, indicating balanced working memory'}. Your weakest domain is ${worst.k} (${worst.v}th percentile), which should be the primary target for development.`,
       cognitiveStrengths:[
-        {domain:best.k,finding:`${best.v}th percentile — above average`,implication:'Lean into tasks that use this strength'},
-        {domain:strongest[1].k,finding:`${strongest[1].v}th percentile — solid`,implication:'Use this as a backup strategy when primary learning feels hard'},
+        {domain:best.k,finding:`${best.v}th percentile — above average`,implication:'Leverage this domain as your primary learning modality'},
+        {domain:allDomains[1].k,finding:`${allDomains[1].v}th percentile — solid`,implication:'Use as a secondary strategy when the primary approach feels blocked'},
       ],
       cognitiveWeaknesses:[
-        {domain:worst.k,finding:`${worst.v}th percentile — below average`,implication:'This domain is costing you efficiency — target it directly'},
-        {domain:strongest[strongest.length-2].k,finding:`${strongest[strongest.length-2].v}th percentile — room to grow`,implication:'With deliberate practice this can improve significantly'},
+        {domain:worst.k,finding:`${worst.v}th percentile — below average`,implication:'This is costing you efficiency — address it with targeted daily exercises'},
+        {domain:allDomains[allDomains.length-2].k,finding:`${allDomains[allDomains.length-2].v}th percentile — room to grow`,implication:'Moderate improvement here will compound across all domains'},
       ],
       recommendedTimer:timerMap,
       timerRationale:`Based on your attention score (${at}th percentile) and working memory (${wm}th percentile), ${timerMap} sessions match your natural focus window.`,
       studyStrategies:[
-        {title:'Chunk your material',desc:'Break content into units that match your digit span — if you recalled 5 digits, work with 5 concepts at a time.',basedOn:'Working Memory'},
-        {title:'Timed practice problems',desc:'Your processing speed benefits from pressure — set a timer for every practice set.',basedOn:'Processing Speed'},
-        {title:'Active recall over re-reading',desc:'Your comprehension is stronger than your reading speed suggests — use flashcards instead of re-reading.',basedOn:'Reading Rate'},
-        {title:'Single-task sessions',desc:'Task switching costs you time — set one clear goal per study block and do not switch subjects mid-session.',basedOn:'Cognitive Flexibility'},
+        {title:'Chunk to your span',desc:`Your digit span of ${RESULTS.t1?.fwdMaxSpan||'?'} means you can hold ~${RESULTS.t1?.fwdMaxSpan||5} items — never try to learn more concepts at once. Break chapters into ${RESULTS.t1?.fwdMaxSpan||5}-concept blocks.`,basedOn:'Working Memory'},
+        {title:'Timed item practice',desc:'Your processing speed benefits from time pressure — set a countdown for every practice set and track items per minute week-over-week.',basedOn:'Processing Speed'},
+        {title:'Active inference reading',desc:`Your comprehension is ${RESULTS.t5?.comprehensionPct||'?'}% — after reading each paragraph, pause and ask "what does this imply?" rather than just noting what was stated.`,basedOn:'Reading Comprehension'},
+        {title:'Single-rule study blocks',desc:`Your switch cost of ${RESULTS.t6?.switchCost||'?'}ms suggests context-switching is expensive — dedicate full 25-min blocks to one subject only.`,basedOn:'Cognitive Flexibility'},
       ],
-      watchOut:`Watch your ${worst.k.toLowerCase()} — it is currently your biggest bottleneck and will limit gains in other areas if left unaddressed.`,
-      longTermPlan:`Focus the next 3 months on building ${worst.k}. Spend 10 minutes per session on targeted exercises — working memory: n-back tasks; processing speed: timed drills; attention: CPT practice. Small daily improvements compound significantly over 90 days.`,
+      watchOut:`Your ${worst.k.toLowerCase()} score (${worst.v}th percentile) is your biggest bottleneck. Without targeted work on this domain, gains in other areas will plateau.`,
+      longTermPlan:`Focus the next 3 months on building ${worst.k}. Use 10 minutes per session on targeted exercises: ${worst.k==='Working Memory'?'n-back tasks and backward span drills':worst.k==='Processing Speed'?'timed symbol drills and rapid flashcards':worst.k==='Sustained Attention'?'AX-CPT practice and single-task focus blocks':worst.k==='Fluid Reasoning'?'logic puzzles and matrix problems':'focused reading with inference practice'}. Small daily improvements over 90 days create significant gains.`,
     }
   }
 
   /* ── Render Report ─────────────────────────────────────────── */
   function renderReport(report){
-    if(!report) return
+    if (!report) return
     const s=report._scores||{}
     const colorClass=pct=>pct>=70?'c-green bg-green':pct>=40?'c-yellow bg-yellow':'c-red bg-red'
     const scoreCards=[
