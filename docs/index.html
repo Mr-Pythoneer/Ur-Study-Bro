@@ -165,12 +165,16 @@
     }
 
     /* ── Grid of cards ───────────────────────── */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-    .grid-card { background: var(--bg); padding: 24px 20px; }
-    .grid-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.1px; }
+    .grid { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-card { background: var(--bg); padding: 26px 22px; }
+    .grid-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 7px; letter-spacing: -.1px; }
     .grid-card p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
     .grid-icon { width: 32px; height: 32px; border-radius: 7px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
     .grid-icon svg { width: 16px; height: 16px; color: var(--green); }
+    @media (max-width: 760px) { .grid-4, .grid-3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .grid-4, .grid-3 { grid-template-columns: 1fr; } }
 
     /* ── Assessment intro box ─────────────────── */
     .assess-box {
@@ -343,7 +347,7 @@
   <h2>Everything you need to study well.</h2>
   <p class="section-sub">No subscriptions. No account. No clutter. Just the tools that actually matter.</p>
 
-  <div class="grid">
+  <div class="grid grid-4">
     <div class="grid-card">
       <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></div>
       <h3>Focus Timers</h3>
@@ -395,7 +399,7 @@
   <h2>AI tools, built into your workflow.</h2>
   <p class="section-sub">Bring your own API key — Gemini, Claude, GPT-4, or Groq. Set it once. Every feature uses it.</p>
 
-  <div class="grid" style="margin-bottom:16px;">
+  <div class="grid grid-3" style="margin-bottom:16px;">
     <div class="grid-card">
       <h3>AI Tutor</h3>
       <p>Full chat with memory. Switch between Gemini 2.5 Pro, Claude 4, GPT-4o, and Groq. Ask questions without leaving your timer.</p>
@@ -446,7 +450,7 @@
     </div>
   </div>
 
-  <div class="grid" style="margin-bottom:40px;">
+  <div class="grid grid-3" style="margin-bottom:40px;">
     <div class="grid-card">
       <div class="grid-icon" style="background:#ede9fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.5 3 6l.5 4h7l.5-4c1.8-1.5 3-3.5 3-6 0-4-3-7-7-7z"/></svg></div>
       <h3>Memory Span</h3>
@@ -532,7 +536,7 @@
     </table>
   </div>
 
-  <div class="grid">
+  <div class="grid grid-3">
     <div class="grid-card">
       <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
       <h3>14 Badges</h3>
