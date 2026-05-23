@@ -232,14 +232,65 @@
     .cta h2 { font-size: clamp(26px, 4vw, 42px); font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; }
     .cta p { font-size: 15px; color: var(--text-2); margin-bottom: 32px; }
 
+    /* ── FAQ ──────────────────────────────────── */
+    .faq-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      width: 100%; background: none; border: none; text-align: left; cursor: pointer;
+      padding: 18px 22px; font-size: 14px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      font-family: var(--font);
+      transition: background .1s;
+    }
+    .faq-q:hover { background: #fafafa; }
+    .faq-chevron { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-3); transition: transform .2s; }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+    .faq-a {
+      display: none; padding: 0 22px 18px;
+      font-size: 13.5px; color: var(--text-2); line-height: 1.7;
+    }
+    .faq-item.open .faq-a { display: block; }
+    .faq-a a { color: var(--green); text-decoration: none; }
+    .faq-a a:hover { text-decoration: underline; }
+
+    /* ── Contact ──────────────────────────────── */
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 48px; }
+    @media (max-width:600px) { .contact-grid { grid-template-columns: 1fr; } }
+    .contact-card {
+      border: 1px solid var(--border); border-radius: var(--r); padding: 26px 24px;
+      display: flex; align-items: flex-start; gap: 16px;
+      text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s;
+    }
+    .contact-card:hover { border-color: var(--green); box-shadow: 0 2px 16px rgba(15,123,108,.08); }
+    .contact-icon { width: 40px; height: 40px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .contact-icon svg { width: 20px; height: 20px; }
+    .contact-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .contact-card p { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+    .contact-card .contact-handle { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 6px; }
+
     /* ── Footer ───────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
-      padding: 24px 40px; display: flex; align-items: center; justify-content: space-between;
-      font-size: 12.5px; color: var(--text-3); flex-wrap: wrap; gap: 8px;
+      padding: 40px 40px 28px;
     }
-    footer a { color: var(--text-2); text-decoration: none; }
-    footer a:hover { color: var(--text); }
+    .footer-top {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr;
+      gap: 40px; margin-bottom: 36px;
+    }
+    @media (max-width:760px) { .footer-top { grid-template-columns: 1fr 1fr; gap: 28px; } }
+    @media (max-width:480px) { .footer-top { grid-template-columns: 1fr; } }
+    .footer-brand p { font-size: 13px; color: var(--text-3); line-height: 1.6; margin-top: 10px; max-width: 220px; }
+    .footer-col h4 { font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: .2px; margin-bottom: 12px; }
+    .footer-col a { display: block; font-size: 13px; color: var(--text-3); text-decoration: none; margin-bottom: 8px; transition: color .12s; }
+    .footer-col a:hover { color: var(--text); }
+    .footer-bottom {
+      border-top: 1px solid var(--border); padding-top: 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--text-3); flex-wrap: wrap; gap: 8px;
+    }
+    .footer-bottom a { color: var(--text-3); text-decoration: none; }
+    .footer-bottom a:hover { color: var(--text); }
 
     @media (max-width: 680px) {
       nav { padding: 0 20px; }
@@ -268,6 +319,8 @@
     <a class="nav-link" href="#ai">AI</a>
     <a class="nav-link" href="#assessment">Assessment</a>
     <a class="nav-link" href="#rewards">Rewards</a>
+    <a class="nav-link" href="#faq">FAQ</a>
+    <a class="nav-link" href="#contact">Contact</a>
     <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a>
     <a class="nav-btn" href="#download">Download</a>
   </div>
@@ -555,6 +608,147 @@
   </div>
 </section>
 
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="section-label">FAQ</div>
+  <h2>Common questions.</h2>
+  <p class="section-sub">Everything you need to know before you download.</p>
+
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Is Ur Study Bro really free?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">Yes — completely free, forever. No subscription, no free trial, no premium tier. The app is MIT-licensed and open source. You can download it, modify it, and use it however you like.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Do I need an account or internet connection?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">No account required — ever. The app works entirely offline. Your data stays on your device. An internet connection is only needed when you actively use the AI features (which require an API key you control).</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Which AI providers are supported?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">Google Gemini, Anthropic Claude, OpenAI GPT-4o, and Groq. All four have free tiers. You bring your own API key — Ur Study Bro never sees or stores it beyond your device. Set it once in Settings and every AI feature uses it automatically.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        What platforms does it run on?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">macOS (Apple Silicon + Intel), Windows (x64), and Linux (AppImage). A mobile version for iOS and Android is planned. The app is built with Electron so it behaves identically across platforms.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Is the cognitive assessment scientifically valid?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">The six tests are adapted from well-established clinical instruments used in psychoeducational assessments: Digit Span (WISC/WAIS), AX-CPT, Symbol Search, Matrix Reasoning, Reading Comprehension, and Task Switching. The app is an <strong>educational tool</strong>, not a medical device — results are not a formal diagnosis. For a clinical assessment, consult a licensed psychologist.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        How do I get an API key?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        All four providers have free tiers with no credit card required to start:
+        <ul style="margin-top:8px;padding-left:18px;display:flex;flex-direction:column;gap:4px;">
+          <li><a href="https://aistudio.google.com/apikey" target="_blank">Google Gemini → aistudio.google.com/apikey</a></li>
+          <li><a href="https://console.anthropic.com/" target="_blank">Anthropic Claude → console.anthropic.com</a></li>
+          <li><a href="https://platform.openai.com/api-keys" target="_blank">OpenAI GPT-4o → platform.openai.com/api-keys</a></li>
+          <li><a href="https://console.groq.com/keys" target="_blank">Groq → console.groq.com/keys</a></li>
+        </ul>
+        Once you have a key, paste it into Settings → AI Settings inside the app.
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Can I contribute or report a bug?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">Yes! The project is open source under the MIT License. You can <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank">open an issue</a> for bug reports or feature requests, or <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank">submit a pull request</a>. All contributions are welcome.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        How does Focus Guard work exactly?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">When you start a timer with Focus Guard on, you choose which apps are allowed (e.g. your notes app, a browser). Every 2 seconds, the system checks which app is in the foreground. If it's not on your allowed list, the app hides it at the system level and brings Ur Study Bro back to the front. On macOS, this uses AppleScript to set the app's visibility. You can only disable Focus Guard by resetting the timer — and sessions ended this way don't earn points.</div>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
+<!-- Contact -->
+<section class="section" id="contact">
+  <div class="section-label">Contact</div>
+  <h2>Get in touch.</h2>
+  <p class="section-sub">Found a bug? Have an idea? Want to contribute? Here's how to reach me.</p>
+
+  <div class="contact-grid">
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new" target="_blank">
+      <div class="contact-icon" style="background:#fff0f0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      </div>
+      <div>
+        <h3>Report a Bug</h3>
+        <p>Found something broken? Open a GitHub Issue and I'll look into it as soon as I can.</p>
+        <div class="contact-handle">GitHub Issues →</div>
+      </div>
+    </a>
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new?labels=enhancement" target="_blank">
+      <div class="contact-icon" style="background:#f0f7ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+      </div>
+      <div>
+        <h3>Request a Feature</h3>
+        <p>Have an idea for something that would make the app better? I'd love to hear it.</p>
+        <div class="contact-handle">GitHub Issues →</div>
+      </div>
+    </a>
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer" target="_blank">
+      <div class="contact-icon" style="background:#f4f4f4;">
+        <svg viewBox="0 0 24 24" fill="#111" width="20" height="20"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      </div>
+      <div>
+        <h3>GitHub Profile</h3>
+        <p>See other projects, follow for updates, or just say hi on GitHub.</p>
+        <div class="contact-handle">@Mr-Pythoneer →</div>
+      </div>
+    </a>
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank">
+      <div class="contact-icon" style="background:#f0fdf4;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"><path d="M8 6l4-4 4 4M12 2v13"/><path d="M20 16l-4 4-4-4"/></svg>
+      </div>
+      <div>
+        <h3>Contribute</h3>
+        <p>The codebase is open — fork the repo, make your change, and send a pull request.</p>
+        <div class="contact-handle">Open a Pull Request →</div>
+      </div>
+    </a>
+  </div>
+
+  <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:var(--r);padding:28px 32px;display:flex;align-items:flex-start;gap:18px;">
+    <div style="font-size:28px;line-height:1;">🐌</div>
+    <div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Built by one person, for students.</div>
+      <div style="font-size:13px;color:var(--text-2);line-height:1.7;max-width:540px;">Ur Study Bro is a solo side project. Response times may vary, but every bug report and feature idea is read. If you find the app useful, the best thing you can do is star the repo and tell a friend.</div>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--green);text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.782 1.4 8.163L12 18.896l-7.334 3.859 1.4-8.163L.132 9.21l8.2-1.192z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
 <!-- CTA -->
 <div class="cta" id="download">
   <h2>Free. Open source. No sign-up.</h2>
@@ -564,11 +758,44 @@
 </div>
 
 <footer>
-  <span>© 2026 Mr_Pythoneer · MIT License</span>
-  <span>
-    <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a> ·
-    <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases" target="_blank">Releases</a>
-  </span>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a class="nav-logo" href="#" style="text-decoration:none;">
+        <div class="nav-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg>
+        </div>
+        Ur Study Bro
+      </a>
+      <p>A free, open-source study app that starts by understanding how you learn — then builds everything around it.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="#features">Features</a>
+      <a href="#ai">AI Tools</a>
+      <a href="#assessment">Assessment</a>
+      <a href="#rewards">Rewards</a>
+      <a href="#download">Download</a>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub Repo</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases" target="_blank">Releases</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank">Bug Reports</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank">Contribute</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <a href="https://github.com/Mr-Pythoneer" target="_blank">@Mr-Pythoneer</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new" target="_blank">Report a Bug</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new?labels=enhancement" target="_blank">Request a Feature</a>
+      <a href="#contact">Get in Touch</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Mr_Pythoneer · Released under the <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/blob/main/LICENSE" target="_blank">MIT License</a></span>
+    <span>Built with Electron · No tracking · No telemetry</span>
+  </div>
 </footer>
 
 <script>
@@ -642,6 +869,15 @@
 
   const osName = isIOS ? 'iOS / iPadOS' : isMac ? 'macOS' : isWindows ? 'Windows' : isLinux ? 'Linux' : 'your platform'
   document.getElementById('heroNote').textContent = `Detected ${osName} · No account required · Free forever`
+
+  // FAQ accordion
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item')
+    const isOpen = item.classList.contains('open')
+    document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'))
+    if (!isOpen) item.classList.add('open')
+  }
+  window.toggleFaq = toggleFaq
 </script>
 </body>
 </html>
