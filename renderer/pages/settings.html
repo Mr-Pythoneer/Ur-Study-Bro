@@ -65,10 +65,7 @@
   <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;line-height:1.6;">
     Run AI entirely on your device — no API key, no internet, full privacy. Powered by <strong>Ollama</strong>.
   </div>
-  <!-- Hardware spec strip -->
-  <div id="sysInfoStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
-  <!-- Not installed state -->
   <div id="ollamaNotInstalled" style="display:none;">
     <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;font-size:13px;color:#92400e;line-height:1.6;">
       <strong>Ollama is not installed or not running.</strong><br>
@@ -77,12 +74,8 @@
     <button class="btn btn-ghost" id="ollamaRefreshBtn" style="font-size:13px;">↺ Check Again</button>
   </div>
 
-  <!-- Installed state -->
   <div id="ollamaInstalled" style="display:none;">
-    <div id="ollamaActiveNote" style="font-size:12px;color:var(--accent);font-weight:600;display:none;margin-bottom:12px;"></div>
-    <!-- Recommended models -->
-    <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Models for your hardware</div>
-    <div id="ollamaModelList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="ollamaActiveNote" style="font-size:13px;color:var(--accent);font-weight:600;"></div>
   </div>
 </div>
 
@@ -152,55 +145,43 @@
     `
   }
 
-  // ── Ollama ────────────────────────────────────────────────
-  const OLLAMA_MODELS = [
-    { name: 'qwen2.5:0.5b',  size: '397 MB',  desc: 'Qwen 2.5 0.5B — ultra-tiny, runs on anything. 2 GB RAM min.' },
-    { name: 'gemma3:1b',     size: '815 MB',  desc: 'Google Gemma 3 1B — punches above its weight. 4 GB RAM.' },
-    { name: 'llama3.2:1b',   size: '1.3 GB',  desc: 'Meta Llama 3.2 1B — snappy general-purpose. 4 GB RAM.' },
-    { name: 'phi3.5:mini',   size: '2.2 GB',  desc: 'Microsoft Phi 3.5 Mini — excellent reasoning. 8 GB RAM.' },
-    { name: 'llama3.2:3b',   size: '2.0 GB',  desc: 'Meta Llama 3.2 3B — great balance of speed + quality. 6 GB RAM.' },
-    { name: 'mistral:7b',    size: '4.1 GB',  desc: 'Mistral 7B — strong, fast, very capable. 8 GB RAM + GPU.' },
-    { name: 'llama3.1:8b',   size: '4.7 GB',  desc: 'Meta Llama 3.1 8B — top-tier quality. 16 GB RAM or Apple Silicon 16 GB+.' },
-    { name: 'llama3.3:70b',  size: '42 GB',   desc: 'Meta Llama 3.3 70B — near-GPT-4 quality. Apple Silicon 64 GB+ or high-end workstation.' },
-  ]
-
-  let _sysInfo = null
-
-  async function loadSysInfo() {
-    if (!window.api?.systemInfo) return
-    _sysInfo = await window.api.systemInfo()
-    const strip = document.getElementById('sysInfoStrip')
-    if (!strip || !_sysInfo) return
-
-    const chip = (label, val, highlight) =>
-      `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${highlight?'var(--accent-light)':'var(--bg-main)'};color:${highlight?'var(--accent)':'var(--text-secondary)'};border:1px solid ${highlight?'var(--accent)':'var(--border)'};">${label}: ${val}</span>`
-
-    const isApple = _sysInfo.isAppleSilicon
-    const gpuLabel = _sysInfo.hasDiscreteGPU ? 'Discrete GPU' : isApple ? 'Apple GPU' : 'Integrated GPU'
-
-    strip.innerHTML = [
-      chip('CPU', _sysInfo.cores + '-core' + (isApple ? ' Apple Silicon' : ''), isApple),
-      chip('RAM', _sysInfo.ramGB + ' GB', _sysInfo.ramGB >= 8),
-      chip('GPU', gpuLabel, _sysInfo.hasDiscreteGPU || isApple),
-      chip('Arch', _sysInfo.arch, false),
-    ].join('')
-  }
-
-  async function checkOllama() {
-    document.getElementById('ollamaStatusBadge').textContent = 'Checking…'
-    document.getElementById('ollamaStatusBadge').style.background = '#f3f4f6'
-    document.getElementById('ollamaStatusBadge').style.color = '#6b7280'
+async function checkOllama() {
+    const badge = document.getElementById('ollamaStatusBadge')
+    badge.textContent = 'Checking…'
+    badge.style.background = '#f3f4f6'
+    badge.style.color = '#6b7280'
     if (!window.api?.ollamaStatus) return
+
+    // Get hardware info first so we know what model to recommend
+    let recommended = 'gemma3:1b'
+    if (window.api?.systemInfo) {
+      const info = await window.api.systemInfo()
+      recommended = info.recommended || 'gemma3:1b'
+    }
 
     const { running, models } = await window.api.ollamaStatus()
 
-    const badge = document.getElementById('ollamaStatusBadge')
     if (running) {
       badge.textContent = '● Running'
       badge.style.background = '#dcfce7'; badge.style.color = '#166534'
       document.getElementById('ollamaNotInstalled').style.display = 'none'
       document.getElementById('ollamaInstalled').style.display = ''
-      renderOllamaModels(models)
+
+      // Auto-pick: use recommended if pulled, otherwise first available, otherwise nothing
+      const match = models.find(p => p === recommended || p.startsWith(recommended.split(':')[0]))
+        || models[0]
+      if (match) {
+        const currentProvider = localStorage.getItem('ai_provider')
+        if (!currentProvider || currentProvider === 'ollama') {
+          localStorage.setItem('ai_provider', 'ollama')
+          localStorage.setItem('ai_model_ollama', match)
+          localStorage.setItem('ai_ollama_model', match)
+        }
+        const active = localStorage.getItem('ai_model_ollama') || match
+        document.getElementById('ollamaActiveNote').textContent = `✓ Using ${active} — running locally on your device`
+      } else {
+        document.getElementById('ollamaActiveNote').textContent = 'No models installed yet. Pull one from ollama.com or via the terminal.'
+      }
     } else {
       badge.textContent = '○ Not running'
       badge.style.background = '#fef2f2'; badge.style.color = '#991b1b'
@@ -209,90 +190,9 @@
     }
   }
 
-  function renderOllamaModels(pulledModels) {
-    const recommended = _sysInfo?.recommended || 'gemma3:1b'
-    const list = document.getElementById('ollamaModelList')
-
-    // Auto-activate: if recommended model is pulled and no provider set yet, auto-select it
-    const currentProvider = localStorage.getItem('ai_provider')
-    const recIsPulled = pulledModels.some(p => p === recommended || p.startsWith(recommended.split(':')[0]))
-    if (recIsPulled && (!currentProvider || currentProvider === 'ollama')) {
-      localStorage.setItem('ai_provider', 'ollama')
-      localStorage.setItem('ai_model_ollama', recommended)
-      localStorage.setItem('ai_ollama_model', recommended)
-      const note = document.getElementById('ollamaActiveNote')
-      note.style.display = ''
-      note.textContent = `✓ Using ${recommended} — running locally on your device`
-    } else if (currentProvider === 'ollama') {
-      const active = localStorage.getItem('ai_model_ollama') || recommended
-      const note = document.getElementById('ollamaActiveNote')
-      note.style.display = ''
-      note.textContent = `✓ Using ${active} — running locally on your device`
-    }
-
-    list.innerHTML = OLLAMA_MODELS.map(m => {
-      const isPulled = pulledModels.some(p => p === m.name || p.startsWith(m.name.split(':')[0]))
-      const isRec = m.name === recommended
-      const isActive = (localStorage.getItem('ai_model_ollama') || '') === m.name
-      return `
-      <div style="border:1.5px solid ${isRec?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:14px;background:${isRec?'var(--accent-light)':'var(--bg-card)'};">
-        <div style="flex:1;">
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
-            <span style="font-size:13px;font-weight:700;color:var(--text-primary);font-family:monospace;">${m.name}</span>
-            ${isRec ? `<span style="font-size:10px;font-weight:800;background:var(--accent);color:#fff;padding:1px 8px;border-radius:99px;">★ Best for you</span>` : ''}
-            ${isActive && isPulled ? `<span style="font-size:10px;font-weight:800;background:#dcfce7;color:#166534;padding:1px 8px;border-radius:99px;">Active</span>` : ''}
-          </div>
-          <div style="font-size:12px;color:var(--text-secondary);">${m.size} · ${m.desc}</div>
-        </div>
-        ${isPulled
-          ? `<button class="btn btn-ghost" style="font-size:12px;padding:5px 14px;white-space:nowrap;" onclick="activateModel('${m.name}')">Use</button>`
-          : `<button class="btn ${isRec?'btn-primary':'btn-ghost'}" style="font-size:12px;padding:5px 14px;white-space:nowrap;" onclick="pullOllamaModel('${m.name}', this)">Pull ↓</button>`
-        }
-      </div>`
-    }).join('')
-  }
-
-  window.activateModel = function(modelName) {
-    localStorage.setItem('ai_provider', 'ollama')
-    localStorage.setItem('ai_model_ollama', modelName)
-    localStorage.setItem('ai_ollama_model', modelName)
-    checkOllama()
-  }
-
-  window.pullOllamaModel = async function(modelName, btn) {
-    btn.disabled = true
-    btn.textContent = 'Pulling…'
-    const progressKey = `ollama_pull_${modelName}`
-
-    window.api.onOllamaPullProgress(data => {
-      if (data.total && data.completed) {
-        const pct = Math.round(data.completed / data.total * 100)
-        btn.textContent = `${pct}%`
-      } else if (data.status) {
-        btn.textContent = data.status.length > 18 ? data.status.slice(0,15)+'…' : data.status
-      }
-    })
-
-    const result = await window.api.ollamaPull(modelName)
-    window.api.offOllamaPullProgress()
-
-    if (result.ok) {
-      // Auto-activate the just-pulled model
-      localStorage.setItem('ai_provider', 'ollama')
-      localStorage.setItem('ai_model_ollama', modelName)
-      localStorage.setItem('ai_ollama_model', modelName)
-      btn.textContent = 'Done!'
-      setTimeout(() => checkOllama(), 800)
-    } else {
-      btn.textContent = result.error || 'Failed'
-      btn.disabled = false
-    }
-  }
-
   document.getElementById('ollamaRefreshBtn')?.addEventListener('click', checkOllama)
 
   checkOllama()
-  loadSysInfo()
 
   // ── Auto-guard toggle ─────────────────────────────────────
   const autoGuardKey = `cs_${username}_autoGuard`

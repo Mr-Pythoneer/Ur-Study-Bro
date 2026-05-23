@@ -46,6 +46,31 @@
     <div class="onboarding-tagline">Ur Study Bro helps you and your study partner stay on track — slow and steady wins the race.</div>
   </div>
 
+  <!-- Feature promo banners -->
+  <div style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+
+    <!-- AI Tutor promo -->
+    <div onclick="window.navigateTo('ai')" style="cursor:pointer;background:linear-gradient(135deg,var(--accent-light) 0%,#e0f2fe 100%);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;gap:16px;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
+      <div style="font-size:36px;line-height:1;flex-shrink:0;">🤖</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:800;color:var(--text-primary);margin-bottom:3px;">AI Study Tutor — built in</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Ask anything. Get explanations, quizzes, essay feedback, and more — powered by AI that runs right on your device. No API key needed.</div>
+      </div>
+      <div style="font-size:18px;color:var(--accent);flex-shrink:0;">→</div>
+    </div>
+
+    <!-- 90-Day Plan promo -->
+    <div onclick="window.navigateTo('plan')" style="cursor:pointer;background:linear-gradient(135deg,#f0fdf4 0%,#fefce8 100%);border:1.5px solid #22c55e;border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;gap:16px;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
+      <div style="font-size:36px;line-height:1;flex-shrink:0;">📅</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:800;color:var(--text-primary);margin-bottom:3px;">Your Personalized 90-Day Study Plan</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Take the cognitive assessment, then get a custom daily roadmap — real tasks, real deadlines, earning Study Points as you go.</div>
+      </div>
+      <div style="font-size:18px;color:#22c55e;flex-shrink:0;">→</div>
+    </div>
+
+  </div>
+
   <div class="onboarding-form">
 
     <!-- Name -->
