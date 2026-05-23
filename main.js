@@ -216,6 +216,49 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
   }
 })
 
+// ── System info ──────────────────────────────────────────────────
+ipcMain.handle('system:info', async () => {
+  const cpus    = os.cpus()
+  const cpu     = cpus[0] || {}
+  const cores   = cpus.length
+  const ramGB   = Math.round(os.totalmem() / 1024 / 1024 / 1024 * 10) / 10
+  const ramFreeGB = Math.round(os.freemem() / 1024 / 1024 / 1024 * 10) / 10
+  const platform = os.platform()         // darwin | win32 | linux
+  const arch     = os.arch()             // arm64 | x64
+
+  // Apple Silicon detection
+  const isAppleSilicon = platform === 'darwin' && arch === 'arm64' &&
+    (cpu.model || '').toLowerCase().includes('apple')
+
+  // GPU info via Electron built-in
+  let gpuName = 'Unknown', hasDiscreteGPU = false
+  try {
+    const gpuInfo = await app.getGPUInfo('basic')
+    const devices = gpuInfo.gpuDevice || []
+    if (devices.length > 0) {
+      // vendorId 0x10de = NVIDIA, 0x1002 = AMD, 0x8086 = Intel
+      hasDiscreteGPU = devices.some(d =>
+        d.vendorId === 0x10de || d.vendorId === 0x1002
+      )
+      gpuName = devices[0].deviceString || devices[0].description || 'Unknown GPU'
+    }
+  } catch {}
+
+  // Recommend best Ollama model based on hardware
+  let recommended
+  if (isAppleSilicon) {
+    recommended = ramGB >= 8 ? 'phi3.5:mini' : 'gemma3:1b'
+  } else if (hasDiscreteGPU || ramGB >= 8) {
+    recommended = ramGB >= 8 ? 'llama3.2:1b' : 'gemma3:1b'
+  } else if (ramGB >= 4) {
+    recommended = 'gemma3:1b'
+  } else {
+    recommended = 'qwen2.5:0.5b'
+  }
+
+  return { cpu: cpu.model, cores, ramGB, ramFreeGB, platform, arch, isAppleSilicon, gpuName, hasDiscreteGPU, recommended }
+})
+
 // ── Ollama helpers ────────────────────────────────────────────────
 ipcMain.handle('ollama:status', async () => {
   try {

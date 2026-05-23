@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('api', {
   askAI:          (payload) => ipcRenderer.invoke('ai:chat', payload),
   transcribeAudio:(payload) => ipcRenderer.invoke('ai:transcribe', payload),
 
+  // ── System info ─────────────────────────────────────────────────
+  systemInfo: () => ipcRenderer.invoke('system:info'),
+
   // ── Ollama (local AI) ────────────────────────────────────────────
   ollamaStatus: ()           => ipcRenderer.invoke('ollama:status'),
   ollamaPull:   (model)      => ipcRenderer.invoke('ollama:pull', model),

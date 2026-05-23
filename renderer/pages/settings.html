@@ -62,9 +62,11 @@
     Local AI (Ollama)
     <span id="ollamaStatusBadge" style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;background:#f3f4f6;color:#6b7280;">Checking…</span>
   </div>
-  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
-    Run AI entirely on your device — no API key, no internet, full privacy. Powered by <strong>Ollama</strong>. Works offline on any machine, even low-end ones.
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;line-height:1.6;">
+    Run AI entirely on your device — no API key, no internet, full privacy. Powered by <strong>Ollama</strong>.
   </div>
+  <!-- Hardware spec strip -->
+  <div id="sysInfoStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
 
   <!-- Not installed state -->
   <div id="ollamaNotInstalled" style="display:none;">
@@ -168,6 +170,28 @@
     { name: 'phi3.5:mini',   size: '2.2 GB',  desc: 'Microsoft Phi 3.5 Mini — best quality, needs 4 GB RAM.' },
   ]
 
+  let _sysInfo = null
+
+  async function loadSysInfo() {
+    if (!window.api?.systemInfo) return
+    _sysInfo = await window.api.systemInfo()
+    const strip = document.getElementById('sysInfoStrip')
+    if (!strip || !_sysInfo) return
+
+    const chip = (label, val, highlight) =>
+      `<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:${highlight?'var(--accent-light)':'var(--bg-main)'};color:${highlight?'var(--accent)':'var(--text-secondary)'};border:1px solid ${highlight?'var(--accent)':'var(--border)'};">${label}: ${val}</span>`
+
+    const isApple = _sysInfo.isAppleSilicon
+    const gpuLabel = _sysInfo.hasDiscreteGPU ? 'Discrete GPU' : isApple ? 'Apple GPU' : 'Integrated GPU'
+
+    strip.innerHTML = [
+      chip('CPU', _sysInfo.cores + '-core' + (isApple ? ' Apple Silicon' : ''), isApple),
+      chip('RAM', _sysInfo.ramGB + ' GB', _sysInfo.ramGB >= 8),
+      chip('GPU', gpuLabel, _sysInfo.hasDiscreteGPU || isApple),
+      chip('Arch', _sysInfo.arch, false),
+    ].join('')
+  }
+
   async function checkOllama() {
     document.getElementById('ollamaStatusBadge').textContent = 'Checking…'
     document.getElementById('ollamaStatusBadge').style.background = '#f3f4f6'
@@ -192,18 +216,23 @@
   }
 
   function renderOllamaModels(pulledModels) {
+    const recommended = _sysInfo?.recommended || 'gemma3:1b'
     const list = document.getElementById('ollamaModelList')
     list.innerHTML = OLLAMA_MODELS.map(m => {
       const isPulled = pulledModels.some(p => p === m.name || p.startsWith(m.name.split(':')[0]))
+      const isRec = m.name === recommended
       return `
-      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:14px;">
+      <div style="border:1.5px solid ${isRec?'var(--accent)':'var(--border)'};border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:14px;background:${isRec?'var(--accent-light)':'var(--bg-card)'};">
         <div style="flex:1;">
-          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px;font-family:monospace;">${m.name}</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">
+            <span style="font-size:13px;font-weight:700;color:var(--text-primary);font-family:monospace;">${m.name}</span>
+            ${isRec ? `<span style="font-size:10px;font-weight:800;background:var(--accent);color:#fff;padding:1px 8px;border-radius:99px;">✓ Best for your hardware</span>` : ''}
+          </div>
           <div style="font-size:12px;color:var(--text-secondary);">${m.size} · ${m.desc}</div>
         </div>
         ${isPulled
           ? `<span style="font-size:11px;font-weight:700;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:99px;">Installed</span>`
-          : `<button class="btn btn-ghost" style="font-size:12px;padding:5px 14px;white-space:nowrap;" onclick="pullOllamaModel('${m.name}', this)">Pull ↓</button>`
+          : `<button class="btn ${isRec?'btn-primary':'btn-ghost'}" style="font-size:12px;padding:5px 14px;white-space:nowrap;" onclick="pullOllamaModel('${m.name}', this)">Pull ↓</button>`
         }
       </div>`
     }).join('')
@@ -265,6 +294,7 @@
   document.getElementById('ollamaRefreshBtn')?.addEventListener('click', checkOllama)
 
   checkOllama()
+  loadSysInfo()
 
   // ── Auto-guard toggle ─────────────────────────────────────
   const autoGuardKey = `cs_${username}_autoGuard`
