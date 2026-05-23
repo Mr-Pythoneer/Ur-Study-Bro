@@ -92,6 +92,7 @@
     <div class="provider-card">
       <label>AI Provider</label>
       <select id="providerSel">
+        <option value="ollama">Local AI (Ollama) 🖥️</option>
         <option value="gemini">Gemini (Google) ✨</option>
         <option value="anthropic">Claude (Anthropic)</option>
         <option value="openai">ChatGPT (OpenAI)</option>
@@ -103,10 +104,12 @@
         <option value="claude-sonnet-4-6">Claude Sonnet (smart)</option>
       </select>
 
-      <label>API Key</label>
-      <input type="password" id="apiKeyInput" placeholder="sk-ant-…" autocomplete="off"/>
-      <div class="key-hint" id="keyHint">
-        Get a free key at <a id="keyLink" onclick="window.api.openExternal('https://console.anthropic.com')">console.anthropic.com</a>
+      <div id="apiKeyRow">
+        <label>API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-…" autocomplete="off"/>
+        <div class="key-hint" id="keyHint">
+          Get a free key at <a id="keyLink" onclick="window.api.openExternal('https://console.anthropic.com')">console.anthropic.com</a>
+        </div>
       </div>
 
       <button class="btn btn-primary" style="width:100%;font-size:13px;" id="saveKeyBtn">Save Key</button>
@@ -146,6 +149,9 @@
   const noKeyBanner  = document.getElementById('noKeyBanner')
 
   const MODELS = {
+    ollama: [
+      { value:'auto', label:'Auto (best for your hardware)' },
+    ],
     gemini: [
       { value:'gemini-2.0-flash-lite', label:'Gemini 2.0 Flash Lite (fastest)' },
       { value:'gemini-2.0-flash',      label:'Gemini 2.0 Flash (fast)' },
@@ -170,7 +176,8 @@
   }
 
   function loadSettings() {
-    providerSel.value = localStorage.getItem('ai_provider') || 'anthropic'
+    const saved = localStorage.getItem('ai_provider') || 'ollama'
+    providerSel.value = MODELS[saved] ? saved : 'ollama'
     syncModels()
     systemPrompt.value = localStorage.getItem('ai_system') ||
       'You are a friendly, concise study tutor. Help the student understand concepts clearly. Use examples, analogies, and bullet points. Keep answers focused and not too long unless asked to elaborate.'
@@ -182,22 +189,28 @@
     const saved = localStorage.getItem('ai_model_' + p)
     if (saved) modelSel.value = saved
     apiKeyInput.value = localStorage.getItem('ai_key_' + p) || ''
-    apiKeyInput.placeholder = p === 'anthropic' ? 'sk-ant-…' : 'sk-…'
+    const isOllama = p === 'ollama'
+    document.getElementById('apiKeyRow').style.display = isOllama ? 'none' : ''
+    document.getElementById('saveKeyBtn').textContent = isOllama ? 'Saved ✓' : 'Save Key'
 
-    if (p === 'gemini') {
+    if (isOllama) {
+      keyHint.innerHTML = 'Runs on your device. Install Ollama from <a onclick="window.api.openExternal(\'https://ollama.com\')" style="color:var(--accent);cursor:pointer;">ollama.com</a>'
+    } else if (p === 'gemini') {
       keyHint.innerHTML = 'Free key at <a onclick="window.api.openExternal(\'https://aistudio.google.com/apikey\')" style="color:var(--accent);cursor:pointer;">aistudio.google.com</a>'
     } else if (p === 'anthropic') {
       keyHint.innerHTML = 'Get a key at <a onclick="window.api.openExternal(\'https://console.anthropic.com\')" style="color:var(--accent);cursor:pointer;">console.anthropic.com</a>'
     } else {
       keyHint.innerHTML = 'Get a key at <a onclick="window.api.openExternal(\'https://platform.openai.com/api-keys\')" style="color:var(--accent);cursor:pointer;">platform.openai.com</a>'
     }
+    apiKeyInput.placeholder = p === 'anthropic' ? 'sk-ant-…' : 'sk-…'
 
     checkKey()
   }
 
   function checkKey() {
-    const hasKey = !!apiKeyInput.value.trim()
-    document.getElementById('sendBtn').disabled = !hasKey
+    const isOllama = providerSel.value === 'ollama'
+    const hasKey = isOllama || !!apiKeyInput.value.trim()
+    document.getElementById('sendBtn').disabled = false // enable typing check handles this
     noKeyBanner.classList.toggle('visible', !hasKey)
   }
 
@@ -275,10 +288,14 @@
     showTyping()
 
     try {
+      const p = providerSel.value
+      const resolvedModel = p === 'ollama'
+        ? (localStorage.getItem('ai_model_ollama') || localStorage.getItem('ai_ollama_model') || 'gemma3:1b')
+        : modelSel.value
       const res = await window.api.askAI({
-        provider:     providerSel.value,
+        provider:     p,
         apiKey:       apiKeyInput.value.trim(),
-        model:        modelSel.value,
+        model:        resolvedModel,
         systemPrompt: systemPrompt.value,
         messages:     messages.map(m => ({ role: m.role, content: m.content })),
       })
@@ -308,7 +325,8 @@
   input.addEventListener('input', () => {
     input.style.height = 'auto'
     input.style.height = Math.min(input.scrollHeight, 140) + 'px'
-    document.getElementById('sendBtn').disabled = !input.value.trim() || !apiKeyInput.value.trim()
+    const isOllama = providerSel.value === 'ollama'
+    document.getElementById('sendBtn').disabled = !input.value.trim() || (!isOllama && !apiKeyInput.value.trim())
   })
 
   /* ── Quick chips ── */
