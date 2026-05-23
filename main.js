@@ -247,13 +247,21 @@ ipcMain.handle('system:info', async () => {
   // Recommend best Ollama model based on hardware
   let recommended
   if (isAppleSilicon) {
-    recommended = ramGB >= 8 ? 'phi3.5:mini' : 'gemma3:1b'
-  } else if (hasDiscreteGPU || ramGB >= 8) {
-    recommended = ramGB >= 8 ? 'llama3.2:1b' : 'gemma3:1b'
-  } else if (ramGB >= 4) {
-    recommended = 'gemma3:1b'
+    if      (ramGB >= 32) recommended = 'llama3.1:8b'
+    else if (ramGB >= 16) recommended = 'mistral:7b'
+    else if (ramGB >= 8)  recommended = 'phi3.5:mini'
+    else                  recommended = 'gemma3:1b'
+  } else if (hasDiscreteGPU) {
+    if      (ramGB >= 16) recommended = 'llama3.1:8b'
+    else if (ramGB >= 8)  recommended = 'mistral:7b'
+    else if (ramGB >= 6)  recommended = 'llama3.2:3b'
+    else if (ramGB >= 4)  recommended = 'llama3.2:1b'
+    else                  recommended = 'gemma3:1b'
   } else {
-    recommended = 'qwen2.5:0.5b'
+    if      (ramGB >= 16) recommended = 'llama3.2:3b'
+    else if (ramGB >= 8)  recommended = 'phi3.5:mini'
+    else if (ramGB >= 4)  recommended = 'gemma3:1b'
+    else                  recommended = 'qwen2.5:0.5b'
   }
 
   return { cpu: cpu.model, cores, ramGB, ramFreeGB, platform, arch, isAppleSilicon, gpuName, hasDiscreteGPU, recommended }
