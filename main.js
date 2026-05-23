@@ -178,6 +178,18 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
       })
       extractReply = d => d.candidates?.[0]?.content?.parts?.[0]?.text
 
+    } else if (provider === 'ollama') {
+      // Local Ollama — OpenAI-compatible endpoint at localhost:11434
+      const ollamaModel = model || 'gemma3:1b'
+      url = 'http://localhost:11434/v1/chat/completions'
+      headers = { 'Content-Type': 'application/json' }
+      body = JSON.stringify({
+        model: ollamaModel,
+        messages: [{ role: 'system', content: systemPrompt || '' }, ...messages],
+        stream: false,
+      })
+      extractReply = d => d.choices?.[0]?.message?.content
+
     } else {
       // Anthropic (default)
       url = 'https://api.anthropic.com/v1/messages'
@@ -199,6 +211,57 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
     const data = await res.json()
     if (!res.ok) return { error: data.error?.message || data.error?.status || JSON.stringify(data) }
     return { reply: extractReply(data) || '' }
+  } catch (e) {
+    return { error: e.message }
+  }
+})
+
+// ── Ollama helpers ────────────────────────────────────────────────
+ipcMain.handle('ollama:status', async () => {
+  try {
+    const { net } = require('electron')
+    const res = await net.fetch('http://localhost:11434/api/tags', { method: 'GET' })
+    if (!res.ok) return { running: false, models: [] }
+    const data = await res.json()
+    const models = (data.models || []).map(m => m.name)
+    return { running: true, models }
+  } catch {
+    return { running: false, models: [] }
+  }
+})
+
+ipcMain.handle('ollama:pull', async (_e, modelName) => {
+  try {
+    // Stream the pull via Ollama API so we can track progress
+    const { net } = require('electron')
+    const win = BrowserWindow.getAllWindows()[0]
+    const res = await net.fetch('http://localhost:11434/api/pull', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: modelName, stream: true }),
+    })
+    if (!res.ok) return { error: 'Pull failed — is Ollama installed?' }
+
+    // Stream the NDJSON response and send progress to renderer
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let done = false
+    while (!done) {
+      const { value, done: d } = await reader.read()
+      done = d
+      if (value) {
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n').filter(Boolean)
+        for (const line of lines) {
+          try {
+            const obj = JSON.parse(line)
+            if (win) win.webContents.send('ollama:pull-progress', obj)
+            if (obj.status === 'success') return { ok: true }
+          } catch {}
+        }
+      }
+    }
+    return { ok: true }
   } catch (e) {
     return { error: e.message }
   }

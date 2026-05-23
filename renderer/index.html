@@ -607,6 +607,17 @@ window.navigateTo = (page) => {
   loadPage(page)
 }
 
+// ── Global AI helper — all pages call this instead of askAI directly ──
+// Automatically injects the correct model for Ollama
+window.aiChat = async function(payload) {
+  const provider = localStorage.getItem('ai_provider') || 'gemini'
+  const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
+  const model    = provider === 'ollama'
+    ? (localStorage.getItem('ai_model_ollama') || 'gemma3:1b')
+    : (payload.model || localStorage.getItem('ai_model_' + provider) || null)
+  return window.api.askAI({ ...payload, provider, apiKey, model })
+}
+
 // ── Open external links via shell (Electron) ──────────────────────
 // Intercepts any <a target="_blank"> clicks inside #content
 document.getElementById('content').addEventListener('click', e => {

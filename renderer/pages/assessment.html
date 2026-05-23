@@ -1127,8 +1127,8 @@ Rules: cognitiveStrengths = 2 items, cognitiveWeaknesses = 2 items, studyStrateg
       const apiKey=localStorage.getItem('ai_key_'+provider)
       let report
 
-      if (apiKey) {
-        const res=await window.api.askAI({ provider, apiKey, model:null,
+      if (apiKey || provider==='ollama') {
+        const res=await (window.aiChat||window.api.askAI)({
           systemPrompt:'You are a psychoeducational assessment specialist. Respond only with valid JSON.',
           messages:[{role:'user',content:prompt}]
         })

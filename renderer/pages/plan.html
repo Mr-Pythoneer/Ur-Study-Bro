@@ -228,9 +228,8 @@ Rules:
       const apiKey   = localStorage.getItem('ai_key_' + provider)
       let planData
 
-      if (apiKey) {
-        const res = await window.api.askAI({
-          provider, apiKey, model: null,
+      if (apiKey || provider === 'ollama') {
+        const res = await (window.aiChat || window.api.askAI)({
           systemPrompt: 'You are a study coach. Respond only with valid JSON.',
           messages: [{ role: 'user', content: prompt }]
         })

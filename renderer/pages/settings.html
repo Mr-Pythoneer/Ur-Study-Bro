@@ -56,6 +56,44 @@
   <div id="aiSettingsRows"></div>
 </div>
 
+<!-- ── Ollama (Local AI) ──────────────────────────────────────────── -->
+<div class="card settings-section" style="margin-top:16px;" id="ollamaCard">
+  <div class="card-title" style="display:flex;align-items:center;gap:10px;">
+    Local AI (Ollama)
+    <span id="ollamaStatusBadge" style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;background:#f3f4f6;color:#6b7280;">Checking…</span>
+  </div>
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
+    Run AI entirely on your device — no API key, no internet, full privacy. Powered by <strong>Ollama</strong>. Works offline on any machine, even low-end ones.
+  </div>
+
+  <!-- Not installed state -->
+  <div id="ollamaNotInstalled" style="display:none;">
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;font-size:13px;color:#92400e;line-height:1.6;">
+      <strong>Ollama is not installed or not running.</strong><br>
+      Download it free from <a href="#" onclick="window.api.openExternal('https://ollama.com'); return false;" style="color:#b45309;font-weight:700;">ollama.com</a>, install it, then come back here.
+    </div>
+    <button class="btn btn-ghost" id="ollamaRefreshBtn" style="font-size:13px;">↺ Check Again</button>
+  </div>
+
+  <!-- Installed state -->
+  <div id="ollamaInstalled" style="display:none;">
+    <!-- Recommended models -->
+    <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Recommended Models</div>
+    <div id="ollamaModelList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;"></div>
+
+    <!-- Active model selector -->
+    <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Active Model</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <select id="ollamaModelSelect" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;color:var(--text-primary);background:var(--bg-card);outline:none;">
+        <option value="">No models pulled yet</option>
+      </select>
+      <button class="btn btn-primary" id="ollamaUseBtn" style="font-size:13px;white-space:nowrap;">Use This Model</button>
+    </div>
+
+    <div id="ollamaActiveNote" style="font-size:12px;color:var(--accent);font-weight:600;display:none;">✓ Ollama is your active AI provider</div>
+  </div>
+</div>
+
 <!-- ── Timer Settings ─────────────────────────────────────────────── -->
 <div class="card settings-section" style="margin-top:16px;">
   <div class="card-title">Timer Settings</div>
@@ -121,6 +159,112 @@
       </div>
     `
   }
+
+  // ── Ollama ────────────────────────────────────────────────
+  const OLLAMA_MODELS = [
+    { name: 'gemma3:1b',     size: '815 MB',  desc: 'Google Gemma 3 — best quality for size. Recommended for most users.' },
+    { name: 'qwen2.5:0.5b',  size: '397 MB',  desc: 'Qwen 2.5 0.5B — ultra-tiny. For very low-end machines.' },
+    { name: 'llama3.2:1b',   size: '1.3 GB',  desc: 'Meta Llama 3.2 1B — solid general-purpose model.' },
+    { name: 'phi3.5:mini',   size: '2.2 GB',  desc: 'Microsoft Phi 3.5 Mini — best quality, needs 4 GB RAM.' },
+  ]
+
+  async function checkOllama() {
+    document.getElementById('ollamaStatusBadge').textContent = 'Checking…'
+    document.getElementById('ollamaStatusBadge').style.background = '#f3f4f6'
+    document.getElementById('ollamaStatusBadge').style.color = '#6b7280'
+    if (!window.api?.ollamaStatus) return
+
+    const { running, models } = await window.api.ollamaStatus()
+
+    const badge = document.getElementById('ollamaStatusBadge')
+    if (running) {
+      badge.textContent = '● Running'
+      badge.style.background = '#dcfce7'; badge.style.color = '#166534'
+      document.getElementById('ollamaNotInstalled').style.display = 'none'
+      document.getElementById('ollamaInstalled').style.display = ''
+      renderOllamaModels(models)
+    } else {
+      badge.textContent = '○ Not running'
+      badge.style.background = '#fef2f2'; badge.style.color = '#991b1b'
+      document.getElementById('ollamaNotInstalled').style.display = ''
+      document.getElementById('ollamaInstalled').style.display = 'none'
+    }
+  }
+
+  function renderOllamaModels(pulledModels) {
+    const list = document.getElementById('ollamaModelList')
+    list.innerHTML = OLLAMA_MODELS.map(m => {
+      const isPulled = pulledModels.some(p => p === m.name || p.startsWith(m.name.split(':')[0]))
+      return `
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:14px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px;font-family:monospace;">${m.name}</div>
+          <div style="font-size:12px;color:var(--text-secondary);">${m.size} · ${m.desc}</div>
+        </div>
+        ${isPulled
+          ? `<span style="font-size:11px;font-weight:700;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:99px;">Installed</span>`
+          : `<button class="btn btn-ghost" style="font-size:12px;padding:5px 14px;white-space:nowrap;" onclick="pullOllamaModel('${m.name}', this)">Pull ↓</button>`
+        }
+      </div>`
+    }).join('')
+
+    // Populate select
+    const sel = document.getElementById('ollamaModelSelect')
+    sel.innerHTML = pulledModels.length
+      ? pulledModels.map(m => `<option value="${m}">${m}</option>`).join('')
+      : '<option value="">No models pulled yet</option>'
+
+    // Restore saved selection
+    const saved = localStorage.getItem('ai_ollama_model')
+    if (saved && pulledModels.includes(saved)) sel.value = saved
+
+    // Show active note
+    const currentProvider = localStorage.getItem('ai_provider')
+    if (currentProvider === 'ollama') {
+      document.getElementById('ollamaActiveNote').style.display = ''
+    }
+  }
+
+  window.pullOllamaModel = async function(modelName, btn) {
+    btn.disabled = true
+    btn.textContent = 'Pulling…'
+    const progressKey = `ollama_pull_${modelName}`
+
+    window.api.onOllamaPullProgress(data => {
+      if (data.total && data.completed) {
+        const pct = Math.round(data.completed / data.total * 100)
+        btn.textContent = `${pct}%`
+      } else if (data.status) {
+        btn.textContent = data.status.length > 18 ? data.status.slice(0,15)+'…' : data.status
+      }
+    })
+
+    const result = await window.api.ollamaPull(modelName)
+    window.api.offOllamaPullProgress()
+
+    if (result.ok) {
+      btn.textContent = 'Done!'
+      setTimeout(() => checkOllama(), 800)
+    } else {
+      btn.textContent = result.error || 'Failed'
+      btn.disabled = false
+    }
+  }
+
+  document.getElementById('ollamaUseBtn')?.addEventListener('click', () => {
+    const sel = document.getElementById('ollamaModelSelect')
+    const model = sel.value
+    if (!model) return
+    localStorage.setItem('ai_provider', 'ollama')
+    localStorage.setItem('ai_ollama_model', model)
+    localStorage.setItem('ai_model_ollama', model)
+    document.getElementById('ollamaActiveNote').style.display = ''
+    document.getElementById('ollamaActiveNote').textContent = `✓ Now using Ollama (${model}) for all AI features`
+  })
+
+  document.getElementById('ollamaRefreshBtn')?.addEventListener('click', checkOllama)
+
+  checkOllama()
 
   // ── Auto-guard toggle ─────────────────────────────────────
   const autoGuardKey = `cs_${username}_autoGuard`
