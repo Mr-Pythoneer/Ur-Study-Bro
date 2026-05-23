@@ -1,0 +1,464 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  .plan-wrap { max-width: 720px; margin: 0 auto; padding: 0 0 60px; }
+
+  /* ── Empty state ───────────────────────────────────────────── */
+  .plan-empty { text-align: center; padding: 80px 24px; }
+  .plan-empty-icon { font-size: 56px; margin-bottom: 20px; }
+  .plan-empty h2 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 10px; color: var(--text-primary); }
+  .plan-empty p  { font-size: 14px; color: var(--text-secondary); line-height: 1.7; max-width: 400px; margin: 0 auto 28px; }
+
+  /* ── Generating state ──────────────────────────────────────── */
+  .plan-generating { text-align: center; padding: 80px 24px; }
+  .plan-gen-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Header card ───────────────────────────────────────────── */
+  .plan-header { background: #191919; border-radius: var(--radius); padding: 28px 32px; color: #fff; margin-bottom: 20px; }
+  .plan-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+  .plan-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: #6ee7b7; margin-bottom: 6px; }
+  .plan-profile-title { font-size: 20px; font-weight: 900; letter-spacing: -.4px; }
+  .plan-regen-btn { background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); white-space: nowrap; transition: background .15s; }
+  .plan-regen-btn:hover { background: rgba(255,255,255,.18); }
+  .plan-summary { font-size: 13.5px; color: rgba(255,255,255,.6); line-height: 1.65; }
+
+  /* ── Phase strip ───────────────────────────────────────────── */
+  .plan-phases { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+  .phase-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 16px; }
+  .phase-card.active { border-color: var(--accent); }
+  .phase-label { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; }
+  .phase-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; line-height: 1.35; }
+  .phase-bar-wrap { height: 3px; background: var(--border); border-radius: 99px; }
+  .phase-bar { height: 100%; border-radius: 99px; background: var(--accent); }
+  .phase-pct { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
+
+  /* ── Week nav ──────────────────────────────────────────────── */
+  .week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .week-nav h3 { font-size: 15px; font-weight: 800; letter-spacing: -.2px; color: var(--text-primary); }
+  .week-nav-btns { display: flex; gap: 6px; }
+  .week-nav-btn { width: 30px; height: 30px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg-card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: border-color .12s; }
+  .week-nav-btn:hover { border-color: var(--accent); }
+  .week-nav-btn:disabled { opacity: .35; cursor: default; }
+
+  /* ── Strategy reminder strip ───────────────────────────────── */
+  .strategy-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; scrollbar-width: none; }
+  .strategy-strip::-webkit-scrollbar { display: none; }
+  .strategy-pill { flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 99px; padding: 5px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+  .strategy-pill.highlight { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+  /* ── Daily task groups ─────────────────────────────────────── */
+  .day-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+  .day-group-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; cursor: pointer; user-select: none; }
+  .day-group-header:hover { background: var(--bg-main); }
+  .day-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .day-progress { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
+  .day-tasks { padding: 0 18px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .task-row { display: flex; align-items: flex-start; gap: 12px; }
+  .task-check { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; background: var(--bg-card); }
+  .task-check.done { background: var(--accent); border-color: var(--accent); }
+  .task-check.done::after { content:''; width:6px; height:4px; border-left:2px solid #fff; border-bottom:2px solid #fff; transform:rotate(-45deg) translate(0.5px,-0.5px); display:block; }
+  .task-text { font-size: 13px; color: var(--text-primary); line-height: 1.5; flex: 1; }
+  .task-text.done { text-decoration: line-through; color: var(--text-secondary); }
+  .task-pts { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 1px 7px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+  .task-tag { font-size: 10px; font-weight: 700; color: var(--text-secondary); background: var(--bg-main); border: 1px solid var(--border); padding: 1px 7px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+
+  /* ── Quick start block ─────────────────────────────────────── */
+  .quick-start { background: var(--accent-light); border: 1px solid var(--accent); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .quick-start-text h4 { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 3px; }
+  .quick-start-text p  { font-size: 12px; color: var(--text-secondary); }
+
+  /* ── Progress summary ──────────────────────────────────────── */
+  .plan-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+  .plan-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+  .plan-stat-val { font-size: 26px; font-weight: 900; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+  .plan-stat-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--text-secondary); }
+</style>
+
+<div class="page-header">
+  <div class="page-title">My Plan</div>
+  <div class="page-subtitle">Your personalised 90-day cognitive development plan.</div>
+</div>
+
+<div class="plan-wrap" id="planWrap">
+
+  <!-- Empty state -->
+  <div id="planEmpty">
+    <div class="plan-empty">
+      <div class="plan-empty-icon">🐌</div>
+      <h2>No plan yet</h2>
+      <p>Complete the cognitive assessment first. Once you have a Learning Profile, come back here and activate your personalised 90-day plan.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="window.navigateTo('assessment')">Take the Assessment →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Has report but no plan yet -->
+  <div id="planHasReport" style="display:none;">
+    <div class="plan-empty">
+      <div class="plan-empty-icon">📋</div>
+      <h2>Ready to activate your plan</h2>
+      <p>Your cognitive assessment is complete. Click below and the AI will turn your results into a personalised week-by-week action plan with daily tasks you can actually check off.</p>
+      <button class="btn btn-primary" id="activatePlanBtn" style="padding:12px 28px;font-size:14px;">Activate My 90-Day Plan →</button>
+      <p style="font-size:12px;color:var(--text-secondary);margin-top:12px;">Takes about 15 seconds · Requires AI API key in Settings</p>
+    </div>
+  </div>
+
+  <!-- Generating -->
+  <div id="planGenerating" style="display:none;">
+    <div class="plan-generating">
+      <div class="plan-gen-spinner"></div>
+      <div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:8px;" id="planGenTitle">Building your plan…</div>
+      <div style="font-size:13px;color:var(--text-secondary);" id="planGenSub">Turning your cognitive profile into daily tasks</div>
+    </div>
+  </div>
+
+  <!-- Active plan -->
+  <div id="planActive" style="display:none;"></div>
+
+</div>
+
+<script>
+(function() {
+  const user = csGet('activeUser') || 'default'
+  const PLAN_KEY = `cs_${user}_studyPlan`
+  const DONE_KEY = `cs_${user}_planDoneTasks`
+
+  const report = csGetJSON('cognitiveReport', null)
+  const plan   = csGetJSON(PLAN_KEY, null)
+
+  function init() {
+    if (!report) {
+      show('planEmpty'); return
+    }
+    if (!plan) {
+      show('planHasReport')
+      document.getElementById('activatePlanBtn').onclick = generatePlan
+      return
+    }
+    renderPlan(plan)
+  }
+
+  function show(id) {
+    ['planEmpty','planHasReport','planGenerating','planActive'].forEach(i => {
+      document.getElementById(i).style.display = i===id ? '' : 'none'
+    })
+  }
+
+  /* ── Generate plan via AI ────────────────────────────────── */
+  async function generatePlan() {
+    show('planGenerating')
+    const msgs = [
+      ['Building your plan…','Turning your cognitive profile into daily tasks'],
+      ['Scheduling week one…','Matching tasks to your strongest learning windows'],
+      ['Adding strategy reminders…','Weaving in your personalised study techniques'],
+      ['Almost ready…','Finalising your 90-day roadmap'],
+    ]
+    let mi = 0
+    const tEl = document.getElementById('planGenTitle'), sEl = document.getElementById('planGenSub')
+    const interval = setInterval(() => { mi=(mi+1)%msgs.length; tEl.textContent=msgs[mi][0]; sEl.textContent=msgs[mi][1] }, 2000)
+
+    const r = report
+    const prompt = `You are a cognitive-science-based study coach. Based on this student's cognitive assessment results, create a structured 90-day study plan they can actually carry out day by day.
+
+COGNITIVE PROFILE:
+- Profile: ${r.profileTitle}
+- Summary: ${r.overallSummary}
+- Strengths: ${(r.cognitiveStrengths||[]).map(s=>s.domain+': '+s.finding).join('; ')}
+- Weaknesses: ${(r.cognitiveWeaknesses||[]).map(w=>w.domain+': '+w.finding).join('; ')}
+- Recommended timer: ${r.recommendedTimer}
+- Study strategies: ${(r.studyStrategies||[]).map(s=>s.title+' — '+s.desc).join(' | ')}
+- 90-day goal: ${r.longTermPlan}
+- Watch out: ${r.watchOut}
+
+Return ONLY valid JSON (no markdown):
+{
+  "phases": [
+    {
+      "month": 1,
+      "title": "4-5 word phase title",
+      "focus": "1 sentence: what this month targets and why",
+      "goal": "one measurable end-of-month goal"
+    },
+    { "month": 2, "title": "...", "focus": "...", "goal": "..." },
+    { "month": 3, "title": "...", "focus": "...", "goal": "..." }
+  ],
+  "strategies": [
+    "short actionable reminder (max 8 words)",
+    "short actionable reminder",
+    "short actionable reminder",
+    "short actionable reminder"
+  ],
+  "weeks": [
+    {
+      "weekNum": 1,
+      "theme": "short week theme (5 words max)",
+      "days": [
+        {
+          "day": "Monday",
+          "tasks": [
+            { "text": "specific actionable task (max 15 words)", "tag": "Memory|Speed|Attention|Reasoning|Reading|Flexibility|Study Session", "pts": 5 },
+            { "text": "...", "tag": "...", "pts": 3 },
+            { "text": "...", "tag": "...", "pts": 5 }
+          ]
+        },
+        { "day": "Tuesday", "tasks": [...] },
+        { "day": "Wednesday", "tasks": [...] },
+        { "day": "Thursday", "tasks": [...] },
+        { "day": "Friday", "tasks": [...] }
+      ]
+    },
+    { "weekNum": 2, "theme": "...", "days": [...] },
+    { "weekNum": 3, "theme": "...", "days": [...] },
+    { "weekNum": 4, "theme": "...", "days": [...] }
+  ]
+}
+
+Rules:
+- weeks array must have exactly 4 weeks (week 1-4 = month 1)
+- each week must have Monday–Friday (5 days)
+- each day must have exactly 3 tasks
+- tasks must be specific to THIS student's profile — reference their actual weak domain
+- at least one task per day should be a Study Session (do a ${r.recommendedTimer} focus session)
+- pts per task: Study Session = 10, cognitive exercise = 5, quick habit = 3
+- tags must be one of: Memory, Speed, Attention, Reasoning, Reading, Flexibility, Study Session`
+
+    try {
+      const provider = localStorage.getItem('ai_provider') || 'gemini'
+      const apiKey   = localStorage.getItem('ai_key_' + provider)
+      let planData
+
+      if (apiKey) {
+        const res = await window.api.askAI({
+          provider, apiKey, model: null,
+          systemPrompt: 'You are a study coach. Respond only with valid JSON.',
+          messages: [{ role: 'user', content: prompt }]
+        })
+        const raw = (res.reply || '').trim()
+        const match = raw.match(/\{[\s\S]*\}/)
+        planData = JSON.parse(match ? match[0] : raw)
+      } else {
+        planData = buildFallbackPlan(r)
+      }
+
+      clearInterval(interval)
+      planData.profileTitle  = r.profileTitle
+      planData.generatedAt   = new Date().toISOString()
+      planData.currentWeekNum = 1
+      csSetJSON(PLAN_KEY, planData)
+      csSetJSON(DONE_KEY, {})
+      renderPlan(planData)
+    } catch(e) {
+      clearInterval(interval)
+      const planData = buildFallbackPlan(r)
+      planData.profileTitle  = r.profileTitle
+      planData.generatedAt   = new Date().toISOString()
+      planData.currentWeekNum = 1
+      csSetJSON(PLAN_KEY, planData)
+      csSetJSON(DONE_KEY, {})
+      renderPlan(planData)
+    }
+  }
+
+  /* ── Fallback plan ───────────────────────────────────────── */
+  function buildFallbackPlan(r) {
+    const timer = r.recommendedTimer || 'Pomodoro 25'
+    const weak  = (r.cognitiveWeaknesses||[{domain:'Focus'}])[0].domain
+    const strat = (r.studyStrategies||[{title:'Active recall'}])[0].title
+    const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday']
+    const TASK_BANK = {
+      Memory:     ['Do 5 minutes of backward digit span practice','Write 10 flashcards from today\'s notes','Quiz yourself on yesterday\'s material without looking'],
+      Attention:  [`Complete a ${timer} session with Focus Guard on`,'Sit and read for 10 minutes without checking your phone','Do the AX-CPT on the Learning Profile page'],
+      Speed:      ['Do a 2-minute symbol matching drill','Set a timer and complete 20 practice problems','Time yourself reading one page — then beat it'],
+      Reasoning:  ['Solve 5 logic or pattern puzzles','Draw a concept map linking today\'s topics','Explain a concept to yourself out loud step by step'],
+      Reading:    ['Read one passage and summarise it in 3 bullet points','Find one inference in your reading — write it down','Read for 15 minutes and note any questions that arise'],
+      Flexibility:['Switch subjects after each Pomodoro today','Try explaining the same concept two different ways','Alternate between two topics every 10 minutes'],
+    }
+    function pick(category, i) { return TASK_BANK[category][i % TASK_BANK[category].length] }
+    const weakKey = weak.includes('Memory')?'Memory':weak.includes('Speed')?'Speed':weak.includes('Attention')?'Attention':weak.includes('Reasoning')?'Reasoning':weak.includes('Read')?'Reading':'Flexibility'
+
+    const weeks = [1,2,3,4].map(wn => ({
+      weekNum: wn,
+      theme: wn===1?'Build the habit':wn===2?'Push deeper':wn===3?'Reinforce & test':' Review & reflect',
+      days: DAYS.map((day, di) => ({
+        day,
+        tasks: [
+          { text: `Complete a ${timer} study session`, tag: 'Study Session', pts: 10 },
+          { text: pick(weakKey, di + wn), tag: weakKey, pts: 5 },
+          { text: pick('Flexibility', di + wn), tag: 'Flexibility', pts: 3 },
+        ]
+      }))
+    }))
+    return {
+      phases: [
+        { month:1, title:'Establish Core Habits', focus:`Build daily study consistency and target your ${weak} domain with structured exercises.`, goal:`Complete at least 15 study sessions and establish a daily routine.` },
+        { month:2, title:'Deepen & Challenge', focus:`Increase session length and difficulty. Begin applying your strategies under exam-like conditions.`, goal:`Improve on your weakest domain score by retaking the assessment.` },
+        { month:3, title:'Refine & Sustain', focus:`Lock in long-term habits, review your progress, and prepare for your biggest upcoming goals.`, goal:`Maintain a 21-day streak and complete a full subject review.` },
+      ],
+      strategies: [
+        strat,
+        `Study with Focus Guard on`,
+        `Review flashcards every morning`,
+        `One subject per session — no switching`,
+      ],
+      weeks
+    }
+  }
+
+  /* ── Render plan ─────────────────────────────────────────── */
+  let _viewWeek = 1
+
+  function renderPlan(plan) {
+    show('planActive')
+    _viewWeek = plan.currentWeekNum || 1
+    drawPlan(plan)
+  }
+
+  function drawPlan(plan) {
+    const done    = csGetJSON(DONE_KEY, {})
+    const totalTasks = plan.weeks.reduce((a,w)=>a+w.days.reduce((b,d)=>b+d.tasks.length,0),0)
+    const doneCnt = Object.keys(done).length
+    const currentPhaseIdx = Math.min(2, Math.floor((_viewWeek-1)/4))
+
+    // Phase progress
+    const phaseProgress = plan.phases.map((ph, i) => {
+      const phaseWeeks = plan.weeks.filter((_,wi)=>Math.floor(wi/4)===i)
+      const phaseTasks = phaseWeeks.reduce((a,w)=>a+w.days.reduce((b,d)=>b+d.tasks.length,0),0)
+      let phaseDone = 0
+      phaseWeeks.forEach(w => w.days.forEach(d => d.tasks.forEach((_,ti) => {
+        const key = `w${w.weekNum}_${d.day}_${ti}`
+        if (done[key]) phaseDone++
+      })))
+      return { ...ph, pct: phaseTasks > 0 ? Math.round(phaseDone/phaseTasks*100) : 0 }
+    })
+
+    const weekData = plan.weeks.find(w=>w.weekNum===_viewWeek) || plan.weeks[0]
+    const totalWeeks = plan.weeks.length
+
+    const el = document.getElementById('planActive')
+    el.innerHTML = `
+      <!-- Header -->
+      <div class="plan-header">
+        <div class="plan-header-top">
+          <div>
+            <div class="plan-eyebrow">90-Day Plan · Week ${_viewWeek} of ${totalWeeks}</div>
+            <div class="plan-profile-title">${esc(plan.profileTitle || 'Your Learning Plan')}</div>
+          </div>
+          <button class="plan-regen-btn" onclick="regenPlan()">↺ Regenerate</button>
+        </div>
+        <div class="plan-summary">Week theme: <strong style="color:#fff;">${esc(weekData.theme || '')}</strong></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="plan-stats">
+        <div class="plan-stat"><div class="plan-stat-val">${doneCnt}</div><div class="plan-stat-lbl">Tasks Done</div></div>
+        <div class="plan-stat"><div class="plan-stat-val">${totalTasks - doneCnt}</div><div class="plan-stat-lbl">Remaining</div></div>
+        <div class="plan-stat"><div class="plan-stat-val">${totalTasks > 0 ? Math.round(doneCnt/totalTasks*100) : 0}%</div><div class="plan-stat-lbl">Complete</div></div>
+      </div>
+
+      <!-- Phases -->
+      <div class="plan-phases">
+        ${phaseProgress.map((ph,i)=>`
+          <div class="phase-card${i===currentPhaseIdx?' active':''}">
+            <div class="phase-label">Month ${ph.month}${i===currentPhaseIdx?' · Current':''}</div>
+            <div class="phase-title">${esc(ph.title)}</div>
+            <div class="phase-bar-wrap"><div class="phase-bar" style="width:${ph.pct}%"></div></div>
+            <div class="phase-pct">${ph.pct}%</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Strategy pills -->
+      <div class="strategy-strip">
+        ${(plan.strategies||[]).map((s,i)=>`<div class="strategy-pill${i===0?' highlight':''}">${esc(s)}</div>`).join('')}
+      </div>
+
+      <!-- Quick start -->
+      <div class="quick-start">
+        <div class="quick-start-text">
+          <h4>Ready to study?</h4>
+          <p>Start a session — your plan's timer is <strong>${esc(report?.recommendedTimer||'Pomodoro 25')}</strong></p>
+        </div>
+        <button class="btn btn-primary" onclick="window.navigateTo('study')" style="white-space:nowrap;">Start Timer →</button>
+      </div>
+
+      <!-- Week nav -->
+      <div class="week-nav">
+        <h3>Week ${_viewWeek} — ${esc(weekData.theme || '')}</h3>
+        <div class="week-nav-btns">
+          <button class="week-nav-btn" onclick="changeWeek(-1)" ${_viewWeek<=1?'disabled':''}>‹</button>
+          <button class="week-nav-btn" onclick="changeWeek(1)"  ${_viewWeek>=totalWeeks?'disabled':''}>›</button>
+        </div>
+      </div>
+
+      <!-- Day groups -->
+      ${weekData.days.map(day => {
+        const dayDone = day.tasks.filter((_,ti)=>done[`w${_viewWeek}_${day.day}_${ti}`]).length
+        return `
+        <div class="day-group" id="dg_${day.day}">
+          <div class="day-group-header" onclick="toggleDay('${day.day}')">
+            <span class="day-name">${day.day}</span>
+            <span class="day-progress">${dayDone}/${day.tasks.length} done${dayDone===day.tasks.length?' ✓':''}</span>
+          </div>
+          <div class="day-tasks" id="dt_${day.day}" style="${dayDone===day.tasks.length?'display:none':''}">
+            ${day.tasks.map((t,ti) => {
+              const key = `w${_viewWeek}_${day.day}_${ti}`
+              const isDone = !!done[key]
+              return `
+              <div class="task-row">
+                <div class="task-check${isDone?' done':''}" onclick="toggleTask('${key}', ${t.pts||5})"></div>
+                <div class="task-text${isDone?' done':''}">${esc(t.text)}</div>
+                <span class="task-tag">${esc(t.tag||'')}</span>
+                <span class="task-pts">+${t.pts||5} pts</span>
+              </div>`
+            }).join('')}
+          </div>
+        </div>`
+      }).join('')}
+    `
+  }
+
+  window.toggleTask = function(key, pts) {
+    const done = csGetJSON(DONE_KEY, {})
+    if (done[key]) {
+      delete done[key]
+      // Remove points
+      const curr = parseInt(csGet('studyPoints') || '0')
+      csSet('studyPoints', Math.max(0, curr - pts))
+    } else {
+      done[key] = true
+      // Award points
+      const curr = parseInt(csGet('studyPoints') || '0')
+      csSet('studyPoints', curr + pts)
+    }
+    csSetJSON(DONE_KEY, done)
+    const plan = csGetJSON(PLAN_KEY, null)
+    if (plan) drawPlan(plan)
+  }
+
+  window.changeWeek = function(dir) {
+    const plan = csGetJSON(PLAN_KEY, null)
+    if (!plan) return
+    _viewWeek = Math.max(1, Math.min(plan.weeks.length, _viewWeek + dir))
+    plan.currentWeekNum = _viewWeek
+    csSetJSON(PLAN_KEY, plan)
+    drawPlan(plan)
+  }
+
+  window.toggleDay = function(day) {
+    const el = document.getElementById('dt_' + day)
+    if (el) el.style.display = el.style.display === 'none' ? '' : 'none'
+  }
+
+  window.regenPlan = function() {
+    if (!confirm('Regenerate your plan? This will clear your current task progress.')) return
+    csSetJSON(PLAN_KEY, null)
+    csSetJSON(DONE_KEY, {})
+    show('planHasReport')
+    document.getElementById('activatePlanBtn').onclick = generatePlan
+  }
+
+  function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+  init()
+})()
+</script>
