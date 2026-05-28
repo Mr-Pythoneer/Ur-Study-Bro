@@ -244,61 +244,205 @@ window.submitNASA=function(){R.tlx={mental:+document.getElementById('tlx-m').val
 
 // ── RESULTS ──────────────────────────────────────────
 function buildResults(){
+  const user=localStorage.getItem('cs_currentUser')||'user'
+  const displayName=localStorage.getItem(`cs_${user}_displayName`)||user
   const totalNoGo=R.cpt.trials.filter(t=>t.stimulus_type==='NO_GO').length||24
   const totalGo=R.cpt.trials.filter(t=>t.stimulus_type==='GO').length||96
   let asrsNorm=0;ASRS.forEach(item=>{const sc=R.asrs[item.id]||0;if(sc>=item.thresh)asrsNorm+=sc})
   const risk=Math.min(100,Math.round((R.cpt.commission/totalNoGo)*35+(R.cpt.omission/totalGo)*35+(asrsNorm/24)*30))
   let rl,rc;if(risk<25){rl='Low';rc='#22c55e'}else if(risk<50){rl='Moderate';rc='#eab308'}else if(risk<75){rl='Elevated';rc='#f97316'}else{rl='High';rc='#ef4444'}
   const avgRT=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):0
+  const commPct=Math.round(R.cpt.commission/totalNoGo*100)
+  const omitPct=Math.round(R.cpt.omission/totalGo*100)
   const VN={V:'Visual',A:'Auditory',R:'Read/Write',K:'Kinesthetic'},VC={V:'#6366f1',A:'#f59e0b',R:'#10b981',K:'#ec4899'}
   const vt=R.vark.V+R.vark.A+R.vark.R+R.vark.K||1
   const vd=Object.entries(R.vark).sort((a,b)=>b[1]-a[1])[0][0]
-  const recos=[]
-  if(risk>=50)recos.push({icon:'⏱️',title:'Micro-Pomodoro Protocol',body:'Your attention profile shows elevated risk for sustained-focus blocks. Use a 20-minute on, 5-minute off rhythm. Block background notifications and avoid multi-tasking during study windows.'})
-  if(vd==='V')recos.push({icon:'🗺️',title:'Visual Learning Strategy',body:'You encode best through visuals. Convert lecture notes into color-coded mind maps, timeline flowcharts, and diagrams. Avoid pure audio without visual anchors.'})
-  else if(vd==='A')recos.push({icon:'🎧',title:'Auditory Learning Strategy',body:'You encode best through sound. Record yourself explaining concepts, replay lectures while walking, and discuss material aloud with peers.'})
-  else if(vd==='R')recos.push({icon:'📝',title:'Read/Write Learning Strategy',body:'You retain material best through written text. Prioritize note-taking, written summaries, and flashcard review. Rewrite key concepts in your own words.'})
-  else recos.push({icon:'🏗️',title:'Kinesthetic Learning Strategy',body:'You learn by doing. Use practice problems, simulations, and physical note-taking. Turn content into active tasks rather than passive reading.'})
-  if(R.matrix.switchCost>200||R.tlx.frustration>=7)recos.push({icon:'🎯',title:'Single-Topic Blocking',body:'Your cognitive flexibility profile shows elevated context-switching costs. Enforce 90-minute hyper-focus sessions dedicated entirely to one subject. Minimize subject-switching within a session.'})
   const wmAvg=(R.ds.fwd+R.ds.bwd)/2
-  if(wmAvg<4)recos.push({icon:'🧩',title:'Working Memory Support',body:'Your working memory span is below average. Use external scaffolding: write out multi-step problems, use structured outlines, and chunk information into smaller units.'})
-  if(recos.length===1&&risk<25)recos.push({icon:'✨',title:'Strong Cognitive Profile',body:'Your scores show well-balanced attention, memory, and flexibility. Continue using varied study techniques and challenge yourself with progressively harder material.'})
+  const sessionLen=risk>=50?20:risk>=25?35:50
+  const breakLen=risk>=50?5:10
+
+  // ── Narrative blocks ────────────────────────────────
+  const attentionNarrative=(()=>{
+    const cStr=commPct<=8?'strong impulse control — you rarely responded when you shouldn\'t have':`a commission error rate of ${commPct}%, suggesting your brain\'s braking system is working against you — it\'s hard to hold back once the motor response starts`
+    const oStr=omitPct<=10?'excellent sustained attention — you caught nearly every target':`an omission rate of ${omitPct}%, meaning your attention drifted and missed targets, especially during the later minutes of the task`
+    const rtStr=avgRT<280?`Your reaction time of ${avgRT}ms is exceptionally fast — well above average reflexive speed.`:avgRT<450?`Your average reaction time of ${avgRT}ms sits in the healthy range.`:`Your reaction time of ${avgRT}ms is on the slower end, which may reflect deliberate caution or mental fatigue.`
+    return `Your CPT performance shows ${cStr}, and ${oStr}. ${rtStr} ${risk>=50?'Together, these patterns are consistent with attention difficulties that can make long study sessions feel impossible without the right structure.':'These results suggest your attention regulation is working well under controlled conditions.'}`
+  })()
+
+  const memoryNarrative=(()=>{
+    const fStr=R.ds.fwd>=8?'exceptional — well above the population average of 7±2':R.ds.fwd>=6?'within the healthy average range of 7±2':'below average, suggesting your phonological loop reaches its limit sooner than most'
+    const gap=R.ds.fwd-R.ds.bwd
+    const gapStr=gap<=1?'Your forward-to-backward gap is minimal, indicating your working memory can manipulate information just as well as it stores it — a strong executive function marker.':gap<=3?`The ${gap}-digit gap between forward and backward recall is typical — storing sequences is easier than reversing them.`:`A ${gap}-digit gap between forward (${R.ds.fwd}) and backward (${R.ds.bwd}) recall is notable. This suggests your working memory struggles most when it needs to manipulate information, not just hold it.`
+    return `Your forward digit span of ${R.ds.fwd} digits is ${fStr}. ${gapStr} In practical terms, ${wmAvg<4?'your working memory fills up quickly — breaking complex material into very small chunks is essential':'your working memory can hold a reasonable amount of in-flight information, which supports multi-step reasoning well'}.`
+  })()
+
+  const flexNarrative=(()=>{
+    const sc=R.matrix.switchCost
+    const acc=R.matrix.accuracy
+    const scStr=sc<50?'near-zero switching cost — your brain adapts to rule changes almost instantly, with no meaningful slowdown':sc<150?`a moderate switching cost of +${sc}ms — a small but real slowdown in the first rounds after each rule change`:`a high switching cost of +${sc}ms — rule changes cause significant disruption before you recalibrate`
+    return `Your matrix task shows ${scStr}, with an overall accuracy of ${acc}%. ${R.tlx.frustration>=7?'Your NASA-TLX frustration rating was high, suggesting cognitive load tasks put significant emotional strain on you — this is important to design around.':R.tlx.frustration<=3?'Your low frustration rating suggests you handled cognitive pressure well.':'Your frustration level was moderate — not a bottleneck, but worth monitoring in long study sessions.'}`
+  })()
+
+  const varkNarrative=(()=>{
+    const nm={V:'You are a Visual learner — your brain encodes information most powerfully through spatial layouts, color, and imagery. Text walls are your enemy; structured diagrams are your superpower.',A:'You are an Auditory learner — meaning you encode best through sound, rhythm, and dialogue. Silent reading is less efficient for you than listening, discussing, or explaining.',R:'You are a Read/Write learner — you encode best through the written word. Taking notes, rewriting summaries, and reading actively are your natural strengths.',K:'You are a Kinesthetic learner — you learn by doing, not by watching or reading. Practice problems, physical notes, and applied simulations lock information in far better than passive study.'}
+    return nm[vd]
+  })()
+
+  // ── Strengths ────────────────────────────────────────
+  const strengths=[]
+  if(commPct<=12)strengths.push({icon:'🛑',t:'Strong Impulse Control',b:`Only ${R.cpt.commission} commission errors out of ${totalNoGo} No-Go trials. Your brain's inhibitory braking system is reliable.`})
+  if(R.ds.fwd>=7)strengths.push({icon:'🧠',t:'Above-Average Working Memory',b:`A forward span of ${R.ds.fwd} digits exceeds the population average. You can hold more in mind simultaneously than most people.`})
+  if(omitPct<=10)strengths.push({icon:'👁️',t:'Sustained Attention',b:`You missed only ${R.cpt.omission} of ${totalGo} targets — demonstrating solid focus across the full 3-minute test.`})
+  if(R.matrix.accuracy>=80)strengths.push({icon:'🎯',t:'High Sorting Accuracy',b:`${R.matrix.accuracy}% accuracy on the rule-switching matrix. You make good decisions even when conditions change.`})
+  if(R.matrix.switchCost<100)strengths.push({icon:'⚡',t:'Fast Cognitive Flexibility',b:`Your switching cost of +${R.matrix.switchCost}ms is very low — you adapt to new rules quickly without significant slowdown.`})
+  if(avgRT<320)strengths.push({icon:'🏎️',t:'Fast Reaction Speed',b:`${avgRT}ms average reaction time puts you in the top tier of reflexive processing speed.`})
+  if(strengths.length===0)strengths.push({icon:'💪',t:'Consistent Effort',b:'You completed all six tasks and generated a complete cognitive profile — that persistence itself is a strength.'})
+
+  // ── Growth areas ─────────────────────────────────────
+  const growth=[]
+  if(commPct>15)growth.push({icon:'🔴',t:'Impulsivity Under Pressure',b:`${commPct}% commission error rate. Your motor system fires before your executive brake engages. Deliberate pause techniques (counting 1-2 before acting) and timed Pomodoro sessions can help.`})
+  if(omitPct>15)growth.push({icon:'🟠',t:'Sustained Attention Drift',b:`${omitPct}% omission rate. Your focus wavered — especially in the later portions of the task. Short, structured study blocks with mandatory breaks will prevent this.`})
+  if(R.ds.bwd<4)growth.push({icon:'🟡',t:'Working Memory Manipulation',b:`Backward span of ${R.ds.bwd} digits. Your brain struggles to hold and rearrange information simultaneously. Use external scaffolding: always write out steps, use outlines, and avoid keeping things "in your head."`})
+  if(R.matrix.switchCost>200)growth.push({icon:'🟠',t:'Context-Switching Cost',b:`+${R.matrix.switchCost}ms slowdown after rule changes. Switching subjects mid-session is expensive for your brain. Single-subject focus blocks will protect your performance.`})
+  if(R.tlx.frustration>=7)growth.push({icon:'🔴',t:'Frustration Tolerance',b:`Your frustration rating of ${R.tlx.frustration}/10 during the matrix task suggests cognitive load tasks feel overwhelming. Building frustration tolerance through progressively harder tasks will expand your ceiling.`})
+  if(growth.length===0)growth.push({icon:'🔵',t:'Push Your Ceiling',b:'Your baseline metrics are strong. The next growth edge is increasing study session length and tackling progressively harder material to expand your working limits.'})
+
+  // ── Blueprint ─────────────────────────────────────────
+  const blueprint=[
+    {icon:'⏱️',t:'Session Length',b:`${sessionLen} minutes of focused work, then a ${breakLen}-minute break. ${risk>=50?'Shorter sessions match your attention profile — more frequent resets are better than one long grind.':'You can sustain focus for longer windows — use that to build momentum.'}`},
+    {icon:'🌿',t:'Environment',b:R.tlx.mental>=7?'Minimalist setup is critical. Single monitor, phone in another room, apps blocked. Any visual complexity competes with your available cognitive bandwidth.':'A clean, consistent study space reinforces focus. Ambient noise at low levels (coffee shop sounds, lo-fi) can actually improve your performance.'},
+    {icon:'📋',t:'Task Sequencing',b:R.matrix.switchCost>150?'Group tasks by subject — never alternate between subjects in the same session. Start with the hardest material first while your cognitive resources are fresh.':'You can handle moderate subject-switching. Use "subject blocks" of 45-60 minutes rather than strict single-topic sessions.'},
+    {icon:'🔁',t:'Review Strategy',b:`Your ${VN[vd]} learning profile means your reviews should be ${vd==='V'?'diagram-based — re-draw concepts from memory before looking at notes':vd==='A'?'verbal — explain concepts aloud to yourself or a study partner after each session':vd==='R'?'writing-heavy — write summaries without looking at notes, then compare':'active — solve practice problems or teach the concept to someone else'}.`},
+    {icon:'⚠️',t:'Warning Signs to Watch',b:'Stop and take a real break when you: make 3+ errors in a row, re-read the same sentence more than twice, or feel your jaw tightening. These are your brain\'s overload signals — pushing through them makes learning worse, not better.'},
+  ]
+
+  const saveProfile={adhdRisk:risk,riskLabel:rl,commission:R.cpt.commission,omission:R.cpt.omission,avgRT,forwardSpan:R.ds.fwd,backwardSpan:R.ds.bwd,vark:R.vark,varkDominant:vd,switchCost:R.matrix.switchCost,matrixAccuracy:R.matrix.accuracy,tlx:R.tlx,sessionLen,completedAt:new Date().toISOString(),strengths:strengths.map(s=>s.t),growth:growth.map(g=>g.t)}
+  localStorage.setItem(`cs_${user}_cogProfile`,JSON.stringify(saveProfile))
 
   document.getElementById('results-body').innerHTML=`
-    <div class="card" style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:6px;">Attention Divergence Risk Score</div>
-      <div style="font-size:60px;font-weight:900;color:${rc};line-height:1;">${risk}</div>
-      <div style="font-size:14px;font-weight:700;color:${rc};margin-bottom:12px;">${rl} Risk</div>
-      <div class="risk-bar"><div class="risk-bar-fill" style="width:${risk}%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary);margin-bottom:10px;"><span>Low</span><span>Moderate</span><span>Elevated</span><span>High</span></div>
-      <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">Computed from commission errors, omission errors, and self-report responses. <strong>Not a clinical diagnosis.</strong></div>
-    </div>
-    <div class="res-grid">
-      <div class="res-card"><div class="res-card-title">Commission Errors</div><div class="res-card-val" style="color:#ef4444">${R.cpt.commission}</div><div class="res-card-sub">Impulsivity marker</div></div>
-      <div class="res-card"><div class="res-card-title">Omission Errors</div><div class="res-card-val" style="color:#f97316">${R.cpt.omission}</div><div class="res-card-sub">Inattention marker</div></div>
-      <div class="res-card"><div class="res-card-title">Avg Reaction Time</div><div class="res-card-val">${avgRT}<span style="font-size:14px">ms</span></div><div class="res-card-sub">${avgRT<300?'Fast':avgRT<500?'Average':'Slow'} response</div></div>
-      <div class="res-card"><div class="res-card-title">CPT Hits</div><div class="res-card-val" style="color:#22c55e">${R.cpt.hits}</div><div class="res-card-sub">of ${totalGo} Go trials</div></div>
-      <div class="res-card"><div class="res-card-title">Memory Span</div><div class="res-card-val">${R.ds.fwd}<span style="font-size:14px"> fwd / ${R.ds.bwd} bwd</span></div><div class="res-card-sub">digits</div></div>
-      <div class="res-card"><div class="res-card-title">Matrix Accuracy</div><div class="res-card-val">${R.matrix.accuracy}<span style="font-size:14px">%</span></div><div class="res-card-sub">Switch cost: ${R.matrix.switchCost>0?'+':''}${R.matrix.switchCost}ms</div></div>
-    </div>
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Learning Style — Dominant: <span style="color:${VC[vd]}">${VN[vd]}</span></div>
-      ${Object.entries(VN).map(([k,name])=>`<div class="vark-bar-row"><div class="vark-bar-label"><span style="font-weight:700;color:${VC[k]}">${name}</span><span>${R.vark[k]}/${vt}</span></div><div class="vark-bar"><div class="vark-bar-fill" style="width:${Math.round(R.vark[k]/vt*100)}%;background:${VC[k]}"></div></div></div>`).join('')}
-    </div>
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Mental Workload (NASA-TLX)</div>
-      <div style="display:flex;gap:16px;text-align:center;flex-wrap:wrap;">
-        ${[['Mental Demand',R.tlx.mental,'#6366f1'],['Temporal Demand',R.tlx.temporal,'#f59e0b'],['Frustration',R.tlx.frustration,'#ef4444']].map(([l,v,c])=>`<div style="flex:1;min-width:70px;"><div style="font-size:28px;font-weight:900;color:${c}">${v}</div><div style="font-size:11px;color:var(--text-secondary);font-weight:600;">${l}</div><div style="height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;"><div style="width:${v*10}%;height:100%;background:${c};border-radius:2px;"></div></div></div>`).join('')}
+  <style>
+  .report-section{margin-bottom:20px}
+  .report-section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .report-section-title::after{content:'';flex:1;height:1px;background:var(--accent-light)}
+  .narrative{font-size:14px;color:var(--text-secondary);line-height:1.8}
+  .strength-card{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:8px;background:#f0fdf4;border:1px solid #bbf7d0}
+  .growth-card{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:8px;background:#fef9ec;border:1px solid #fde68a}
+  .blueprint-card{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:8px;background:var(--bg-card);border:1px solid var(--border)}
+  .card-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+  .card-t{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px}
+  .card-b{font-size:12px;color:var(--text-secondary);line-height:1.6}
+  .data-pill{display:inline-flex;align-items:center;gap:5px;background:var(--bg-main);border:1px solid var(--border);border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;color:var(--text-primary);margin:3px}
+  .plan-cta{background:linear-gradient(135deg,var(--accent) 0%,#1a9e7a 100%);border-radius:var(--radius);padding:28px 24px;text-align:center;color:#fff;margin-top:24px}
+  </style>
+
+  <!-- Report Header -->
+  <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,var(--accent-light),#f0fdf4);border-color:var(--accent);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent)">Cognitive Assessment Report</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text-primary);margin-top:2px;">${displayName}'s Brain Profile</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:44px;font-weight:900;color:${rc};line-height:1">${risk}</div>
+        <div style="font-size:12px;font-weight:700;color:${rc}">${rl} Attention Risk</div>
       </div>
     </div>
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;">📋 Personalized Study Strategies</div>
-    ${recos.map(r=>`<div class="reco"><div class="reco-title">${r.icon} ${r.title}</div><div class="reco-body">${r.body}</div></div>`).join('')}
-    <div style="text-align:center;margin-top:24px;">
-      <button class="btn btn-primary" style="font-size:15px;padding:12px 28px;" onclick="window.navigateTo&&window.navigateTo('plan')">Activate My 90-Day Plan 🐌</button>
-    </div>`
+    <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;">
+      <span class="data-pill">⚡ ${avgRT}ms avg RT</span>
+      <span class="data-pill">🔢 ${R.ds.fwd} fwd / ${R.ds.bwd} bwd span</span>
+      <span class="data-pill">${VN[vd]} learner</span>
+      <span class="data-pill">🎯 ${R.matrix.accuracy}% matrix accuracy</span>
+      <span class="data-pill">⏱️ ${sessionLen}min optimal session</span>
+    </div>
+  </div>
 
-  const user=localStorage.getItem('cs_currentUser')||'user'
-  localStorage.setItem(`cs_${user}_cogProfile`,JSON.stringify({adhdRisk:risk,riskLabel:rl,commission:R.cpt.commission,omission:R.cpt.omission,avgRT,forwardSpan:R.ds.fwd,backwardSpan:R.ds.bwd,vark:R.vark,varkDominant:vd,switchCost:R.matrix.switchCost,matrixAccuracy:R.matrix.accuracy,tlx:R.tlx,recos:recos.map(r=>r.title),completedAt:new Date().toISOString()}))
+  <!-- Attention -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">⚡ Attention & Executive Function</div>
+    <p class="narrative">${attentionNarrative}</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;">
+      <div class="res-card"><div class="res-card-title">Commission</div><div class="res-card-val" style="color:#ef4444">${R.cpt.commission}</div><div class="res-card-sub">${commPct}% rate</div></div>
+      <div class="res-card"><div class="res-card-title">Omission</div><div class="res-card-val" style="color:#f97316">${R.cpt.omission}</div><div class="res-card-sub">${omitPct}% rate</div></div>
+      <div class="res-card"><div class="res-card-title">Hits</div><div class="res-card-val" style="color:#22c55e">${R.cpt.hits}</div><div class="res-card-sub">of ${totalGo}</div></div>
+      <div class="res-card"><div class="res-card-title">Avg RT</div><div class="res-card-val">${avgRT}<span style="font-size:12px">ms</span></div><div class="res-card-sub">${avgRT<300?'Fast':avgRT<450?'Average':'Slow'}</div></div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:6px;">Attention Risk Score</div>
+      <div class="risk-bar"><div class="risk-bar-fill" style="width:${risk}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary);"><span>Low</span><span>Moderate</span><span>Elevated</span><span>High</span></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:10px;font-style:italic;">⚠️ Not a clinical diagnosis. For professional evaluation consult a licensed psychologist.</div>
+  </div>
+
+  <!-- Working Memory -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">🧠 Working Memory Profile</div>
+    <p class="narrative">${memoryNarrative}</p>
+    <div style="display:flex;gap:16px;margin-top:14px;text-align:center;">
+      <div style="flex:1;background:var(--bg-main);border-radius:var(--radius-sm);padding:16px;">
+        <div style="font-size:36px;font-weight:900;color:#6366f1">${R.ds.fwd}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-secondary)">Forward Span</div>
+        <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">avg: 7 digits</div>
+        <div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;"><div style="width:${Math.min(100,R.ds.fwd/12*100)}%;height:100%;background:#6366f1;border-radius:2px;"></div></div>
+      </div>
+      <div style="flex:1;background:var(--bg-main);border-radius:var(--radius-sm);padding:16px;">
+        <div style="font-size:36px;font-weight:900;color:#ec4899">${R.ds.bwd}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-secondary)">Backward Span</div>
+        <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">avg: 5 digits</div>
+        <div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;"><div style="width:${Math.min(100,R.ds.bwd/10*100)}%;height:100%;background:#ec4899;border-radius:2px;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Learning Style -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">📚 Learning Style Analysis</div>
+    <p class="narrative">${varkNarrative}</p>
+    <div style="margin-top:14px;">${Object.entries(VN).map(([k,name])=>`<div class="vark-bar-row"><div class="vark-bar-label"><span style="font-weight:700;color:${VC[k]}">${name}</span><span style="font-size:11px;color:var(--text-secondary)">${Math.round(R.vark[k]/vt*100)}%</span></div><div class="vark-bar"><div class="vark-bar-fill" style="width:${Math.round(R.vark[k]/vt*100)}%;background:${VC[k]}"></div></div></div>`).join('')}</div>
+    <div style="margin-top:14px;background:${VC[vd]}18;border:1px solid ${VC[vd]}44;border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:12px;font-weight:700;color:${VC[vd]};margin-bottom:4px;">Best study methods for you:</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">${vd==='V'?'Mind maps · Color-coded notes · Flowcharts · Diagrams · Video content with visuals · Spatial organization':vd==='A'?'Lecture replays · Discussion groups · Record & replay notes · Verbal explanation · Podcasts · Study with a partner':vd==='R'?'Written summaries · Flashcards · Detailed notes · Annotated reading · Essay practice · Written Q&A':'Practice problems · Labs · Whiteboard sessions · Teach-back · Physical models · Applied simulations'}</div>
+    </div>
+  </div>
+
+  <!-- Cognitive Flexibility -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">🔄 Cognitive Flexibility</div>
+    <p class="narrative">${flexNarrative}</p>
+    <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;">
+      <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Switching Cost</div><div class="res-card-val" style="color:${R.matrix.switchCost>200?'#ef4444':R.matrix.switchCost>100?'#eab308':'#22c55e'}">${R.matrix.switchCost>0?'+':''}${R.matrix.switchCost}<span style="font-size:12px">ms</span></div><div class="res-card-sub">${R.matrix.switchCost<50?'Excellent':R.matrix.switchCost<150?'Average':'High cost'}</div></div>
+      <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Matrix Accuracy</div><div class="res-card-val">${R.matrix.accuracy}<span style="font-size:12px">%</span></div><div class="res-card-sub">${R.matrix.accuracy>=85?'Excellent':R.matrix.accuracy>=70?'Good':'Needs work'}</div></div>
+      <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Mental Load</div><div class="res-card-val" style="color:${R.tlx.mental>=7?'#ef4444':R.tlx.mental>=4?'#eab308':'#22c55e'}">${R.tlx.mental}/10</div><div class="res-card-sub">Self-rated</div></div>
+      <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Frustration</div><div class="res-card-val" style="color:${R.tlx.frustration>=7?'#ef4444':R.tlx.frustration>=4?'#eab308':'#22c55e'}">${R.tlx.frustration}/10</div><div class="res-card-sub">Self-rated</div></div>
+    </div>
+  </div>
+
+  <!-- Strengths -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">💪 Your Strengths</div>
+    ${strengths.map(s=>`<div class="strength-card"><div class="card-icon">${s.icon}</div><div><div class="card-t">${s.t}</div><div class="card-b">${s.b}</div></div></div>`).join('')}
+  </div>
+
+  <!-- Growth Areas -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">📈 Areas for Growth</div>
+    ${growth.map(g=>`<div class="growth-card"><div class="card-icon">${g.icon}</div><div><div class="card-t">${g.t}</div><div class="card-b">${g.b}</div></div></div>`).join('')}
+  </div>
+
+  <!-- Study Blueprint -->
+  <div class="report-section card" style="margin-bottom:16px;">
+    <div class="report-section-title">🗺️ Your Optimal Study Blueprint</div>
+    ${blueprint.map(b=>`<div class="blueprint-card"><div class="card-icon">${b.icon}</div><div><div class="card-t">${b.t}</div><div class="card-b">${b.b}</div></div></div>`).join('')}
+  </div>
+
+  <!-- CTA -->
+  <div class="plan-cta">
+    <div style="font-size:28px;margin-bottom:8px;">🐌</div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px;">Turn This Into Action</div>
+    <div style="font-size:14px;opacity:.9;margin-bottom:20px;line-height:1.6;">Your cognitive profile is now saved. Hit the button below to generate a personalized daily study plan — built around your brain, your subjects, and your goals.</div>
+    <button onclick="window.navigateTo&&window.navigateTo('plan')" style="background:#fff;color:var(--accent);border:none;border-radius:var(--radius-sm);padding:14px 32px;font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);">Make My Study Plan →</button>
+  </div>`
 }
 
 updateProg()

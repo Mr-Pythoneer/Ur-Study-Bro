@@ -26,7 +26,7 @@ function createWindow() {
     trafficLightPosition: { x: 16, y: 16 },
     fullscreenable: true,
     backgroundColor: '#f5f5f0',
-    icon: path.join(__dirname, 'assets', 'icon.icns'),
+    icon: path.join(__dirname, 'assets', 'icon_1024.png'),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -670,7 +670,7 @@ ipcMain.on('update:install', () => {
 // ── App lifecycle ─────────────────────────────────────────────────
 app.whenReady().then(() => {
   if (process.platform === 'darwin') {
-    app.dock.setIcon(path.join(__dirname, 'assets', 'icon.icns'))
+    try { app.dock.setIcon(path.join(__dirname, 'assets', 'icon_1024.png')) } catch (e) { console.error('dock icon:', e.message) }
   }
   createWindow()
   // Only run updater in packaged app, not during dev

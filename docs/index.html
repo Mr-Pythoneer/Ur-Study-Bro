@@ -488,49 +488,59 @@
 
 <!-- 90-Day Plan -->
 <section class="section" id="plan">
-  <div class="section-label">90-Day Plan</div>
-  <h2>A plan that actually does something.</h2>
-  <p class="section-sub">Most apps give you generic advice. Ur Study Bro turns your cognitive assessment into a week-by-week action plan with daily tasks you can check off.</p>
+  <div class="section-label">Study Path</div>
+  <h2>As addictive as Duolingo. Built for studying.</h2>
+  <p class="section-sub">40 progressive tasks in a zigzag path — XP, streaks, daily goals, and confetti. Your brain gets rewarded every step of the way.</p>
 
-  <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:40px;">
-    <!-- Plan mockup -->
-    <div style="background:#0e0e0e;padding:28px 32px;color:#fff;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#6ee7b7;margin-bottom:6px;">90-Day Plan · Week 1 of 12</div>
-      <div style="font-size:18px;font-weight:900;letter-spacing:-.3px;margin-bottom:8px;">High-Reasoning Slow Processor</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.5);">Week theme: <strong style="color:#fff;">Build the habit</strong></div>
+  <!-- Path mockup -->
+  <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:40px;background:#fafafa;">
+    <!-- Stats bar -->
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <div style="background:#fafafa;border:1px solid #e8e8e8;border-radius:99px;padding:6px 14px;font-size:13px;font-weight:800;">🔥 7 <span style="font-size:11px;font-weight:600;color:#999;">day streak</span></div>
+      <div style="flex:1;min-width:120px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-bottom:4px;"><span>⚡ 470 XP · Scholar</span><span>30 to next</span></div>
+        <div style="height:8px;background:#e8e8e8;border-radius:99px;"><div style="width:82%;height:100%;background:linear-gradient(90deg,#f59e0b,#f97316);border-radius:99px;"></div></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:99px;padding:6px 14px;font-size:13px;font-weight:800;color:#fff;">Lv 5</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);">
-      <div style="background:#fff;padding:16px 18px;text-align:center;">
-        <div style="font-size:24px;font-weight:900;color:var(--green);">7</div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#999;margin-top:3px;">Tasks Done</div>
+    <!-- Path nodes -->
+    <div style="padding:28px 24px;display:flex;flex-direction:column;gap:8px;max-width:340px;margin:0 auto;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#999;text-align:center;margin-bottom:4px;">🌱 Getting Started</div>
+      <div style="display:flex;justify-content:flex-end;padding-right:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#22c55e;box-shadow:0 4px 12px rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;">✓</div>
+          <div style="font-size:11px;color:#999;font-weight:700;text-align:center;max-width:80px;">Set Your Space</div>
+        </div>
       </div>
-      <div style="background:#fff;padding:16px 18px;text-align:center;">
-        <div style="font-size:24px;font-weight:900;color:var(--green);">8</div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#999;margin-top:3px;">Remaining</div>
+      <div style="display:flex;justify-content:flex-start;padding-left:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#22c55e;box-shadow:0 4px 12px rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;">✓</div>
+          <div style="font-size:11px;color:#999;font-weight:700;text-align:center;max-width:80px;">Write Today's Goal</div>
+        </div>
       </div>
-      <div style="background:#fff;padding:16px 18px;text-align:center;">
-        <div style="font-size:24px;font-weight:900;color:var(--green);">47%</div>
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#999;margin-top:3px;">Complete</div>
+      <div style="display:flex;justify-content:flex-end;padding-right:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:var(--green);box-shadow:0 0 0 8px rgba(15,123,108,.15),0 4px 16px rgba(15,123,108,.4);display:flex;align-items:center;justify-content:center;font-size:26px;">📖</div>
+          <div style="font-size:11px;color:var(--green);font-weight:700;text-align:center;max-width:80px;">Deep Read Session</div>
+          <div style="background:var(--green);color:#fff;border:none;border-radius:10px;padding:7px 18px;font-size:12px;font-weight:800;">START ▶</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-start;padding-left:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.45;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#fff;border:2.5px solid #e8e8e8;display:flex;align-items:center;justify-content:center;font-size:26px;">🧠</div>
+          <div style="font-size:11px;color:#999;font-weight:700;text-align:center;max-width:80px;">Brain Dump</div>
+        </div>
       </div>
     </div>
-    <div style="padding:20px 24px;background:#fff;border-top:1px solid var(--border);">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:12px;">Monday</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:16px;height:16px;border-radius:4px;background:var(--green);flex-shrink:0;"></div>
-          <div style="font-size:13px;text-decoration:line-through;color:#aaa;flex:1;">Complete a Pomodoro 25 study session</div>
-          <span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:99px;font-weight:700;">+10 pts</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:16px;height:16px;border-radius:4px;background:var(--green);flex-shrink:0;"></div>
-          <div style="font-size:13px;text-decoration:line-through;color:#aaa;flex:1;">Do 5 minutes of backward digit span practice</div>
-          <span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:99px;font-weight:700;">+5 pts</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:16px;height:16px;border-radius:4px;border:2px solid #e0e0e0;flex-shrink:0;"></div>
-          <div style="font-size:13px;color:#111;flex:1;">Switch subjects after each Pomodoro today</div>
-          <span style="font-size:10px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:99px;font-weight:700;">+3 pts</span>
-        </div>
+    <!-- Daily ring -->
+    <div style="padding:14px 20px;background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px;">
+      <svg width="48" height="48" viewBox="0 0 52 52" style="flex-shrink:0;transform:rotate(-90deg)">
+        <circle cx="26" cy="26" r="21" fill="none" stroke="#e8e8e8" stroke-width="5"/>
+        <circle cx="26" cy="26" r="21" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="52.8"/>
+      </svg>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#111;">Daily goal: 3 / 5 tasks</div>
+        <div style="font-size:12px;color:#999;">2 more tasks to keep your streak alive 🔥</div>
       </div>
     </div>
   </div>
@@ -538,18 +548,18 @@
   <div class="grid grid-3">
     <div class="grid-card">
       <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
-      <h3>Built from your results</h3>
-      <p>The plan is generated directly from your cognitive assessment. Every task targets your specific weak domains — not generic study advice.</p>
+      <h3>Built from your brain</h3>
+      <p>Every task on the path is generated from your cognitive profile — your VARK style, session length, memory span, and cognitive switch cost all shape what you get.</p>
     </div>
     <div class="grid-card">
-      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></div>
-      <h3>Week-by-week structure</h3>
-      <p>12 weeks of daily tasks across 3 phases — Establish, Deepen, and Sustain — each building on the last.</p>
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <h3>XP · Streaks · Levels</h3>
+      <p>8 named levels from Seedling to Legend. Daily 5-task goal. Confetti and XP popups on every completion. Built to keep you coming back every single day.</p>
     </div>
     <div class="grid-card">
       <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12V6H4v16h8"/><path d="M16 19l2 2 4-4"/></svg></div>
-      <h3>Check off &amp; earn points</h3>
-      <p>Every task is checkable. Complete them and earn Study Points — the plan integrates directly with the rewards system.</p>
+      <h3>Progressive difficulty</h3>
+      <p>40 tasks across three zones — Getting Started, Building Momentum, and Advanced — each zone harder than the last. Milestone trophies every 10 nodes.</p>
     </div>
   </div>
 </section>
@@ -563,59 +573,60 @@
   <p class="section-sub">Most study apps give every student the same advice. Ur Study Bro starts by understanding how your mind actually works.</p>
 
   <div class="assess-box">
-    <h3>Six short tests. One honest picture of how you learn.</h3>
-    <p>You'll complete six timed activities — each designed to measure a different part of how your brain handles information. No prior knowledge needed. When you finish, the AI reads all your results together and writes you a personal report explaining your strengths, your growth areas, and exactly how to study in a way that works for you.</p>
+    <h3>Six psychometric tests. One comprehensive cognitive profile.</h3>
+    <p>Built to clinical standards — the same paradigms used in neuropsychological research. Each test targets a different cognitive domain using validated, millisecond-precise measurement. When you finish, the app generates a full narrative report: your ADHD risk score, working memory profile, learning style, cognitive flexibility, and a personalised Optimal Study Blueprint.</p>
     <div class="pill-row">
-      <div class="pill">Memory</div>
-      <div class="pill">Speed</div>
-      <div class="pill">Attention</div>
-      <div class="pill">Reasoning</div>
-      <div class="pill">Reading</div>
-      <div class="pill">Adaptability</div>
+      <div class="pill">Sustained Attention</div>
+      <div class="pill">Impulsivity</div>
+      <div class="pill">Working Memory</div>
+      <div class="pill">Learning Style</div>
+      <div class="pill">Cognitive Flexibility</div>
+      <div class="pill">Mental Load</div>
     </div>
   </div>
 
   <div class="grid grid-3" style="margin-bottom:40px;">
     <div class="grid-card">
-      <div class="grid-icon" style="background:#ede9fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.5 3 6l.5 4h7l.5-4c1.8-1.5 3-3.5 3-6 0-4-3-7-7-7z"/></svg></div>
-      <h3>Memory Span</h3>
-      <p>A sequence of numbers appears one at a time. Remember them in order and type them back. Each round gets slightly longer.</p>
-    </div>
-    <div class="grid-card">
-      <div class="grid-icon" style="background:#fef3c7;"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
-      <h3>Symbol Matching</h3>
-      <p>A chart shows which symbol matches which number. A symbol flashes — tap the right number as quickly as you can.</p>
-    </div>
-    <div class="grid-card">
       <div class="grid-icon" style="background:#fee2e2;"><svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div>
-      <h3>Focus Test</h3>
-      <p>Letters flash on screen one by one. Press the spacebar only when you see the letter X — keeping concentration steady the whole time is the challenge.</p>
+      <h3>CPT — Attention &amp; Impulse Control</h3>
+      <p>120 trials on a canvas: press SPACE for circles (GO), hold back for red circles and triangles (NO-GO). Reaction times logged to the millisecond. Calculates omission errors, commission errors, and an ADHD risk score.</p>
     </div>
     <div class="grid-card">
-      <div class="grid-icon" style="background:#dbeafe;"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-      <h3>Pattern Puzzles</h3>
-      <p>A grid of images has one piece missing. Four options are shown — pick the one that completes the pattern. Gets harder with each round.</p>
+      <div class="grid-icon" style="background:#fef3c7;"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <h3>ASRS — ADHD Self-Report</h3>
+      <p>Six clinically-validated items from the WHO Adult ADHD Self-Report Scale. Each response is scored against published diagnostic thresholds to produce a combined risk rating.</p>
     </div>
     <div class="grid-card">
-      <div class="grid-icon" style="background:#d1fae5;"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h12"/></svg></div>
-      <h3>Reading &amp; Understanding</h3>
-      <p>Read three short passages at your own pace, then answer questions about each one. Tests how quickly and accurately you pull meaning from text.</p>
+      <div class="grid-icon" style="background:#ede9fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.5 3 6l.5 4h7l.5-4c1.8-1.5 3-3.5 3-6 0-4-3-7-7-7z"/></svg></div>
+      <h3>Digit Span — Working Memory</h3>
+      <p>Visual forward recall (flash-and-type) and auditory backward recall via Web Speech API. Adaptive length — grows when you succeed, stops after two consecutive failures. Measures both phonological loop and manipulation capacity.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#d1fae5;"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <h3>VARK — Learning Style</h3>
+      <p>Three situational scenarios map your preference across Visual, Auditory, Read/Write, and Kinesthetic modalities. Your dominant style directly influences the tasks generated in your Study Path.</p>
     </div>
     <div class="grid-card">
       <div class="grid-icon" style="background:#fce7f3;"><svg viewBox="0 0 24 24" fill="none" stroke="#db2777" stroke-width="2" stroke-linecap="round"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg></div>
-      <h3>Rule Switching</h3>
-      <p>Shapes appear and you sort them by a rule — but the rule changes without warning. Tests how quickly your brain can switch from one way of thinking to another.</p>
+      <h3>Rule-Switching Matrix</h3>
+      <p>30 rounds of sorting coloured shapes — the rule alternates between COLOR and SHAPE every 5 rounds without warning. Measures switching cost (millisecond slowdown after a rule change) and accuracy under cognitive load.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#dbeafe;"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM12 6v6l4 2"/></svg></div>
+      <h3>NASA-TLX — Mental Load</h3>
+      <p>Three sliders (mental demand, time pressure, frustration) from the NASA Task Load Index. Scores feed directly into your session-length recommendation — high load means shorter, more frequent sessions.</p>
     </div>
   </div>
 
-  <p style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:20px;">After you finish, you receive</p>
+  <p style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:20px;">After you finish, you receive a full narrative report with</p>
   <div class="results-grid">
-    <div class="result-row"><div class="result-dot"></div><div><strong>Score Cards for Each Area</strong><span>Your result in every domain — colour-coded to show where you're strong, average, and where you can grow most.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Strengths &amp; Growth Areas</strong><span>Your two clearest cognitive strengths and the two areas with the most room to improve.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Recommended Focus Timer</strong><span>Which of the four timers best matches your natural attention span, based on your results.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>90-Day Development Plan</strong><span>Concrete, week-by-week actions matched to the specific pattern of your results — not generic advice.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Personalised Study Guide</strong><span>A full subject-specific plan — phases, techniques, a daily schedule, and weekly milestones.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>One Honest Warning</strong><span>A heads-up about the one way your profile could work against you — and what to do about it.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>ADHD Risk Score</strong><span>A composite score (0–100) blending commission errors, omission errors, and ASRS responses — with a plain-English explanation of what it means for your studying.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>Attention &amp; Executive Function Narrative</strong><span>A detailed paragraph interpreting your CPT results — reaction time, false alarms, and missed targets — in the context of real-world focus and impulse control.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>Working Memory Profile</strong><span>Forward and backward span scores with an explanation of the gap between them and what it means for how you should structure your revision.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>Learning Style Analysis</strong><span>Your VARK breakdown with specific study techniques recommended for your dominant modality — not generic advice, but methods matched to how you actually process information.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>Cognitive Flexibility Score</strong><span>Your switching cost in milliseconds — how much your brain slows down when a rule changes — plus whether that means you should use single-subject or mixed-subject sessions.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>Optimal Study Blueprint</strong><span>Five personalised cards: ideal session length, environment setup, task sequencing strategy, review method, and one specific warning sign to watch for during study.</span></div></div>
+    <div class="result-row"><div class="result-dot"></div><div><strong>"Make My Study Plan" button</strong><span>One click turns your full cognitive profile into a 40-task Duolingo-style path, personalised to your scores. XP, streaks, and daily goals keep you on track.</span></div></div>
   </div>
 </section>
 
@@ -824,9 +835,9 @@
 <!-- CTA -->
 <div class="cta" id="download">
   <h2>Free. Open source. No sign-up.</h2>
-  <p>Download v4.0.0 — with the full cognitive assessment and personalised study plans.</p>
+  <p>Download v5.0.0 — now with the psychometric cognitive assessment, Duolingo-style study path, and local AI on your device.</p>
   <div class="hero-actions" id="ctaDl"></div>
-  <p class="hero-note" id="ctaNote" style="margin-top:12px;">No account required · Free forever · v4.0.0</p>
+  <p class="hero-note" id="ctaNote" style="margin-top:12px;">No account required · Free forever · v5.0.0</p>
 </div>
 
 <footer>
@@ -866,8 +877,8 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© 2026 Mr_Pythoneer · Released under the <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/blob/main/LICENSE" target="_blank">MIT License</a></span>
-    <span>Built with Electron · No tracking · No telemetry</span>
+    <span>Copyright Mr_Pythoneer 2026© · Released under the <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/blob/main/LICENSE" target="_blank">MIT License</a></span>
+    <span>Built with Electron · No tracking · No telemetry · v5.0.0</span>
   </div>
 </footer>
 
@@ -893,17 +904,17 @@
     },
     mac: {
       label: 'Download for macOS', sub: 'Apple Silicon',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-4.0.0-arm64.dmg',
+      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-5.0.0-arm64.dmg',
       icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`,
     },
     win: {
       label: 'Download for Windows', sub: 'x64',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro.Setup.4.0.0.exe',
+      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro.Setup.5.0.0.exe',
       icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V3.25L11 2v10h9zM3 13h6v6.43l-6-1.29V13zm17 0h-9v10l9-1.75V13z"/></svg>`,
     },
     linux: {
       label: 'Download for Linux', sub: 'AppImage',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-4.0.0.AppImage',
+      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-5.0.0.AppImage',
       icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.581 19.049c-.55.366-1.78-.172-2.742-1.196-.96-1.025-1.433-2.277-.883-2.643.55-.365 1.78.172 2.742 1.197.96 1.025 1.432 2.276.883 2.642zm-18.69-2.698c-.508.364-.22 1.398.642 2.311.863.912 1.978 1.363 2.486 1 .509-.366.22-1.4-.64-2.312-.862-.912-1.978-1.364-2.488-1zm10.548-9.849c-1.364 1.283-1.843 3.094-1.06 4.12.781 1.025 2.657.93 4.077-.37 1.42-1.3 1.87-3.154 1.088-4.179-.782-1.025-2.741-.854-4.105.43zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/></svg>`,
     },
     github: {
