@@ -1,141 +1,78 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
 <style>
-/* ─── Stats Bar ─────────────────────────────────────────────────── */
+/* ─── Stats Bar ──────────────────────────────────────────────── */
 .plan-stats-bar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 20px; margin-bottom: 20px;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:14px 20px; margin-bottom:16px;
 }
 .plan-stat-chip {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 15px; font-weight: 800; color: var(--text-primary);
-  background: var(--bg-main); border: 1px solid var(--border);
-  border-radius: 99px; padding: 6px 14px; white-space: nowrap;
+  display:flex; align-items:center; gap:6px;
+  font-size:15px; font-weight:800; color:var(--text-primary);
+  background:var(--bg-main); border:1px solid var(--border);
+  border-radius:99px; padding:6px 14px; white-space:nowrap;
 }
-.plan-stat-chip .label { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-.plan-xp-bar-wrap { flex: 1; min-width: 100px; }
-.plan-xp-bar-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
-.plan-xp-bar-track { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
-.plan-xp-bar-fill  { height: 100%; background: linear-gradient(90deg,#f59e0b,#f97316); border-radius: 99px; transition: width .6s cubic-bezier(.34,1.56,.64,1); }
+.plan-stat-chip .label { font-size:11px; font-weight:600; color:var(--text-secondary); }
+.plan-xp-bar-wrap { flex:1; min-width:100px; }
+.plan-xp-bar-label { display:flex; justify-content:space-between; font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
+.plan-xp-bar-track { height:8px; background:var(--border); border-radius:99px; overflow:hidden; }
+.plan-xp-bar-fill  { height:100%; background:linear-gradient(90deg,#f59e0b,#f97316); border-radius:99px; transition:width .6s cubic-bezier(.34,1.56,.64,1); }
 
-/* ─── Empty / Generating ─────────────────────────────────────────── */
-.plan-empty { text-align:center; padding:80px 24px; }
+/* ─── Tabs ───────────────────────────────────────────────────── */
+.plan-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.plan-tab {
+  padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer;
+  border:none; background:none; color:var(--text-secondary);
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  font-family:var(--font); transition:color .12s, border-color .12s;
+}
+.plan-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* ─── Subject setup card ─────────────────────────────────────── */
+.subject-card {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px; margin-bottom:16px;
+}
+.subject-card h3 { font-size:14px; font-weight:800; margin-bottom:4px; color:var(--text-primary); }
+.subject-card p  { font-size:13px; color:var(--text-secondary); margin-bottom:14px; line-height:1.6; }
+.subject-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.subject-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--accent-light); color:var(--accent);
+  border:1px solid var(--accent); border-radius:99px;
+  padding:5px 12px; font-size:12px; font-weight:700;
+}
+.subject-tag button {
+  background:none; border:none; cursor:pointer; color:var(--accent);
+  font-size:14px; line-height:1; padding:0; margin-left:2px;
+  opacity:.7; transition:opacity .12s;
+}
+.subject-tag button:hover { opacity:1; }
+.subject-input-row { display:flex; gap:8px; }
+.subject-input-row input {
+  flex:1; padding:9px 13px; border:1.5px solid var(--border);
+  border-radius:9px; font-family:var(--font); font-size:13px;
+  color:var(--text-primary); background:var(--bg); outline:none;
+  transition:border-color .15s;
+}
+.subject-input-row input:focus { border-color:var(--accent); }
+
+/* ─── Empty / Generating ─────────────────────────────────────── */
+.plan-empty { text-align:center; padding:60px 24px; }
 .plan-empty-icon { font-size:56px; margin-bottom:20px; }
 .plan-empty h2 { font-size:22px; font-weight:900; letter-spacing:-.4px; margin-bottom:10px; color:var(--text-primary); }
 .plan-empty p  { font-size:14px; color:var(--text-secondary); line-height:1.7; max-width:380px; margin:0 auto 28px; }
 .plan-gen-spinner { width:44px;height:44px;border:3.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px; }
 @keyframes spin { to{transform:rotate(360deg)} }
 
-/* ─── Path container ─────────────────────────────────────────────── */
-.path-outer { max-width: 460px; margin: 0 auto 40px; padding: 0 16px; }
-
-.path-section-header {
-  text-align: center; margin: 28px 0 16px;
-  font-size: 11px; font-weight: 800; letter-spacing: .8px;
-  text-transform: uppercase; color: var(--text-secondary);
-  display: flex; align-items: center; gap: 12px;
-}
-.path-section-header::before, .path-section-header::after {
-  content:''; flex:1; height:1px; background:var(--border);
-}
-
-/* Individual nodes */
-.path-row { display: flex; margin-bottom: 6px; }
-.path-row.left  { justify-content: flex-start; padding-left: 30px; }
-.path-row.right { justify-content: flex-end;  padding-right: 30px; }
-.path-row.center { justify-content: center; }
-
-.path-node-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-
-.path-node {
-  width: 62px; height: 62px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; cursor: pointer;
-  transition: transform .15s, box-shadow .15s;
-  position: relative; flex-shrink: 0;
-}
-.path-node:hover { transform: scale(1.08); }
-.path-node:active { transform: scale(.96); }
-
-/* Completed */
-.path-node.done {
-  background: #22c55e;
-  box-shadow: 0 4px 12px rgba(34,197,94,.35);
-}
-.path-node.done::after {
-  content: '✓'; font-size: 26px; font-weight: 900;
-  color: #fff; position: absolute;
-}
-
-/* Active / current */
-.path-node.active {
-  background: var(--accent);
-  box-shadow: 0 0 0 6px rgba(46,125,94,.25), 0 4px 16px rgba(46,125,94,.45);
-  animation: nodePulse 2.2s ease-in-out infinite;
-}
-@keyframes nodePulse {
-  0%,100% { box-shadow: 0 0 0 6px rgba(46,125,94,.22), 0 4px 16px rgba(46,125,94,.4); }
-  50%      { box-shadow: 0 0 0 12px rgba(46,125,94,.12), 0 6px 24px rgba(46,125,94,.55); }
-}
-
-/* Locked */
-.path-node.locked {
-  background: var(--bg-card);
-  border: 2.5px solid var(--border);
-  cursor: not-allowed;
-  opacity: .55;
-}
-.path-node.locked:hover { transform: none; }
-
-/* Milestone (chest) */
-.path-node.milestone {
-  width: 72px; height: 72px; font-size: 30px; border-radius: 18px;
-  background: linear-gradient(135deg,#fbbf24,#f59e0b);
-  box-shadow: 0 4px 16px rgba(251,191,36,.4);
-  border: 2px solid #fbbf24;
-}
-.path-node.milestone.done {
-  background: linear-gradient(135deg,#6ee7b7,#22c55e);
-  box-shadow: 0 4px 16px rgba(34,197,94,.35);
-}
-.path-node.milestone.locked {
-  background: var(--bg-card);
-  border-color: var(--border);
-  opacity: .45;
-}
-
-/* Label below node */
-.path-node-label {
-  font-size: 11px; font-weight: 700; max-width: 80px;
-  text-align: center; color: var(--text-secondary);
-  line-height: 1.3; letter-spacing: -.1px;
-}
-.path-node-label.active { color: var(--accent); }
-
-/* START button below active node */
-.path-start-btn {
-  background: var(--accent); color: #fff;
-  border: none; border-radius: 12px; padding: 9px 22px;
-  font-size: 13px; font-weight: 800; cursor: pointer;
-  font-family: var(--font); letter-spacing: .3px;
-  box-shadow: 0 4px 12px rgba(46,125,94,.4);
-  animation: btnBounce 2s ease-in-out infinite;
-  margin-top: 4px;
-}
-@keyframes btnBounce {
-  0%,100%{transform:translateY(0);}
-  50%{transform:translateY(-4px);}
-}
-.path-start-btn:active { transform: scale(.95) !important; animation: none; }
-
-/* Daily goal strip */
+/* ─── Daily goal bar ─────────────────────────────────────────── */
 .daily-goal-bar {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 20px;
-  margin-bottom: 16px; display: flex; align-items: center; gap: 14px;
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px 20px;
+  margin-bottom:16px; display:flex; align-items:center; gap:14px;
 }
 .daily-goal-ring { position:relative; width:52px;height:52px;flex-shrink:0; }
-.daily-goal-ring svg { transform: rotate(-90deg); }
+.daily-goal-ring svg { transform:rotate(-90deg); }
 .daily-goal-ring-label {
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   font-size:11px;font-weight:800;color:var(--accent);text-align:center;line-height:1;
@@ -143,35 +80,130 @@
 .daily-goal-text h4 { font-size:14px;font-weight:800;color:var(--text-primary);margin-bottom:3px; }
 .daily-goal-text p  { font-size:12px;color:var(--text-secondary); }
 
-/* ─── Task Modal ─────────────────────────────────────────────────── */
-.task-modal-overlay {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
-  backdrop-filter: blur(2px); z-index: 200;
-  animation: fadeIn .2s ease;
+/* ─── Path ───────────────────────────────────────────────────── */
+.path-outer { max-width:460px; margin:0 auto 40px; padding:0 16px; }
+
+.path-section-header {
+  text-align:center; margin:28px 0 16px;
+  font-size:11px; font-weight:800; letter-spacing:.8px;
+  text-transform:uppercase; color:var(--text-secondary);
+  display:flex; align-items:center; gap:12px;
 }
-.task-modal-overlay.open { display: flex; align-items: flex-end; justify-content: center; }
+.path-section-header::before,.path-section-header::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.path-row { display:flex; margin-bottom:6px; }
+.path-row.left  { justify-content:flex-start; padding-left:30px; }
+.path-row.right { justify-content:flex-end;  padding-right:30px; }
+.path-row.center { justify-content:center; }
+
+.path-node-wrap { display:flex; flex-direction:column; align-items:center; gap:4px; }
+
+.path-node {
+  width:62px; height:62px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; cursor:pointer;
+  transition:transform .15s, box-shadow .15s;
+  position:relative; flex-shrink:0;
+}
+.path-node:hover { transform:scale(1.08); }
+.path-node:active { transform:scale(.96); }
+
+.path-node.done {
+  background:#22c55e;
+  box-shadow:0 4px 12px rgba(34,197,94,.35);
+}
+.path-node.done::after {
+  content:'✓'; font-size:26px; font-weight:900;
+  color:#fff; position:absolute;
+}
+.path-node.active {
+  background:var(--accent);
+  box-shadow:0 0 0 6px rgba(46,125,94,.25),0 4px 16px rgba(46,125,94,.45);
+  animation:nodePulse 2.2s ease-in-out infinite;
+}
+@keyframes nodePulse {
+  0%,100% { box-shadow:0 0 0 6px rgba(46,125,94,.22),0 4px 16px rgba(46,125,94,.4); }
+  50%      { box-shadow:0 0 0 12px rgba(46,125,94,.12),0 6px 24px rgba(46,125,94,.55); }
+}
+.path-node.locked {
+  background:var(--bg-card); border:2.5px solid var(--border);
+  cursor:not-allowed; opacity:.55;
+}
+.path-node.locked:hover { transform:none; }
+.path-node.milestone {
+  width:72px; height:72px; font-size:30px; border-radius:18px;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  box-shadow:0 4px 16px rgba(251,191,36,.4);
+  border:2px solid #fbbf24;
+}
+.path-node.milestone.done {
+  background:linear-gradient(135deg,#6ee7b7,#22c55e);
+  box-shadow:0 4px 16px rgba(34,197,94,.35);
+}
+.path-node.milestone.locked { background:var(--bg-card); border-color:var(--border); opacity:.45; }
+
+.path-node-label {
+  font-size:11px; font-weight:700; max-width:80px;
+  text-align:center; color:var(--text-secondary);
+  line-height:1.3; letter-spacing:-.1px;
+}
+.path-node-label.active { color:var(--accent); }
+
+.path-start-btn {
+  background:var(--accent); color:#fff;
+  border:none; border-radius:12px; padding:9px 22px;
+  font-size:13px; font-weight:800; cursor:pointer;
+  font-family:var(--font); letter-spacing:.3px;
+  box-shadow:0 4px 12px rgba(46,125,94,.4);
+  animation:btnBounce 2s ease-in-out infinite;
+  margin-top:4px;
+}
+@keyframes btnBounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+.path-start-btn:active { transform:scale(.95)!important; animation:none; }
+
+/* Infinite load spinner at path bottom */
+.path-loading {
+  text-align:center; padding:24px;
+  font-size:13px; color:var(--text-secondary);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+}
+.path-loading-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--accent);
+  animation:dotBounce 1.4s ease-in-out infinite;
+}
+.path-loading-dot:nth-child(2) { animation-delay:.2s; }
+.path-loading-dot:nth-child(3) { animation-delay:.4s; }
+@keyframes dotBounce { 0%,80%,100%{transform:scale(0)}40%{transform:scale(1)} }
+
+/* ─── Task Modal ─────────────────────────────────────────────── */
+.task-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+  backdrop-filter:blur(2px); z-index:200; animation:fadeIn .2s ease;
+}
+.task-modal-overlay.open { display:flex; align-items:flex-end; justify-content:center; }
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
 .task-modal-sheet {
-  background: var(--bg-card); border-radius: 24px 24px 0 0;
-  padding: 12px 28px 40px; width: 100%; max-width: 520px;
-  box-shadow: 0 -8px 40px rgba(0,0,0,.18);
-  animation: slideUp .3s cubic-bezier(.34,1.56,.64,1);
+  background:var(--bg-card); border-radius:24px 24px 0 0;
+  padding:12px 28px 40px; width:100%; max-width:520px;
+  box-shadow:0 -8px 40px rgba(0,0,0,.18);
+  animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);
 }
 @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
 
 .modal-handle { width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 20px; }
-.modal-icon    { font-size:44px; text-align:center; margin-bottom:12px; }
+.modal-icon    { font-size:44px;text-align:center;margin-bottom:12px; }
 .modal-type    { font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--accent);text-align:center;margin-bottom:6px; }
 .modal-title   { font-size:20px;font-weight:900;text-align:center;letter-spacing:-.4px;color:var(--text-primary);margin-bottom:10px; }
 .modal-desc    { font-size:13.5px;color:var(--text-secondary);line-height:1.65;text-align:center;margin-bottom:20px; }
-.modal-meta    { display:flex;justify-content:center;gap:12px;margin-bottom:24px; }
+.modal-meta    { display:flex;justify-content:center;gap:12px;margin-bottom:24px;flex-wrap:wrap; }
 .modal-pill    { background:var(--bg-main);border:1px solid var(--border);border-radius:99px;padding:6px 16px;font-size:13px;font-weight:700;color:var(--text-primary); }
 .modal-pill.xp { background:rgba(245,158,11,.1);border-color:#f59e0b;color:#b45309; }
+.modal-pill.subj { background:var(--accent-light);border-color:var(--accent);color:var(--accent); }
 
 .modal-btn-row { display:flex;flex-direction:column;gap:10px; }
 .modal-btn-primary {
-  background: var(--accent); color:#fff; border:none; border-radius:14px;
+  background:var(--accent); color:#fff; border:none; border-radius:14px;
   padding:15px; font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);
   box-shadow:0 4px 14px rgba(46,125,94,.4); transition:transform .12s,box-shadow .12s;
 }
@@ -184,138 +216,202 @@
 }
 .modal-btn-secondary:hover { border-color:var(--accent);color:var(--accent); }
 
-/* Timer in modal */
-.modal-timer {
-  font-size:48px;font-weight:900;color:var(--text-primary);text-align:center;
-  letter-spacing:-2px;margin:8px 0;font-feature-settings:'tnum';
-}
+.modal-timer { font-size:48px;font-weight:900;color:var(--text-primary);text-align:center;letter-spacing:-2px;margin:8px 0;font-feature-settings:'tnum'; }
 .modal-timer.low { color:#ef4444;animation:timerPulse .8s ease-in-out infinite; }
 @keyframes timerPulse { 0%,100%{opacity:1}50%{opacity:.5} }
 
-/* ─── XP Popup animation ─────────────────────────────────────────── */
+/* ─── Growth tab ─────────────────────────────────────────────── */
+.growth-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+@media(max-width:480px) { .growth-grid { grid-template-columns:1fr 1fr; } }
+.growth-stat {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px;
+  text-align:center;
+}
+.growth-stat .val { font-size:28px;font-weight:900;color:var(--accent);line-height:1; }
+.growth-stat .lbl { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-top:4px; }
+
+.growth-section-title { font-size:13px;font-weight:800;color:var(--text-primary);margin:20px 0 10px; }
+
+.type-bar-row { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+.type-bar-label { font-size:12px;font-weight:600;color:var(--text-secondary);width:90px;flex-shrink:0; }
+.type-bar-track { flex:1;height:8px;background:var(--border);border-radius:99px;overflow:hidden; }
+.type-bar-fill  { height:100%;border-radius:99px;transition:width .6s ease; }
+.type-bar-count { font-size:12px;font-weight:700;color:var(--text-secondary);width:30px;text-align:right;flex-shrink:0; }
+
+.milestone-row {
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;
+}
+.milestone-row .ms-icon { font-size:24px; }
+.milestone-row .ms-name { font-size:13px;font-weight:700;color:var(--text-primary); }
+.milestone-row .ms-sub  { font-size:11px;color:var(--text-secondary); }
+.milestone-row .ms-badge {
+  margin-left:auto;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;
+  background:var(--accent-light);color:var(--accent);white-space:nowrap;
+}
+.milestone-row.locked { opacity:.4; }
+
+/* ─── XP / Confetti popups ───────────────────────────────────── */
 .xp-popup {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  background: var(--accent); color: #fff; border-radius: 99px;
-  font-size: 28px; font-weight: 900; padding: 16px 36px;
-  pointer-events: none; z-index: 999;
-  animation: xpFloat 1.6s cubic-bezier(.22,1,.36,1) forwards;
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:var(--accent);color:#fff;border-radius:99px;
+  font-size:28px;font-weight:900;padding:16px 36px;
+  pointer-events:none;z-index:999;
+  animation:xpFloat 1.6s cubic-bezier(.22,1,.36,1) forwards;
 }
 @keyframes xpFloat {
-  0%   { opacity:0; transform:translate(-50%,-50%) scale(.4); }
-  20%  { opacity:1; transform:translate(-50%,-50%) scale(1.1); }
-  60%  { opacity:1; transform:translate(-50%,-90%) scale(1); }
-  100% { opacity:0; transform:translate(-50%,-160%) scale(.8); }
+  0%   {opacity:0;transform:translate(-50%,-50%) scale(.4);}
+  20%  {opacity:1;transform:translate(-50%,-50%) scale(1.1);}
+  60%  {opacity:1;transform:translate(-50%,-90%) scale(1);}
+  100% {opacity:0;transform:translate(-50%,-160%) scale(.8);}
 }
-
-/* ─── Confetti ───────────────────────────────────────────────────── */
 .confetti-piece {
-  position: fixed; pointer-events: none; z-index: 998;
-  border-radius: 2px; animation: confettiFall linear forwards;
+  position:fixed;pointer-events:none;z-index:998;
+  border-radius:2px;animation:confettiFall linear forwards;
 }
 @keyframes confettiFall {
-  0%   { opacity:1; transform: translateY(0) rotate(0deg); }
-  100% { opacity:0; transform: translateY(80vh) rotate(720deg); }
+  0%   {opacity:1;transform:translateY(0) rotate(0deg);}
+  100% {opacity:0;transform:translateY(80vh) rotate(720deg);}
 }
-
-/* ─── Streak toast ───────────────────────────────────────────────── */
 .streak-toast {
-  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-  background: #f97316; color: #fff; border-radius: 12px;
-  padding: 12px 24px; font-size: 14px; font-weight: 800;
-  z-index: 997; animation: toastIn .4s cubic-bezier(.34,1.56,.64,1),
-               toastOut .4s ease 2.4s forwards;
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  background:#f97316;color:#fff;border-radius:12px;
+  padding:12px 24px;font-size:14px;font-weight:800;
+  z-index:997;animation:toastIn .4s cubic-bezier(.34,1.56,.64,1), toastOut .4s ease 2.4s forwards;
   pointer-events:none;
 }
 @keyframes toastIn  { from{opacity:0;transform:translate(-50%,-20px)} to{opacity:1;transform:translate(-50%,0)} }
 @keyframes toastOut { to{opacity:0;transform:translate(-50%,-20px)} }
-
-/* ─── Responsive tweak ───────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .path-outer { padding: 0 8px; }
-  .path-row.left  { padding-left: 10px; }
-  .path-row.right { padding-right: 10px; }
-}
 </style>
 
 <div class="page-header">
   <div class="page-title">Study Path</div>
-  <div class="page-subtitle">Complete tasks, earn XP, build your streak.</div>
+  <div class="page-subtitle">Infinite · personalised · evolves as you grow.</div>
 </div>
 
-<!-- Empty state (no cognitive profile) -->
-<div id="planEmpty" style="display:none;">
-  <div class="plan-empty">
-    <div class="plan-empty-icon">🐌</div>
-    <h2>Your path is waiting</h2>
-    <p>Complete the cognitive assessment first — your results will be used to build a personalised study path just for you.</p>
-    <button class="btn btn-primary" onclick="window.navigateTo('assessment')">Take the Assessment →</button>
+<!-- Stats bar -->
+<div class="plan-stats-bar" id="planStatsBar" style="display:none;">
+  <div class="plan-stat-chip">🔥 <span id="streakCount">0</span><span class="label">day streak</span></div>
+  <div class="plan-xp-bar-wrap">
+    <div class="plan-xp-bar-label">
+      <span>⚡ <span id="xpTotal">0</span> XP · <span id="levelLabel">Seedling</span></span>
+      <span id="xpToNext">100 to next</span>
+    </div>
+    <div class="plan-xp-bar-track"><div class="plan-xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
   </div>
+  <div class="plan-stat-chip" id="levelBadge" style="background:linear-gradient(135deg,#fbbf24,#f97316);border-color:#f59e0b;color:#fff;">Lv 1</div>
 </div>
 
-<!-- Generating state -->
-<div id="planGenerating" style="display:none;">
-  <div class="plan-empty">
-    <div class="plan-gen-spinner"></div>
-    <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:8px;" id="planGenMsg">Building your path…</div>
-    <div style="font-size:13px;color:var(--text-secondary);">Personalising tasks from your cognitive profile</div>
+<!-- Tabs -->
+<div class="plan-tabs" id="planTabBar" style="display:none;">
+  <button class="plan-tab active" onclick="switchTab('path')">🗺️ My Path</button>
+  <button class="plan-tab" onclick="switchTab('subjects')">📚 Subjects</button>
+  <button class="plan-tab" onclick="switchTab('growth')">📈 My Growth</button>
+</div>
+
+<!-- ── PATH TAB ─────────────────────────────────────────── -->
+<div id="tabPath">
+
+  <!-- No subjects yet -->
+  <div id="planNoSubjects" style="display:none;">
+    <div class="plan-empty">
+      <div class="plan-empty-icon">📚</div>
+      <h2>Add your subjects first</h2>
+      <p>Tell the app what you're studying — it'll build a personalised, infinite study path around your subjects and how your brain works.</p>
+      <button class="btn btn-primary" onclick="switchTab('subjects')">Add Subjects →</button>
+    </div>
   </div>
-</div>
 
-<!-- Active path -->
-<div id="planActive" style="display:none;">
+  <!-- Generating -->
+  <div id="planGenerating" style="display:none;">
+    <div class="plan-empty">
+      <div class="plan-gen-spinner"></div>
+      <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:8px;" id="planGenMsg">Building your path…</div>
+      <div style="font-size:13px;color:var(--text-secondary);">Personalising tasks from your subjects &amp; cognitive profile</div>
+    </div>
+  </div>
 
-  <!-- Stats bar -->
-  <div class="plan-stats-bar">
-    <div class="plan-stat-chip">🔥 <span id="streakCount">0</span><span class="label">day streak</span></div>
-    <div class="plan-xp-bar-wrap">
-      <div class="plan-xp-bar-label">
-        <span>⚡ <span id="xpTotal">0</span> XP · <span id="levelLabel">Level 1</span></span>
-        <span id="xpToNext">100 to next</span>
+  <!-- Active path -->
+  <div id="planActive" style="display:none;">
+    <!-- Daily goal -->
+    <div class="daily-goal-bar">
+      <div class="daily-goal-ring">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="21" fill="none" stroke="var(--border)" stroke-width="5"/>
+          <circle cx="26" cy="26" r="21" fill="none" stroke="#22c55e" stroke-width="5"
+            stroke-linecap="round" stroke-dasharray="131.9" id="dailyRingFill" stroke-dashoffset="131.9"/>
+        </svg>
+        <div class="daily-goal-ring-label" id="dailyRingLabel">0/5</div>
       </div>
-      <div class="plan-xp-bar-track"><div class="plan-xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
+      <div class="daily-goal-text">
+        <h4 id="dailyGoalTitle">Daily goal: 0 / 5 tasks</h4>
+        <p id="dailyGoalSub">Complete 5 tasks today to keep your streak alive 🔥</p>
+      </div>
+      <div style="margin-left:auto;font-size:12px;color:var(--text-secondary);font-weight:600;" id="totalDoneLabel"></div>
     </div>
-    <div class="plan-stat-chip" id="levelBadge" style="background:linear-gradient(135deg,#fbbf24,#f97316);border-color:#f59e0b;color:#fff;">Lv 1</div>
+
+    <div class="path-outer" id="pathOuter"></div>
   </div>
-
-  <!-- Daily goal -->
-  <div class="daily-goal-bar">
-    <div class="daily-goal-ring">
-      <svg width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r="21" fill="none" stroke="var(--border)" stroke-width="5"/>
-        <circle cx="26" cy="26" r="21" fill="none" stroke="#22c55e" stroke-width="5"
-          stroke-linecap="round" stroke-dasharray="131.9"
-          id="dailyRingFill" stroke-dashoffset="131.9"/>
-      </svg>
-      <div class="daily-goal-ring-label" id="dailyRingLabel">0/5</div>
-    </div>
-    <div class="daily-goal-text">
-      <h4 id="dailyGoalTitle">Daily goal: 0 / 5 tasks</h4>
-      <p id="dailyGoalSub">Complete 5 tasks today to keep your streak alive 🔥</p>
-    </div>
-  </div>
-
-  <!-- Path nodes rendered here -->
-  <div class="path-outer" id="pathOuter"></div>
-
 </div>
 
-<!-- Task modal overlay -->
+<!-- ── SUBJECTS TAB ─────────────────────────────────────── -->
+<div id="tabSubjects" style="display:none;">
+  <div class="subject-card">
+    <h3>Your Subjects</h3>
+    <p>Add the subjects you're currently studying. The path generates tasks specifically around these — the more specific the better (e.g. "AP Calculus BC" beats "Maths").</p>
+    <div class="subject-tags" id="subjectTags"></div>
+    <div class="subject-input-row">
+      <input type="text" id="subjectInput" placeholder="e.g. AP Biology, History Essay, Spanish Vocab…" maxlength="50"
+        onkeydown="if(event.key==='Enter')addSubject()"/>
+      <button class="btn btn-primary" onclick="addSubject()">Add</button>
+    </div>
+  </div>
+  <div id="subjectRebuildNote" style="display:none;background:var(--accent-light);border:1px solid var(--accent);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px;">
+    ✨ Subjects updated — your path will include new tasks for these subjects next time it generates more.
+  </div>
+  <button class="btn btn-primary" style="width:100%;" id="buildPathBtn" onclick="buildPath()">
+    Build My Infinite Path →
+  </button>
+</div>
+
+<!-- ── GROWTH TAB ─────────────────────────────────────────── -->
+<div id="tabGrowth" style="display:none;">
+  <div class="growth-grid">
+    <div class="growth-stat"><div class="val" id="gTotalDone">0</div><div class="lbl">Tasks Done</div></div>
+    <div class="growth-stat"><div class="val" id="gTotalXP">0</div><div class="lbl">Total XP</div></div>
+    <div class="growth-stat"><div class="val" id="gStreak">0</div><div class="lbl">Day Streak</div></div>
+    <div class="growth-stat"><div class="val" id="gLevel">1</div><div class="lbl">Level</div></div>
+    <div class="growth-stat"><div class="val" id="gSessions">0</div><div class="lbl">Focus Sessions</div></div>
+    <div class="growth-stat"><div class="val" id="gDaysActive">0</div><div class="lbl">Days Active</div></div>
+  </div>
+
+  <div class="growth-section-title">Completed by type</div>
+  <div id="typeBreakdown"></div>
+
+  <div class="growth-section-title">Milestones</div>
+  <div id="milestonesPanel"></div>
+</div>
+
+<!-- Task modal -->
 <div class="task-modal-overlay" id="taskModalOverlay">
-  <div class="task-modal-sheet" id="taskModalSheet">
+  <div class="task-modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-icon" id="modalIcon">📚</div>
     <div class="modal-type" id="modalType">Study Session</div>
     <div class="modal-title" id="modalTitle">Active Recall Session</div>
-    <div class="modal-desc" id="modalDesc">Read your notes, then close them and write everything you remember from scratch.</div>
+    <div class="modal-desc" id="modalDesc">Read your notes, then close them and write everything you remember.</div>
     <div class="modal-meta">
       <div class="modal-pill" id="modalTime">⏱ 25 min</div>
       <div class="modal-pill xp" id="modalXP">⚡ +20 XP</div>
+      <div class="modal-pill subj" id="modalSubj" style="display:none;"></div>
     </div>
     <div id="modalTimerDisplay" style="display:none;">
       <div class="modal-timer" id="modalTimerText">25:00</div>
     </div>
     <div class="modal-btn-row" id="modalBtnRow">
-      <button class="modal-btn-primary" id="modalStartBtn" onclick="handleModalStart()">Start Session</button>
+      <button class="modal-btn-primary" id="modalStartBtn" onclick="handleModalStart()">🎯 Start &amp; Open Focus Mode</button>
       <button class="modal-btn-secondary" onclick="handleModalDone()">Mark as Complete</button>
     </div>
   </div>
@@ -325,296 +421,259 @@
 (function() {
 'use strict'
 
-/* ─── Keys & Storage ─────────────────────────────────────────────── */
-const TASKS_KEY  = 'planTasks'    // generated task array
-const DONE_KEY   = 'planDone'     // { taskIndex: datestamp }
-const XP_KEY     = 'planXP'
-const LVL_KEY    = 'planLevel'
-const STREAK_KEY = 'planStreak'
-const STREAK_DATE_KEY = 'planStreakDate'
-const DAILY_KEY  = 'planDailyDone'  // tasks done today
-const DAILY_DATE_KEY = 'planDailyDate'
+/* ── Storage keys ─────────────────────────────────────────────── */
+const K = {
+  tasks:      'planTasks',
+  done:       'planDone',       // { idx: timestamp }
+  xp:         'planXP',
+  xpTotal:    'planXPTotal',    // all-time XP (never resets)
+  level:      'planLevel',
+  streak:     'planStreak',
+  streakDate: 'planStreakDate',
+  daily:      'planDailyDone',
+  dailyDate:  'planDailyDate',
+  daysActive: 'planDaysActive', // Set of date strings
+  subjects:   'planSubjects',
+  perf:       'planPerf',       // { type: count } — performance by task type
+}
 
-const DAILY_GOAL = 5
+const DAILY_GOAL   = 5
 const XP_PER_LEVEL = 100
-// XP thresholds by level (every level needs more XP)
-const levelNames = ['Seedling','Sprout','Sapling','Oak','Scholar','Sage','Master','Legend']
+const BATCH_SIZE   = 12   // generate this many tasks at a time
+const PREFETCH_AT  = 4    // generate more when this many unlocked tasks remain
+const levelNames   = ['Seedling','Sprout','Sapling','Oak','Scholar','Sage','Master','Legend']
+const TYPE_COLORS  = {
+  Session:'#2e7d5e', Memory:'#7c3aed', Attention:'#dc2626',
+  Flexibility:'#d97706', Speed:'#0ea5e9', Review:'#16a34a', Challenge:'#f97316'
+}
 
-/* ─── State ──────────────────────────────────────────────────────── */
+/* ── State ────────────────────────────────────────────────────── */
 let tasks   = []
 let doneMap = {}
+let subjects = []
 let activeTaskIdx = -1
 let timerInterval = null
 let timerRemain   = 0
+let isGenerating  = false
+let currentTab    = 'path'
 
-/* ─── Profile ────────────────────────────────────────────────────── */
 const profile = csGetJSON('cogProfile', null)
 
-/* ─── Init ───────────────────────────────────────────────────────── */
+/* ── Init ─────────────────────────────────────────────────────── */
 function init() {
-  if (!profile) { show('planEmpty'); return }
+  subjects = csGetJSON(K.subjects, [])
   updateStreak()
-  const saved = csGetJSON(TASKS_KEY, null)
-  if (saved && saved.length > 0) {
-    tasks = saved
-    doneMap = csGetJSON(DONE_KEY, {})
-    show('planActive')
-    render()
-  } else {
-    show('planGenerating')
-    genMessages()
-    generateTasks().then(() => { show('planActive'); render() })
-  }
-}
+  tasks   = csGetJSON(K.tasks, [])
+  doneMap = csGetJSON(K.done, {})
 
-function show(id) {
-  ['planEmpty','planGenerating','planActive'].forEach(i => {
-    document.getElementById(i).style.display = i === id ? '' : 'none'
-  })
-}
-
-/* ─── Streak logic ───────────────────────────────────────────────── */
-function updateStreak() {
-  const today = new Date().toDateString()
-  const lastDate = csGet(STREAK_DATE_KEY)
-  const yesterday = new Date(Date.now() - 86400000).toDateString()
-  let streak = parseInt(csGet(STREAK_KEY) || '0')
-
-  // Reset daily counter if new day
-  const dailyDate = csGet(DAILY_DATE_KEY)
-  if (dailyDate !== today) {
-    csSet(DAILY_DATE_KEY, today)
-    csSetJSON(DAILY_KEY, [])
-  }
-
-  // Check if streak should break
-  if (lastDate && lastDate !== today && lastDate !== yesterday) {
-    streak = 0
-    csSet(STREAK_KEY, '0')
-  }
-}
-
-function todayTasksDone() {
-  const done = csGetJSON(DAILY_KEY, [])
-  return done.length
-}
-
-function incrementStreak() {
-  const today = new Date().toDateString()
-  const lastDate = csGet(STREAK_DATE_KEY)
-  if (lastDate === today) return // already incremented today
-  let streak = parseInt(csGet(STREAK_KEY) || '0')
-  streak++
-  csSet(STREAK_KEY, String(streak))
-  csSet(STREAK_DATE_KEY, today)
-  if (streak > 1) showStreakToast(streak)
-}
-
-/* ─── XP / Level ─────────────────────────────────────────────────── */
-function getXP()  { return parseInt(csGet(XP_KEY) || '0') }
-function getLevel() { return parseInt(csGet(LVL_KEY) || '1') }
-
-function addXP(amount) {
-  let xp = getXP() + amount
-  let level = getLevel()
-  const threshold = level * XP_PER_LEVEL
-  if (xp >= threshold) {
-    xp -= threshold
-    level++
-    csSet(LVL_KEY, String(level))
-    showLevelUp(level)
-  }
-  csSet(XP_KEY, String(xp))
+  document.getElementById('planStatsBar').style.display = ''
+  document.getElementById('planTabBar').style.display = ''
   updateStatsBar()
-}
+  renderSubjectTags()
 
-function updateStatsBar() {
-  const streak = parseInt(csGet(STREAK_KEY) || '0')
-  const xp     = getXP()
-  const level  = getLevel()
-  const threshold = level * XP_PER_LEVEL
-  const pct    = Math.round(xp / threshold * 100)
-  const lName  = levelNames[Math.min(level-1, levelNames.length-1)]
-
-  document.getElementById('streakCount').textContent = streak
-  document.getElementById('xpTotal').textContent = xp
-  document.getElementById('levelLabel').textContent = `${lName}`
-  document.getElementById('xpToNext').textContent = `${threshold - xp} to next`
-  document.getElementById('xpBarFill').style.width = pct + '%'
-  document.getElementById('levelBadge').textContent = `Lv ${level}`
-
-  // Daily goal ring
-  const daily = todayTasksDone()
-  const frac = Math.min(1, daily / DAILY_GOAL)
-  const circ = 131.9
-  document.getElementById('dailyRingFill').setAttribute('stroke-dashoffset', circ * (1 - frac))
-  document.getElementById('dailyRingLabel').textContent = `${daily}/${DAILY_GOAL}`
-  document.getElementById('dailyGoalTitle').textContent = `Daily goal: ${daily} / ${DAILY_GOAL} tasks`
-  if (daily >= DAILY_GOAL) {
-    document.getElementById('dailyGoalSub').textContent = '🎉 Daily goal complete! You\'re on fire!'
+  if (subjects.length === 0) {
+    showPathState('noSubjects')
+  } else if (tasks.length === 0) {
+    showPathState('generating')
+    startGeneration()
   } else {
-    const left = DAILY_GOAL - daily
-    document.getElementById('dailyGoalSub').textContent = `${left} more task${left!==1?'s':''} to keep your streak alive 🔥`
+    showPathState('active')
+    renderPath()
+    maybePrefetch()
   }
 }
 
-/* ─── Generate tasks ─────────────────────────────────────────────── */
-async function generateTasks() {
-  // Try AI first, fallback to built-in generator
+/* ── Tab switching ────────────────────────────────────────────── */
+window.switchTab = function(tab) {
+  currentTab = tab
+  document.querySelectorAll('.plan-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['path','subjects','growth'][i] === tab)
+  })
+  document.getElementById('tabPath').style.display    = tab === 'path'    ? '' : 'none'
+  document.getElementById('tabSubjects').style.display = tab === 'subjects' ? '' : 'none'
+  document.getElementById('tabGrowth').style.display  = tab === 'growth'  ? '' : 'none'
+  if (tab === 'growth') renderGrowth()
+}
+
+/* ── Path state ───────────────────────────────────────────────── */
+function showPathState(state) {
+  document.getElementById('planNoSubjects').style.display = state === 'noSubjects' ? '' : 'none'
+  document.getElementById('planGenerating').style.display = state === 'generating'  ? '' : 'none'
+  document.getElementById('planActive').style.display     = state === 'active'      ? '' : 'none'
+}
+
+/* ── Subjects ─────────────────────────────────────────────────── */
+window.addSubject = function() {
+  const inp = document.getElementById('subjectInput')
+  const val = inp.value.trim()
+  if (!val || subjects.includes(val)) { inp.focus(); return }
+  subjects.push(val)
+  csSetJSON(K.subjects, subjects)
+  inp.value = ''
+  renderSubjectTags()
+  if (tasks.length > 0) document.getElementById('subjectRebuildNote').style.display = ''
+  document.getElementById('buildPathBtn').textContent = tasks.length > 0
+    ? '🔄 Regenerate Path with New Subjects' : 'Build My Infinite Path →'
+}
+
+window.removeSubject = function(idx) {
+  subjects.splice(idx, 1)
+  csSetJSON(K.subjects, subjects)
+  renderSubjectTags()
+}
+
+function renderSubjectTags() {
+  const wrap = document.getElementById('subjectTags')
+  if (subjects.length === 0) {
+    wrap.innerHTML = '<span style="font-size:12px;color:var(--text-secondary);">No subjects yet — add some above.</span>'
+    return
+  }
+  wrap.innerHTML = subjects.map((s,i) =>
+    `<div class="subject-tag">${esc(s)}<button onclick="removeSubject(${i})" title="Remove">×</button></div>`
+  ).join('')
+}
+
+window.buildPath = function() {
+  if (subjects.length === 0) { document.getElementById('subjectInput').focus(); return }
+  tasks = []; doneMap = {}
+  csSetJSON(K.tasks, []); csSetJSON(K.done, {})
+  csSetJSON(K.daily, []); csSetJSON(K.perf, {})
+  document.getElementById('subjectRebuildNote').style.display = 'none'
+  switchTab('path')
+  showPathState('generating')
+  startGeneration()
+}
+
+/* ── Generation ───────────────────────────────────────────────── */
+async function startGeneration() {
+  if (isGenerating) return
+  isGenerating = true
+  genMessages()
+  try {
+    const newTasks = await generateBatch()
+    const startIdx = tasks.length
+    newTasks.forEach((t, i) => { t.id = startIdx + i })
+    tasks = tasks.concat(newTasks)
+    csSetJSON(K.tasks, tasks)
+    showPathState('active')
+    renderPath()
+  } catch(e) {
+    showPathState(tasks.length > 0 ? 'active' : 'noSubjects')
+  } finally {
+    isGenerating = false
+  }
+}
+
+async function maybePrefetch() {
+  if (isGenerating) return
+  const current = currentNodeIdx()
+  const remaining = tasks.length - current
+  if (remaining <= PREFETCH_AT) startGeneration()
+}
+
+async function generateBatch() {
   const provider = localStorage.getItem('ai_provider') || 'ollama'
-  const hasKey = provider === 'ollama' || !!localStorage.getItem('ai_key_' + provider)
-  if (hasKey && window.api?.askAI) {
+  const hasAI = provider === 'ollama' || !!localStorage.getItem('ai_key_' + provider)
+  if (hasAI && window.api?.askAI) {
     try {
-      const p = buildAIPrompt()
       const res = await window.api.askAI({
-        provider, model: localStorage.getItem('ai_model_' + provider) || 'auto',
-        systemPrompt: 'You are a study coach. Return only valid JSON arrays, no markdown.',
-        messages: [{ role:'user', content: p }]
+        provider,
+        model: localStorage.getItem('ai_model_' + provider) || (provider === 'ollama' ? 'llama3.2' : 'auto'),
+        systemPrompt: 'You are a study coach. Return ONLY valid JSON arrays, no markdown, no explanation.',
+        messages: [{ role:'user', content: buildPrompt() }]
       })
-      const raw = (res.reply || '').trim()
+      const raw   = (res.reply || '').trim()
       const match = raw.match(/\[[\s\S]*\]/)
       if (match) {
         const parsed = JSON.parse(match[0])
-        if (Array.isArray(parsed) && parsed.length >= 20) {
-          tasks = parsed.slice(0, 50)
-          csSetJSON(TASKS_KEY, tasks)
-          doneMap = {}
-          csSetJSON(DONE_KEY, {})
-          return
+        if (Array.isArray(parsed) && parsed.length >= 5) {
+          return parsed.slice(0, BATCH_SIZE)
         }
       }
-    } catch(e) { /* fall through */ }
+    } catch(e) { /* fallthrough */ }
   }
-  // Built-in generation
-  tasks = buildFallbackTasks(profile)
-  csSetJSON(TASKS_KEY, tasks)
-  doneMap = {}
-  csSetJSON(DONE_KEY, {})
+  return buildFallbackBatch()
 }
 
-function buildAIPrompt() {
-  const p = profile
+function buildPrompt() {
+  const p = profile || {}
   const vark = p.varkDominant === 'V' ? 'Visual' : p.varkDominant === 'A' ? 'Auditory' : p.varkDominant === 'R' ? 'Read/Write' : 'Kinesthetic'
-  return `Create a 40-task personalised study path for a student with this cognitive profile:
-- ADHD risk: ${p.adhdRisk||30}/100 (${p.riskLabel||'low'})
-- Optimal session: ${p.sessionLen||25} minutes
-- Working memory forward span: ${p.forwardSpan||6} digits
-- Working memory backward span: ${p.backwardSpan||4} digits
+  const perf = csGetJSON(K.perf, {})
+  const weakTypes = Object.entries(perf).sort((a,b) => a[1]-b[1]).slice(0,2).map(e=>e[0]).join(', ')
+  const batchNum = Math.floor(tasks.length / BATCH_SIZE) + 1
+  const subjectList = subjects.join(', ')
+
+  return `Create ${BATCH_SIZE} study tasks for a student (batch ${batchNum} of an infinite path).
+
+SUBJECTS: ${subjectList}
+COGNITIVE PROFILE:
+- Optimal session length: ${p.sessionLen||25} minutes
 - Learning style: ${vark}
-- Cognitive switching cost: ${p.switchCost||150}ms (${p.switchCost>200?'high — avoid multi-tasking':'manageable'})
-- Key strengths: ${(p.strengths||[]).join(', ') || 'none noted'}
-- Growth areas: ${(p.growth||[]).join(', ') || 'general focus'}
+- ADHD risk: ${p.adhdRisk||30}/100
+- Working memory: forward ${p.forwardSpan||6}, backward ${p.backwardSpan||4} digits
+- Switching cost: ${p.switchCost||150}ms
+- Areas to grow: ${weakTypes || (p.growth||[]).join(', ') || 'general focus'}
+- Batch difficulty: ${batchNum <= 2 ? 'easy' : batchNum <= 5 ? 'medium' : 'hard — push them'}
 
-Return a JSON array of 40 task objects (no markdown):
-[
-  {
-    "title": "Short task name (3-6 words)",
-    "desc": "Specific instruction what to do (1-2 sentences)",
-    "type": "Session|Memory|Attention|Flexibility|Speed|Review|Challenge",
-    "icon": "single emoji",
-    "minutes": 10,
-    "xp": 15
+RULES:
+- At least 40% tasks must be direct study sessions for one of their specific subjects
+- Reference the actual subject names in titles and descriptions (not generic)
+- Vary task types: Session, Memory, Attention, Flexibility, Speed, Review, Challenge
+- Make tasks progressively harder with each batch
+- sessions should be ${p.sessionLen||25} min long
+- Include the subject name in the "subject" field
+
+Return ONLY a JSON array of ${BATCH_SIZE} objects:
+[{"title":"3-6 words","desc":"Specific 1-2 sentence instruction referencing their subject","type":"Session|Memory|Attention|Flexibility|Speed|Review|Challenge","icon":"emoji","subject":"subject name or null","minutes":15,"xp":20}]`
+}
+
+function buildFallbackBatch() {
+  const p = profile || {}
+  const sLen = p.sessionLen || 25
+  const subj = subjects[Math.floor(Math.random() * subjects.length)] || 'your subject'
+  const batchNum = Math.floor(tasks.length / BATCH_SIZE) + 1
+  const diff = batchNum <= 2 ? 'easy' : batchNum <= 5 ? 'medium' : 'hard'
+
+  const pool = {
+    easy: [
+      { title:`${subj} Read-Through`, desc:`Read through your ${subj} notes for ${sLen} minutes. Highlight anything you don't fully understand.`, type:'Session', icon:'📖', minutes:sLen, xp:20, subject:subj },
+      { title:'Set Your Space', desc:'Clear your desk, silence notifications, get water. Full focus mode on.', type:'Attention', icon:'🧹', minutes:5, xp:10, subject:null },
+      { title:`${subj} Brain Dump`, desc:`Set 5 minutes. Write everything you know about ${subj} from memory. No peeking.`, type:'Memory', icon:'🧠', minutes:5, xp:15, subject:subj },
+      { title:'One-Sentence Summary', desc:`Summarise each section of your ${subj} material in one sentence each.`, type:'Review', icon:'✏️', minutes:8, xp:12, subject:subj },
+      { title:`${subj} Flashcard Sprint`, desc:`Make 10 flashcards from your ${subj} notes. Test yourself immediately.`, type:'Memory', icon:'🃏', minutes:10, xp:15, subject:subj },
+      { title:'Focus Check-In', desc:'Rate your focus 1–10 after this session. Write one distraction and one thing that helped.', type:'Attention', icon:'📊', minutes:5, xp:10, subject:null },
+    ],
+    medium: [
+      { title:`${subj} Deep Session`, desc:`${sLen} minutes of focused ${subj} study — no interruptions, no switching apps.`, type:'Session', icon:'🎯', minutes:sLen, xp:20, subject:subj },
+      { title:`Teach ${subj}`, desc:`Explain your current ${subj} topic out loud as if teaching a classmate. Record yourself.`, type:'Review', icon:'🧑‍🏫', minutes:10, xp:18, subject:subj },
+      { title:'Active Recall Test', desc:`Cover your ${subj} notes. Write everything you remember about this week's material.`, type:'Memory', icon:'🧪', minutes:15, xp:18, subject:subj },
+      { title:'Practice Questions', desc:`Find or write 10 practice questions for ${subj}. Attempt all under timed conditions.`, type:'Challenge', icon:'📝', minutes:20, xp:22, subject:subj },
+      { title:`${subj} Concept Map`, desc:`Draw a diagram connecting the key ideas in ${subj}. At least 8 nodes with arrows showing relationships.`, type:'Review', icon:'🗺️', minutes:15, xp:15, subject:subj },
+      { title:'Speed Recall', desc:`Set a 10-minute timer. Go through your ${subj} flashcards as fast as possible. Sort: know it / don't know it.`, type:'Speed', icon:'⚡', minutes:10, xp:15, subject:subj },
+    ],
+    hard: [
+      { title:`${subj} Blind Essay`, desc:`Write everything you know about your current ${subj} topic in essay form — no notes allowed. 15 minutes.`, type:'Challenge', icon:'✍️', minutes:18, xp:25, subject:subj },
+      { title:`${subj} Mock Exam Block`, desc:`Simulate exam conditions for ${subj}: timed, no notes, full silence. Grade strictly afterwards.`, type:'Challenge', icon:'🏆', minutes:35, xp:30, subject:subj },
+      { title:`${subj} Peak Session`, desc:`Your hardest ${subj} session yet. ${sLen+5} minutes of complete, unbroken focus. Full concentration mode.`, type:'Session', icon:'🚀', minutes:sLen+5, xp:30, subject:subj },
+      { title:'Hard Questions Only', desc:`Pull every question you got wrong in ${subj}. Redo them all from scratch — don't move on until they're clean.`, type:'Challenge', icon:'🔥', minutes:20, xp:25, subject:subj },
+      { title:'Master Summary', desc:`Write a full one-page summary of everything you've learned in ${subj} — from memory only.`, type:'Challenge', icon:'📜', minutes:20, xp:25, subject:subj },
+      { title:'Cross-Topic Connections', desc:`Find 3 genuine connections between ${subj} and another subject you're studying. Write a paragraph for each.`, type:'Flexibility', icon:'🔗', minutes:15, xp:20, subject:null },
+    ],
   }
-]
-Rules:
-- Vary task types across the 40 tasks
-- Session tasks: ${p.sessionLen||25}-min focused study sessions
-- Make tasks progressively harder (tasks 1-10 easy, 11-25 medium, 26-40 hard)
-- At least 30% should be Study Sessions
-- Reference the student's actual profile (e.g. if high switch cost, avoid multi-topic tasks)
-- xp range: Session=20, Challenge=25, others=10-15
-- minutes range: 5-${p.sessionLen||25}`
+
+  const pool_ = pool[diff] || pool.medium
+  const shuffled = [...pool_].sort(() => Math.random() - .5)
+  return shuffled.slice(0, BATCH_SIZE).map((t,i) => ({ ...t, id: tasks.length + i }))
 }
 
-function buildFallbackTasks(p) {
-  const sLen  = p.sessionLen  || 25
-  const risk  = p.adhdRisk    || 30
-  const vark  = p.varkDominant || 'R'
-  const sc    = p.switchCost  || 150
-  const bwd   = p.backwardSpan || 4
-  const fwd   = p.forwardSpan  || 6
-  const growthAreas = p.growth || []
-  const needsMemory = growthAreas.some(g => g.toLowerCase().includes('memory')) || bwd < 4
-  const needsAttention = growthAreas.some(g => g.toLowerCase().includes('attention') || g.toLowerCase().includes('impulse')) || risk > 40
-  const needsFlex = sc > 200
-
-  // VARK-specific session tasks
-  const sessionTask = vark === 'V'
-    ? { title: 'Visual Study Session', desc: `Study for ${sLen} minutes using mind maps, diagrams, and colour-coded notes. Draw concepts instead of writing sentences.`, icon: '🗺️' }
-    : vark === 'A'
-    ? { title: 'Verbal Study Session', desc: `Study for ${sLen} minutes by talking through ideas aloud. Explain concepts to yourself as if teaching someone else.`, icon: '🎙️' }
-    : vark === 'K'
-    ? { title: 'Active Study Session', desc: `Study for ${sLen} minutes using practice problems, examples and hands-on application. No passive reading.`, icon: '🛠️' }
-    : { title: 'Deep Read & Write Session', desc: `Study for ${sLen} minutes: read your material carefully, then summarise each section in your own words on paper.`, icon: '📖' }
-
-  const allTasks = [
-    // ── Easy (1-10) ──────────────────────────────────────────────────
-    { title:'Set Your Space', desc:'Clear your desk, silence your phone, put on focus music or silence. Get everything you need before you start.', type:'Attention', icon:'🧹', minutes:5, xp:10 },
-    { title:'Write Today\'s Goal', desc:'In one sentence, write exactly what you will accomplish in this study session. Be specific — not "study maths" but "complete exercises 4-12".', type:'Review', icon:'🎯', minutes:5, xp:10 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Brain Dump', desc:'Set a 5-minute timer and write everything you remember about today\'s topic from memory. No peeking at notes.', type:'Memory', icon:'🧠', minutes:5, xp:15 },
-    { title:'Flashcard Sprint', desc:'Make 10 flashcards from your notes. Write the question on one side, answer on the other. Test yourself immediately.', type:'Memory', icon:'🃏', minutes:10, xp:15 },
-    { title:'One-Sentence Summary', desc:'Summarise each chapter or section of today\'s material in exactly one sentence. If you can\'t, you don\'t know it well enough yet.', type:'Review', icon:'✏️', minutes:8, xp:12 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Error Log', desc:'Review your last practice test or assignment. Write down every mistake you made and the correct approach for each one.', type:'Review', icon:'🔍', minutes:10, xp:15 },
-    { title:'Digit Span Drill', desc:'Practice working memory: read a 5-digit number, look away, and write it backwards. Increase by 1 digit each time you succeed.', type:'Memory', icon:'🔢', minutes:7, xp:12 },
-    { title:'Focus Check-In', desc:'After your next session, rate your focus 1-10. Write one thing you did that helped and one thing that distracted you.', type:'Attention', icon:'📊', minutes:5, xp:10 },
-
-    // ── Medium (11-25) ───────────────────────────────────────────────
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Teach the Concept', desc:'Explain your most recently studied concept out loud in simple terms — as if explaining to a 12-year-old. Record yourself if you can.', type:'Review', icon:'🧑‍🏫', minutes:10, xp:15 },
-    { title:'Pomodoro Block', desc:`Do ${Math.min(sLen,25)} minutes on, 5 minutes off, then ${Math.min(sLen,25)} minutes on again. Use a timer. During breaks: stand up, stretch, hydrate — nothing digital.`, type:'Session', icon:'🍅', minutes: sLen*2+5, xp:25 },
-    { title:'Spaced Recall Test', desc:'Cover your notes completely and write everything you know about the topic from scratch. Compare with notes only at the end.', type:'Memory', icon:'🧪', minutes:15, xp:18 },
-    needsFlex
-      ? { title:'Single-Topic Deep Dive', desc:`Pick ONE subject and study only that for ${sLen} minutes. No switching. Minimise all other tabs and distractions.`, type:'Flexibility', icon:'🎯', minutes: sLen, xp:20 }
-      : { title:'Topic Switch Set', desc:'Study Subject A for 20 minutes, then switch to Subject B for 20 minutes. Notice which transition feels harder — that\'s your growth zone.', type:'Flexibility', icon:'🔄', minutes:45, xp:20 },
-    { title:'Concept Map', desc:'Draw a visual diagram connecting today\'s key ideas. Use arrows to show relationships. Add at least 8 nodes.', type:'Review', icon:'🗺️', minutes:15, xp:15 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'The Feynman Technique', desc:'Pick one concept you\'ve been struggling with. Write it out in full, then simplify it until a child could understand it. Identify what you don\'t know.', type:'Review', icon:'💡', minutes:12, xp:18 },
-    needsMemory
-      ? { title:'N-Back Memory Warm-Up', desc:'Say a sequence of 4 random letters aloud. Wait 5 seconds. Repeat them backwards. Do 10 rounds, increasing to 5 letters once you succeed.', type:'Memory', icon:'🔡', minutes:8, xp:15 }
-      : { title:'Memory Palace Drill', desc:'Place 5 facts from your material at specific locations in your home in your mind. Walk through and recall them in order.', type:'Memory', icon:'🏛️', minutes:10, xp:15 },
-    { title:'Practice Test', desc:'Find or create a 10-question practice quiz on your topic. Time yourself (1.5 min/question). Grade it honestly.', type:'Challenge', icon:'📝', minutes:20, xp:22 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    needsAttention
-      ? { title:'Distraction Audit', desc:'During your next session, tally every time you feel the urge to switch tasks or check your phone. Write strategies for each trigger.', type:'Attention', icon:'📡', minutes:10, xp:15 }
-      : { title:'Sustained Focus Block', desc:`Study for ${sLen} minutes with no interruptions — not even to check a fact online. Write any questions on paper to research after.`, type:'Attention', icon:'🔒', minutes: sLen, xp:20 },
-    { title:'Active Recall Gauntlet', desc:'List 20 terms or facts from your subject. Test yourself on every single one without any hints. Score yourself ruthlessly.', type:'Memory', icon:'⚔️', minutes:20, xp:22 },
-    { title:'Revision Grid', desc:'Draw a 3×4 grid. Fill each cell with a key concept, formula, or idea from your notes. Test yourself by covering cells one at a time.', type:'Review', icon:'🟩', minutes:15, xp:18 },
-    { title:'Speed Round', desc:'Set a 10-minute timer. Go through your flashcard stack as fast as possible — no hesitation. Separate into "know it" and "don\'t know it" piles.', type:'Speed', icon:'⚡', minutes:10, xp:15 },
-
-    // ── Hard (26-40) ──────────────────────────────────────────────────
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Blind Essay', desc:'Set a timer for 15 minutes and write everything you know about your topic in essay format with no notes. Evaluate the gaps afterwards.', type:'Challenge', icon:'✍️', minutes:18, xp:25 },
-    { title:'Cross-Topic Links', desc:'Pick two different subjects you\'re studying. Find at least 3 genuine connections between them and write a paragraph explaining each link.', type:'Flexibility', icon:'🔗', minutes:15, xp:20 },
-    { title:'Timed Problem Set', desc:'Complete a full problem set under timed conditions (1 min per question). Grade with no mercy. Write the correct method for every wrong answer.', type:'Challenge', icon:'⏱️', minutes:25, xp:25 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Teach-Back Loop', desc:'Explain a difficult concept as clearly as possible. Then identify the weakest part of your explanation and re-study only that.', type:'Review', icon:'🔁', minutes:15, xp:20 },
-    { title:'Hard Questions Only', desc:'Pull out only the practice questions you got wrong before. Do them again from scratch with no help. Don\'t move on until you can do them clean.', type:'Challenge', icon:'🔥', minutes:20, xp:25 },
-    { title:'Memory Under Pressure', desc:'Study a page of dense material for 3 minutes. Close it. Set a 5-minute timer and write as much as you can remember. Compare — then repeat.', type:'Memory', icon:'💪', minutes:15, xp:22 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Master Summary', desc:'Write a one-page summary of your entire subject so far — from memory. This should be harder than it sounds. That\'s the point.', type:'Challenge', icon:'📜', minutes:20, xp:25 },
-    { title:'Week Review', desc:'Look back at the last 7 days. What improved? What\'s still weak? Write a 3-line plan for what you\'ll double down on next week.', type:'Review', icon:'📆', minutes:10, xp:15 },
-    { title:'Mock Exam Block', desc:'Simulate real exam conditions: no notes, timed, full silence. Complete one full practice exam section. Grade strictly.', type:'Challenge', icon:'🏆', minutes:35, xp:30 },
-    { ...sessionTask, type:'Session', minutes: sLen, xp:20 },
-    { title:'Peak Performance Session', desc:`Your hardest session yet. ${sLen+5} minutes of unbroken focused study. No pauses, no distractions, no excuses. Full concentration mode.`, type:'Session', icon:'🚀', minutes: sLen+5, xp:30 },
-    { title:'Reflection & Reset', desc:'Review your strongest and weakest areas from this whole block. Plan your next 5 tasks based on what still needs the most work.', type:'Review', icon:'🧭', minutes:10, xp:15 },
-  ]
-
-  // Shuffle non-session tasks to add variety, keep sessions in regular intervals
-  return allTasks.slice(0, 40).map((t, i) => ({ ...t, id: i }))
-}
-
-/* ─── Render path ─────────────────────────────────────────────────── */
+/* ── Render path ──────────────────────────────────────────────── */
 function currentNodeIdx() {
-  for (let i = 0; i < tasks.length; i++) {
-    if (!doneMap[i]) return i
-  }
-  return tasks.length // all done
+  for (let i = 0; i < tasks.length; i++) { if (!doneMap[i]) return i }
+  return tasks.length
 }
 
 function render() {
-  doneMap = csGetJSON(DONE_KEY, {})
+  doneMap = csGetJSON(K.done, {})
   updateStatsBar()
   renderPath()
 }
@@ -623,31 +682,24 @@ function renderPath() {
   const container = document.getElementById('pathOuter')
   const current   = currentNodeIdx()
   const html = []
-
-  // zig-zag positions: left, center-left, center-right, right (alternating)
   const positions = ['right','left','right','left','right']
 
   tasks.forEach((task, i) => {
     const isDone    = !!doneMap[i]
     const isActive  = i === current
     const isLocked  = i > current
-    const isMilestone = (i + 1) % 10 === 0  // every 10th node
+    const isMilestone = i > 0 && (i + 1) % 10 === 0
     const pos = positions[i % positions.length]
 
-    // Section headers
-    if (i === 0)  html.push(sectionHeader('🌱 Getting Started'))
-    if (i === 10) html.push(sectionHeader('⚡ Building Momentum'))
-    if (i === 25) html.push(sectionHeader('🔥 Advanced Zone'))
+    if (i === 0) html.push(sectionHeader('🌱 Just Getting Started'))
+    else if (i % 20 === 0) {
+      const batchNum = Math.floor(i / 20) + 1
+      const icons = ['⚡','🔥','💎','🚀','🌟','👑']
+      html.push(sectionHeader(`${icons[Math.min(batchNum-1, icons.length-1)]} Level ${batchNum+1} Unlocked`))
+    }
 
-    const nodeClass = [
-      'path-node',
-      isMilestone ? 'milestone' : '',
-      isDone ? 'done' : '',
-      isActive ? 'active' : '',
-      isLocked ? 'locked' : '',
-    ].filter(Boolean).join(' ')
-
-    const nodeIcon = isDone ? '' : (isMilestone ? '🏆' : esc(task.icon || '📚'))
+    const nodeClass = ['path-node', isMilestone?'milestone':'', isDone?'done':'', isActive?'active':'', isLocked?'locked':''].filter(Boolean).join(' ')
+    const nodeIcon  = isDone ? '' : (isMilestone ? '🏆' : esc(task.icon||'📚'))
     const labelClass = 'path-node-label' + (isActive ? ' active' : '')
 
     html.push(`<div class="path-row ${pos}">
@@ -659,19 +711,21 @@ function renderPath() {
     </div>`)
   })
 
-  // All done celebration
-  if (current >= tasks.length) {
-    html.push(`<div style="text-align:center;padding:40px 20px;">
-      <div style="font-size:56px;margin-bottom:16px;">🏆</div>
-      <div style="font-size:20px;font-weight:900;color:var(--text-primary);margin-bottom:8px;">Path Complete!</div>
-      <div style="font-size:14px;color:var(--text-secondary);">You've finished all 40 tasks. Take a moment to celebrate — then reset for your next challenge.</div>
-      <button class="btn btn-primary" style="margin-top:20px;" onclick="resetPath()">Start New Path</button>
+  // Loading indicator when generating more
+  if (isGenerating) {
+    html.push(`<div class="path-loading"><div class="path-loading-dot"></div><div class="path-loading-dot"></div><div class="path-loading-dot"></div><span>Generating more tasks…</span></div>`)
+  } else if (current >= tasks.length && tasks.length > 0) {
+    // All current tasks done — generate more
+    html.push(`<div style="text-align:center;padding:32px 20px;">
+      <div style="font-size:44px;margin-bottom:12px;">🌀</div>
+      <div style="font-size:16px;font-weight:800;color:var(--text-primary);margin-bottom:6px;">More tasks coming…</div>
+      <div style="font-size:13px;color:var(--text-secondary);">Generating the next batch based on your progress</div>
     </div>`)
+    maybePrefetch()
   }
 
   container.innerHTML = html.join('')
 
-  // Scroll active node into view
   setTimeout(() => {
     const activeNode = container.querySelector('.path-node.active')
     if (activeNode) activeNode.scrollIntoView({ behavior:'smooth', block:'center' })
@@ -682,39 +736,43 @@ function sectionHeader(label) {
   return `<div class="path-section-header">${label}</div>`
 }
 
-/* ─── Node interaction ───────────────────────────────────────────── */
+/* ── Node click ───────────────────────────────────────────────── */
 window.nodeClick = function(idx) {
-  const isDone   = !!doneMap[idx]
-  const current  = currentNodeIdx()
-  if (idx > current) return  // locked
-  if (isDone && idx < current) { openModal(idx, true); return }  // review done
-  openModal(idx, isDone)
+  const current = currentNodeIdx()
+  if (idx > current) return
+  openModal(idx)
 }
 
-function openModal(idx, isDone) {
+function openModal(idx) {
   const task = tasks[idx]
   if (!task) return
   activeTaskIdx = idx
+  const isDone = !!doneMap[idx]
 
   document.getElementById('modalIcon').textContent  = task.icon || '📚'
   document.getElementById('modalType').textContent  = task.type || 'Task'
   document.getElementById('modalTitle').textContent = task.title
   document.getElementById('modalDesc').textContent  = task.desc
-  document.getElementById('modalTime').textContent  = `⏱ ${task.minutes || 15} min`
-  document.getElementById('modalXP').textContent    = `⚡ +${task.xp || 15} XP`
+  document.getElementById('modalTime').textContent  = `⏱ ${task.minutes||15} min`
+  document.getElementById('modalXP').textContent    = `⚡ +${task.xp||15} XP`
 
-  // Reset timer display
-  clearInterval(timerInterval)
-  timerInterval = null
+  const subjEl = document.getElementById('modalSubj')
+  if (task.subject) { subjEl.textContent = `📚 ${task.subject}`; subjEl.style.display = '' }
+  else { subjEl.style.display = 'none' }
+
+  clearInterval(timerInterval); timerInterval = null
   document.getElementById('modalTimerDisplay').style.display = 'none'
-  timerRemain = (task.minutes || 15) * 60
+  timerRemain = (task.minutes||15) * 60
 
+  const isSession = task.type === 'Session'
   const btnRow = document.getElementById('modalBtnRow')
   if (isDone) {
     btnRow.innerHTML = `<button class="modal-btn-secondary" onclick="closeModal()">Close</button>`
   } else {
     btnRow.innerHTML = `
-      <button class="modal-btn-primary" id="modalStartBtn" onclick="handleModalStart()">Start Session</button>
+      <button class="modal-btn-primary" id="modalStartBtn" onclick="handleModalStart()">
+        ${isSession ? '🎯 Start &amp; Open Focus Mode' : '▶ Start Task'}
+      </button>
       <button class="modal-btn-secondary" onclick="handleModalDone()">Mark as Complete</button>`
   }
 
@@ -722,8 +780,7 @@ function openModal(idx, isDone) {
 }
 
 window.closeModal = function() {
-  clearInterval(timerInterval)
-  timerInterval = null
+  clearInterval(timerInterval); timerInterval = null
   document.getElementById('taskModalOverlay').classList.remove('open')
 }
 
@@ -731,28 +788,31 @@ document.getElementById('taskModalOverlay').addEventListener('click', function(e
   if (e.target === this) closeModal()
 })
 
-/* ─── Timer in modal ─────────────────────────────────────────────── */
+/* ── Timer + Focus Mode launch ────────────────────────────────── */
 window.handleModalStart = function() {
   const task = tasks[activeTaskIdx]
   if (!task) return
 
-  // Show timer
+  // If it's a study session → open Focus Mode automatically
+  if (task.type === 'Session' && window.navigateTo) {
+    closeModal()
+    handleModalDone()
+    window.navigateTo('study')
+    return
+  }
+
+  // Otherwise start inline timer
   document.getElementById('modalTimerDisplay').style.display = ''
-  timerRemain = (task.minutes || 15) * 60
+  timerRemain = (task.minutes||15) * 60
   updateTimerDisplay()
 
-  document.getElementById('modalStartBtn').textContent = 'Running…'
-  document.getElementById('modalStartBtn').disabled = true
+  const startBtn = document.getElementById('modalStartBtn')
+  if (startBtn) { startBtn.textContent = 'Running…'; startBtn.disabled = true }
 
   timerInterval = setInterval(() => {
     timerRemain--
     updateTimerDisplay()
-    if (timerRemain <= 0) {
-      clearInterval(timerInterval)
-      timerInterval = null
-      // Auto-complete
-      handleModalDone()
-    }
+    if (timerRemain <= 0) { clearInterval(timerInterval); timerInterval = null; handleModalDone() }
   }, 1000)
 }
 
@@ -764,124 +824,210 @@ function updateTimerDisplay() {
   el.className = 'modal-timer' + (timerRemain <= 30 ? ' low' : '')
 }
 
-/* ─── Complete task ──────────────────────────────────────────────── */
+/* ── Complete task ────────────────────────────────────────────── */
 window.handleModalDone = function() {
   if (activeTaskIdx < 0) return
-  clearInterval(timerInterval)
-  timerInterval = null
+  clearInterval(timerInterval); timerInterval = null
 
   const task = tasks[activeTaskIdx]
-  const alreadyDone = !!doneMap[activeTaskIdx]
+  if (!task || doneMap[activeTaskIdx]) { closeModal(); return }
 
-  if (!alreadyDone) {
-    // Mark done
-    doneMap[activeTaskIdx] = Date.now()
-    csSetJSON(DONE_KEY, doneMap)
+  doneMap[activeTaskIdx] = Date.now()
+  csSetJSON(K.done, doneMap)
 
-    // Daily tracking
-    const daily = csGetJSON(DAILY_KEY, [])
-    if (!daily.includes(activeTaskIdx)) {
-      daily.push(activeTaskIdx)
-      csSetJSON(DAILY_KEY, daily)
-    }
+  // Daily tracking
+  const daily = csGetJSON(K.daily, [])
+  if (!daily.includes(activeTaskIdx)) { daily.push(activeTaskIdx); csSetJSON(K.daily, daily) }
+  if (daily.length === 1) incrementStreak()
 
-    // Streak: if first task of day
-    if (daily.length === 1) incrementStreak()
+  // Performance tracking (for adaptive generation)
+  const perf = csGetJSON(K.perf, {})
+  perf[task.type] = (perf[task.type] || 0) + 1
+  csSetJSON(K.perf, perf)
 
-    // XP
-    addXP(task.xp || 15)
-    showXPPopup(task.xp || 15)
-    if (daily.length === DAILY_GOAL) {
-      setTimeout(() => showStreakToast('🎯 Daily goal hit!'), 1200)
-    }
-    confetti()
-  }
+  // Days active
+  const today = new Date().toDateString()
+  const days = csGetJSON(K.daysActive, [])
+  if (!days.includes(today)) { days.push(today); csSetJSON(K.daysActive, days) }
+
+  // XP — track all-time too
+  addXP(task.xp || 15)
+  const totalXP = parseInt(csGet(K.xpTotal) || '0') + (task.xp || 15)
+  csSet(K.xpTotal, String(totalXP))
+
+  showXPPopup(task.xp || 15)
+  if (daily.length === DAILY_GOAL) setTimeout(() => showStreakToast('🎯 Daily goal complete!'), 1200)
+  confetti()
 
   closeModal()
   render()
+
+  // Check if we need to prefetch more tasks
+  setTimeout(maybePrefetch, 500)
 }
 
-/* ─── Animations ─────────────────────────────────────────────────── */
+/* ── Streak ───────────────────────────────────────────────────── */
+function updateStreak() {
+  const today = new Date().toDateString()
+  const yesterday = new Date(Date.now() - 86400000).toDateString()
+  let streak = parseInt(csGet(K.streak) || '0')
+  const lastDate = csGet(K.streakDate)
+  const dailyDate = csGet(K.dailyDate)
+  if (dailyDate !== today) { csSet(K.dailyDate, today); csSetJSON(K.daily, []) }
+  if (lastDate && lastDate !== today && lastDate !== yesterday) { streak = 0; csSet(K.streak, '0') }
+}
+
+function incrementStreak() {
+  const today = new Date().toDateString()
+  if (csGet(K.streakDate) === today) return
+  let streak = parseInt(csGet(K.streak) || '0') + 1
+  csSet(K.streak, String(streak)); csSet(K.streakDate, today)
+  if (streak > 1) showStreakToast(streak)
+}
+
+/* ── XP / Level ───────────────────────────────────────────────── */
+function getXP()    { return parseInt(csGet(K.xp) || '0') }
+function getLevel() { return parseInt(csGet(K.level) || '1') }
+
+function addXP(amount) {
+  let xp = getXP() + amount
+  let level = getLevel()
+  const threshold = level * XP_PER_LEVEL
+  if (xp >= threshold) { xp -= threshold; level++; csSet(K.level, String(level)); showLevelUp(level) }
+  csSet(K.xp, String(xp))
+  updateStatsBar()
+}
+
+function updateStatsBar() {
+  const streak = parseInt(csGet(K.streak) || '0')
+  const xp = getXP(); const level = getLevel()
+  const threshold = level * XP_PER_LEVEL
+  const pct = Math.round(xp / threshold * 100)
+  const lName = levelNames[Math.min(level-1, levelNames.length-1)]
+
+  document.getElementById('streakCount').textContent = streak
+  document.getElementById('xpTotal').textContent     = xp
+  document.getElementById('levelLabel').textContent  = lName
+  document.getElementById('xpToNext').textContent    = `${threshold-xp} to next`
+  document.getElementById('xpBarFill').style.width   = pct + '%'
+  document.getElementById('levelBadge').textContent  = `Lv ${level}`
+
+  const done = csGetJSON(K.daily, []).length
+  const frac = Math.min(1, done / DAILY_GOAL)
+  document.getElementById('dailyRingFill').setAttribute('stroke-dashoffset', 131.9 * (1 - frac))
+  document.getElementById('dailyRingLabel').textContent = `${done}/${DAILY_GOAL}`
+  document.getElementById('dailyGoalTitle').textContent = `Daily goal: ${done} / ${DAILY_GOAL} tasks`
+  document.getElementById('dailyGoalSub').textContent   = done >= DAILY_GOAL
+    ? '🎉 Daily goal complete — you\'re on fire!'
+    : `${DAILY_GOAL - done} more task${DAILY_GOAL-done!==1?'s':''} to keep your streak alive 🔥`
+
+  const totalDone = Object.keys(csGetJSON(K.done, {})).length
+  const totalDoneEl = document.getElementById('totalDoneLabel')
+  if (totalDoneEl) totalDoneEl.textContent = `${totalDone} total completed`
+}
+
+/* ── Growth tab ───────────────────────────────────────────────── */
+function renderGrowth() {
+  const doneObj = csGetJSON(K.done, {})
+  const totalDone = Object.keys(doneObj).length
+  const totalXP = parseInt(csGet(K.xpTotal) || '0')
+  const streak = parseInt(csGet(K.streak) || '0')
+  const level = getLevel()
+  const perf = csGetJSON(K.perf, {})
+  const sessions = perf['Session'] || 0
+  const daysActive = csGetJSON(K.daysActive, []).length
+
+  document.getElementById('gTotalDone').textContent = totalDone
+  document.getElementById('gTotalXP').textContent   = totalXP
+  document.getElementById('gStreak').textContent    = streak
+  document.getElementById('gLevel').textContent     = level
+  document.getElementById('gSessions').textContent  = sessions
+  document.getElementById('gDaysActive').textContent = daysActive
+
+  // Type breakdown
+  const totalPerf = Object.values(perf).reduce((a,b)=>a+b,0) || 1
+  const typeHtml = Object.entries(TYPE_COLORS).map(([type, color]) => {
+    const count = perf[type] || 0
+    const pct   = Math.round(count / totalPerf * 100)
+    return `<div class="type-bar-row">
+      <div class="type-bar-label">${type}</div>
+      <div class="type-bar-track"><div class="type-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="type-bar-count">${count}</div>
+    </div>`
+  }).join('')
+  document.getElementById('typeBreakdown').innerHTML = typeHtml || '<div style="font-size:13px;color:var(--text-secondary);">Complete tasks to see your breakdown.</div>'
+
+  // Milestones
+  const milestones = [
+    { name:'First Step', icon:'👣', need: totalDone >= 1, desc:'Complete your first task' },
+    { name:'Getting Warmed Up', icon:'🔥', need: totalDone >= 5, desc:'Complete 5 tasks' },
+    { name:'3-Day Streak', icon:'📅', need: streak >= 3, desc:'Study 3 days in a row' },
+    { name:'Session Starter', icon:'⏱️', need: sessions >= 5, desc:'Complete 5 Focus Sessions' },
+    { name:'Week Warrior', icon:'⚔️', need: totalDone >= 25, desc:'Complete 25 tasks' },
+    { name:'7-Day Streak', icon:'🌟', need: streak >= 7, desc:'Study 7 days in a row' },
+    { name:'Memory Builder', icon:'🧠', need: (perf['Memory']||0) >= 10, desc:'Complete 10 Memory tasks' },
+    { name:'Half Century', icon:'🥇', need: totalDone >= 50, desc:'Complete 50 tasks' },
+    { name:'14-Day Streak', icon:'🔥', need: streak >= 14, desc:'Study 14 days in a row' },
+    { name:'Centurion', icon:'💯', need: totalDone >= 100, desc:'Complete 100 tasks' },
+    { name:'30-Day Streak', icon:'💎', need: streak >= 30, desc:'Study 30 days in a row' },
+    { name:'Legend', icon:'👑', need: totalDone >= 500, desc:'Complete 500 tasks (no cap, no end)' },
+  ]
+  document.getElementById('milestonesPanel').innerHTML = milestones.map(m => `
+    <div class="milestone-row ${m.need?'':'locked'}">
+      <div class="ms-icon">${m.icon}</div>
+      <div><div class="ms-name">${m.name}</div><div class="ms-sub">${m.desc}</div></div>
+      <div class="ms-badge">${m.need ? '✓ Earned' : 'Locked'}</div>
+    </div>`).join('')
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
 function showXPPopup(amount) {
   const el = document.createElement('div')
-  el.className = 'xp-popup'
-  el.textContent = `+${amount} XP ⚡`
-  document.body.appendChild(el)
-  setTimeout(() => el.remove(), 1700)
+  el.className = 'xp-popup'; el.textContent = `+${amount} XP ⚡`
+  document.body.appendChild(el); setTimeout(() => el.remove(), 1700)
 }
-
 function showLevelUp(level) {
   const lName = levelNames[Math.min(level-1, levelNames.length-1)]
   const el = document.createElement('div')
   el.className = 'xp-popup'
   el.style.cssText += 'background:linear-gradient(135deg,#f59e0b,#f97316);font-size:22px;padding:20px 40px;'
   el.textContent = `🏆 Level ${level} — ${lName}!`
-  document.body.appendChild(el)
-  setTimeout(() => el.remove(), 2000)
+  document.body.appendChild(el); setTimeout(() => el.remove(), 2200)
 }
-
 function showStreakToast(msg) {
   const existing = document.querySelector('.streak-toast')
   if (existing) existing.remove()
   const el = document.createElement('div')
   el.className = 'streak-toast'
   el.textContent = typeof msg === 'number' ? `🔥 ${msg} day streak!` : msg
-  document.body.appendChild(el)
-  setTimeout(() => el.remove(), 2900)
+  document.body.appendChild(el); setTimeout(() => el.remove(), 2900)
 }
-
 function confetti() {
   const colors = ['#22c55e','#f59e0b','#3b82f6','#ec4899','#a855f7','#f97316']
   for (let i = 0; i < 38; i++) {
     const el = document.createElement('div')
     el.className = 'confetti-piece'
     const size = 6 + Math.random() * 8
-    el.style.cssText = `
-      width:${size}px; height:${size}px;
-      background:${colors[Math.floor(Math.random()*colors.length)]};
-      left:${10 + Math.random()*80}%;
-      top:${5 + Math.random()*30}%;
-      animation-duration:${1.2 + Math.random()*1.2}s;
-      animation-delay:${Math.random()*.4}s;
-      transform-origin:center;
-      border-radius:${Math.random()>.5?'50%':'2px'};
-    `
-    document.body.appendChild(el)
-    setTimeout(() => el.remove(), 2800)
+    el.style.cssText = `width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${10+Math.random()*80}%;top:${5+Math.random()*30}%;animation-duration:${1.2+Math.random()*1.2}s;animation-delay:${Math.random()*.4}s;transform-origin:center;border-radius:${Math.random()>.5?'50%':'2px'};`
+    document.body.appendChild(el); setTimeout(() => el.remove(), 2800)
   }
 }
 
-/* ─── Reset path ─────────────────────────────────────────────────── */
-window.resetPath = function() {
-  if (!confirm('Start a fresh path? Your XP and streak are kept — only task progress resets.')) return
-  csSetJSON(TASKS_KEY, null)
-  csSetJSON(DONE_KEY, {})
-  csSetJSON(DAILY_KEY, [])
-  tasks = []
-  doneMap = {}
-  show('planGenerating')
-  genMessages()
-  generateTasks().then(() => { show('planActive'); render() })
-}
-
-/* ─── Generate loading messages ──────────────────────────────────── */
-let genMsgInterval = null
+/* ── Loading messages ─────────────────────────────────────────── */
 function genMessages() {
-  const msgs = ['Building your path…','Personalising tasks…','Almost ready…']
+  const msgs = ['Building your path…','Personalising tasks for your subjects…','Making it unique to you…','Almost there…']
   let mi = 0
   const el = document.getElementById('planGenMsg')
   if (!el) return
-  genMsgInterval = setInterval(() => {
-    mi = (mi + 1) % msgs.length
-    el.textContent = msgs[mi]
-  }, 1800)
-  setTimeout(() => clearInterval(genMsgInterval), 10000)
+  const iv = setInterval(() => { if (!el.isConnected){clearInterval(iv);return} el.textContent = msgs[mi=(mi+1)%msgs.length] }, 1800)
+  setTimeout(() => clearInterval(iv), 15000)
 }
 
-/* ─── Utility ────────────────────────────────────────────────────── */
+/* ── Utility ──────────────────────────────────────────────────── */
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 
-/* ─── Boot ───────────────────────────────────────────────────────── */
+/* ── Boot ─────────────────────────────────────────────────────── */
+switchTab('path')
 init()
 })()
 </script>
