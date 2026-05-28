@@ -1,1279 +1,306 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
 <style>
-  /* ── Base ─────────────────────────────────────────────────── */
-  .bat-wrap { max-width: 680px; margin: 0 auto; padding: 0 0 60px; font-family: var(--font); }
-
-  /* ── Screens (only one visible at a time) ─────────────────── */
-  .bat-screen { display: none; }
-  .bat-screen.active { display: block; animation: fadeUp .2s ease; }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-
-  /* ── Intro ─────────────────────────────────────────────────── */
-  .bat-intro { text-align: center; padding: 20px 0 40px; }
-  .bat-badge { display:inline-block; background:#191919; color:#6ee7b7; font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; padding:5px 14px; border-radius:6px; margin-bottom:24px; }
-  .bat-title { font-size:28px; font-weight:900; letter-spacing:-.7px; color:var(--text-primary); margin-bottom:10px; }
-  .bat-sub   { font-size:15px; color:var(--text-secondary); line-height:1.65; max-width:500px; margin:0 auto 32px; }
-  .bat-modules { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:36px; text-align:left; }
-  .bat-module { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
-  .bat-module-num  { font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--accent); margin-bottom:4px; }
-  .bat-module-name { font-size:13px; font-weight:700; color:var(--text-primary); }
-  .bat-module-desc { font-size:11px; color:var(--text-secondary); margin-top:2px; }
-  .bat-disclaimer { font-size:12px; color:var(--text-secondary); background:var(--bg-main); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:28px; line-height:1.55; }
-
-  /* ── Instructions ──────────────────────────────────────────── */
-  .bat-instr { background:#191919; border-radius:var(--radius); padding:28px 32px; color:#fff; margin-bottom:24px; }
-  .bat-instr-num  { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#6ee7b7; margin-bottom:8px; }
-  .bat-instr-name { font-size:20px; font-weight:900; letter-spacing:-.4px; margin-bottom:10px; }
-  .bat-instr-text { font-size:14px; color:rgba(255,255,255,.65); line-height:1.65; }
-  .bat-instr-example { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:14px 18px; margin-top:16px; font-size:13px; color:rgba(255,255,255,.8); }
-  .bat-instr-example strong { color:#6ee7b7; }
-
-  /* ── Progress bar ──────────────────────────────────────────── */
-  .bat-progress { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
-  .bat-progress-track { flex:1; height:3px; background:var(--border); border-radius:99px; }
-  .bat-progress-fill  { height:100%; background:var(--accent); border-radius:99px; transition:width .5s; }
-  .bat-progress-label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
-
-  /* ── Timer bar ─────────────────────────────────────────────── */
-  .bat-timer-bar { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
-  .bat-timer-track { flex:1; height:6px; background:var(--border); border-radius:99px; overflow:hidden; }
-  .bat-timer-fill  { height:100%; background:var(--accent); border-radius:99px; transition:width .25s linear; }
-  .bat-timer-num   { font-size:16px; font-weight:800; color:var(--text-primary); font-variant-numeric:tabular-nums; min-width:36px; text-align:right; }
-  .bat-timer-num.urgent { color:#ef4444; }
-
-  /* ── Test UI shared ────────────────────────────────────────── */
-  .bat-test-area { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:32px; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .bat-score-badge { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; background:var(--accent-light); color:var(--accent); padding:3px 10px; border-radius:99px; margin-bottom:12px; }
-
-  /* ── T1: Digit Span ────────────────────────────────────────── */
-  .digit-display { font-size:64px; font-weight:900; letter-spacing:8px; color:var(--text-primary); text-align:center; font-variant-numeric:tabular-nums; min-height:80px; display:flex; align-items:center; justify-content:center; }
-  .digit-input-row { display:flex; gap:8px; margin-top:20px; flex-wrap:wrap; justify-content:center; }
-  .digit-box { width:48px; height:56px; border:2px solid var(--border); border-radius:var(--radius-sm); font-size:24px; font-weight:700; text-align:center; font-family:var(--font); outline:none; transition:border-color .15s; }
-  .digit-box:focus { border-color:var(--accent); }
-  .bat-phase-label { font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:16px; }
-  .t1-mode-badge { display:inline-block; padding:3px 12px; border-radius:99px; font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; margin-bottom:10px; }
-  .t1-mode-badge.forward  { background:#dbeafe; color:#1e40af; }
-  .t1-mode-badge.backward { background:#fce7f3; color:#9d174d; }
-
-  /* ── T2: Symbol Search ─────────────────────────────────────── */
-  .sym-key { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:12px 16px; background:#f9f8f5; border-radius:8px; margin-bottom:16px; border:1px solid var(--border); }
-  .sym-key-pair { display:flex; flex-direction:column; align-items:center; gap:3px; }
-  .sym-key-sym  { font-size:18px; line-height:1; }
-  .sym-key-num  { font-size:10px; font-weight:700; color:var(--accent); }
-  .sym-target   { font-size:52px; margin-bottom:12px; transition:opacity .1s; }
-  .sym-choices  { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-  .sym-choice   { width:52px; height:52px; border:2px solid var(--border); border-radius:8px; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .1s; background:var(--bg-card); color:var(--text-primary); }
-  .sym-choice:hover { border-color:var(--accent); background:var(--accent-light); color:var(--accent); }
-  .sym-choice.correct { border-color:#22c55e; background:#f0fdf4; color:#166534; animation:flash-c .25s; }
-  .sym-choice.wrong   { border-color:#ef4444; background:#fef2f2; color:#991b1b; animation:flash-w .25s; }
-  @keyframes flash-c { 0%{transform:scale(1.15)} 100%{transform:scale(1)} }
-  @keyframes flash-w { 0%{transform:translateX(-4px)} 50%{transform:translateX(4px)} 100%{transform:translateX(0)} }
-  .sym-score { font-size:14px; font-weight:600; color:var(--text-secondary); }
-  .sym-timeout-bar { width:100%; height:5px; background:var(--border); border-radius:99px; overflow:hidden; margin-bottom:14px; }
-  .sym-timeout-fill { height:100%; background:var(--accent); border-radius:99px; width:100%; }
-
-  /* ── T3: CPT / AX-CPT ─────────────────────────────────────── */
-  .cpt-letter { font-size:96px; font-weight:900; color:var(--text-primary); text-align:center; letter-spacing:-2px; min-height:120px; display:flex; align-items:center; justify-content:center; user-select:none; }
-  .cpt-letter.dim { color:var(--text-secondary); }
-  .cpt-target-label { font-size:13px; color:var(--text-secondary); margin-bottom:8px; text-align:center; }
-  .cpt-pair-display { display:flex; align-items:center; gap:8px; font-size:22px; font-weight:900; color:var(--accent); border:2px solid var(--accent); border-radius:8px; padding:4px 14px; margin-bottom:0; }
-  .cpt-pair-arrow { color:var(--text-secondary); font-weight:400; }
-  .cpt-flash { position:absolute; inset:0; border-radius:var(--radius); pointer-events:none; opacity:0; transition:opacity .1s; }
-  .cpt-flash.hit   { background:rgba(34,197,94,.15); opacity:1; }
-  .cpt-flash.miss  { background:rgba(239,68,68,.12); opacity:1; }
-  .cpt-spacebar-hint { margin-top:20px; font-size:13px; color:var(--text-secondary); }
-  .cpt-spacebar-hint kbd { background:#191919; color:#fff; padding:3px 10px; border-radius:4px; font-size:12px; font-weight:700; }
-  .cpt-prev-letter { font-size:12px; font-weight:700; color:var(--text-secondary); letter-spacing:.4px; margin-top:8px; }
-
-  /* ── T4: Matrix Reasoning ──────────────────────────────────── */
-  .matrix-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:240px; margin:0 auto 24px; }
-  .matrix-cell { aspect-ratio:1; border:2px solid var(--border); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; background:var(--bg-card); color:var(--text-primary); font-variant-numeric:tabular-nums; }
-  .matrix-cell.blank { background:var(--bg-main); border-style:dashed; color:var(--text-secondary); font-size:18px; }
-  .matrix-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .matrix-opt { width:64px; height:64px; border:2px solid var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; cursor:pointer; background:var(--bg-card); transition:all .15s; color:var(--text-primary); font-variant-numeric:tabular-nums; }
-  .matrix-opt:hover { border-color:var(--accent); background:var(--accent-light); }
-  .matrix-opt.correct { border-color:#22c55e; background:#f0fdf4; animation:flash-c .3s; }
-  .matrix-opt.wrong   { border-color:#ef4444; background:#fef2f2; animation:flash-w .3s; }
-  .matrix-opt.correct-reveal { border-color:#22c55e; background:#f0fdf4; }
-  .matrix-q-label { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:16px; }
-  .matrix-rule-hint { font-size:11px; color:var(--text-secondary); opacity:.5; margin-top:12px; font-style:italic; }
-
-  /* ── T5: Reading ───────────────────────────────────────────── */
-  .read-passage { font-size:15px; line-height:1.8; color:var(--text-primary); background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px 28px; margin-bottom:20px; text-align:left; }
-  .read-q { margin-bottom:16px; }
-  .read-q-text { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:10px; }
-  .read-q-type { font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; padding:2px 7px; border-radius:4px; margin-left:6px; vertical-align:middle; }
-  .read-q-type.inference { background:#fef3c7; color:#92400e; }
-  .read-q-type.recall    { background:#e0f2fe; color:#0369a1; }
-  .read-opts { display:flex; flex-direction:column; gap:8px; }
-  .read-opt { padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; cursor:pointer; transition:all .15s; background:var(--bg-card); text-align:left; font-family:var(--font); color:var(--text-primary); }
-  .read-opt:hover { border-color:var(--accent); background:var(--accent-light); }
-  .read-opt.selected { border-color:var(--accent); background:var(--accent-light); color:var(--accent); font-weight:600; }
-  .read-opt.correct-reveal { border-color:#22c55e; background:#f0fdf4; color:#166534; font-weight:600; }
-  .read-opt.wrong-reveal   { border-color:#ef4444; background:#fef2f2; color:#991b1b; }
-
-  /* ── T6: Task Switching ────────────────────────────────────── */
-  .switch-rule { font-size:13px; font-weight:700; padding:8px 18px; border-radius:6px; margin-bottom:16px; display:inline-block; }
-  .switch-rule.color { background:#dbeafe; color:#1e40af; }
-  .switch-rule.shape { background:#fce7f3; color:#9d174d; }
-  .switch-rule.size  { background:#dcfce7; color:#166534; }
-  .switch-rule.switch-highlight { outline:2px solid #f59e0b; outline-offset:2px; }
-  .switch-card { width:110px; height:110px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; border:3px solid transparent; transition:font-size .1s; }
-  .switch-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .switch-opt { padding:11px 20px; border:2px solid var(--border); border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; background:var(--bg-card); transition:all .15s; }
-  .switch-opt:hover { border-color:var(--accent); background:var(--accent-light); }
-
-  /* ── Analyzing ─────────────────────────────────────────────── */
-  .bat-analyzing { text-align:center; padding:60px 0; }
-  .bat-spinner   { width:44px; height:44px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 20px; }
-  @keyframes spin { to{transform:rotate(360deg)} }
-
-  /* ── Report ────────────────────────────────────────────────── */
-  .rep-header { background:#191919; border-radius:var(--radius); padding:32px; color:#fff; margin-bottom:18px; }
-  .rep-header-top { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:16px; }
-  .rep-title { font-size:22px; font-weight:900; letter-spacing:-.5px; }
-  .rep-profile-tag { background:var(--accent); color:#fff; font-size:12px; font-weight:700; padding:4px 12px; border-radius:6px; white-space:nowrap; }
-  .rep-summary { font-size:14px; color:rgba(255,255,255,.65); line-height:1.65; }
-  .rep-scores { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
-  .rep-score-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
-  .rep-score-val  { font-size:24px; font-weight:900; margin-bottom:2px; }
-  .rep-score-label{ font-size:11px; font-weight:600; letter-spacing:.4px; text-transform:uppercase; color:var(--text-secondary); }
-  .rep-score-bar-wrap { height:4px; background:var(--border); border-radius:99px; margin-top:8px; }
-  .rep-score-bar  { height:100%; border-radius:99px; }
-  .rep-section { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:22px 24px; margin-bottom:14px; }
-  .rep-section-title { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
-  .rep-item { display:flex; gap:12px; margin-bottom:12px; }
-  .rep-item:last-child { margin-bottom:0; }
-  .rep-item-icon  { font-size:18px; flex-shrink:0; margin-top:1px; }
-  .rep-item-title { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:3px; }
-  .rep-item-desc  { font-size:13px; color:var(--text-secondary); line-height:1.5; }
-  .rep-watchout { background:#fef2f2; border:1px solid #fecaca; border-radius:var(--radius); padding:18px 22px; margin-bottom:14px; }
-  .rep-watchout-title { font-size:11px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#ef4444; margin-bottom:8px; }
-  .rep-watchout-text  { font-size:14px; color:#7f1d1d; line-height:1.55; }
-  .rep-cta { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
-  .rep-btn { padding:10px 22px; border-radius:var(--radius-sm); font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:opacity .15s; }
-  .rep-btn.primary { background:var(--accent); color:#fff; }
-  .rep-btn.primary:hover { opacity:.88; }
-  .rep-btn.ghost   { background:var(--bg-main); border:1.5px solid var(--border); color:var(--text-secondary); }
-  .rep-btn.ghost:hover { border-color:var(--accent); color:var(--accent); }
-
-  /* colour helpers */
-  .c-green { color:#16a34a; } .bg-green { background:#16a34a; }
-  .c-yellow{ color:#ca8a04; } .bg-yellow{ background:#ca8a04; }
-  .c-red   { color:#dc2626; } .bg-red   { background:#dc2626; }
-  .c-accent{ color:var(--accent); } .bg-accent{ background:var(--accent); }
+.phase{display:none}.phase.active{display:block;animation:fadeIn .3s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.progress-strip{display:flex;gap:5px;margin-bottom:24px}.progress-step{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s}.progress-step.done{background:var(--accent)}.progress-step.active{background:var(--accent);opacity:.5}.phase-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:var(--accent-light);color:var(--accent);padding:3px 12px;border-radius:99px;margin-bottom:10px}.phase-title{font-size:22px;font-weight:800;color:var(--text-primary);margin-bottom:6px}.phase-desc{font-size:14px;color:var(--text-secondary);line-height:1.6;max-width:520px;margin:0 auto 20px}.phase-header{text-align:center;margin-bottom:24px}
+#cpt-arena{width:100%;height:280px;background:var(--bg-main);border-radius:var(--radius);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;position:relative;overflow:hidden}#cpt-timer{font-size:13px;color:var(--text-secondary);font-weight:600;margin-top:10px;text-align:center}.cpt-stats{display:flex;gap:24px;justify-content:center;margin-top:14px}.cpt-stat{text-align:center}.cpt-stat-val{font-size:24px;font-weight:800;color:var(--text-primary)}.cpt-stat-lbl{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
+.likert-q{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}.likert-q:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}.likert-q-text{font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:10px;line-height:1.5}.likert-opts{display:flex;gap:6px}.likert-opt{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:var(--radius-sm);text-align:center;cursor:pointer;background:var(--bg-card);transition:all .12s}.likert-opt:hover{border-color:var(--accent)}.likert-opt.sel{border-color:var(--accent);background:var(--accent-light)}.likert-opt .sc{font-size:16px;font-weight:800;color:var(--text-primary);display:block}.likert-opt .lb{font-size:9px;color:var(--text-secondary)}.likert-opt.sel .sc,.likert-opt.sel .lb{color:var(--accent)}
+#digit-display{font-size:80px;font-weight:900;color:var(--accent);text-align:center;min-height:100px;display:flex;align-items:center;justify-content:center;letter-spacing:12px}#digit-entry{font-size:28px;font-weight:700;text-align:center;letter-spacing:8px;color:var(--text-primary);min-height:44px;border-bottom:2px solid var(--accent);padding-bottom:4px;margin:12px 0}#digit-fb{text-align:center;font-size:14px;font-weight:700;min-height:22px}.digit-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:14px auto 0}.dkey{padding:14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);font-size:18px;font-weight:700;cursor:pointer;text-align:center;transition:background .1s}.dkey:hover{background:var(--accent-light);border-color:var(--accent)}
+.vark-scenario{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;line-height:1.5}.vark-opts{display:flex;flex-direction:column;gap:8px}.vark-opt{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);cursor:pointer;font-size:13px;color:var(--text-secondary);line-height:1.5;transition:all .12s}.vark-opt:hover{border-color:var(--accent);color:var(--text-primary)}.vark-opt.sel{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
+#matrix-rule-badge{display:inline-block;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:#fff;padding:6px 20px;border-radius:99px;margin-bottom:18px;transition:background .3s}#matrix-card-el{width:150px;height:190px;margin:0 auto 20px;border:2px solid var(--border);border-radius:16px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)}.matrix-syms{display:flex;gap:6px}.matrix-targets{display:flex;gap:16px;justify-content:center}.matrix-tgt{flex:1;max-width:150px;padding:18px 12px;border:2px solid var(--border);border-radius:var(--radius);background:var(--bg-card);cursor:pointer;text-align:center;transition:all .12s}.matrix-tgt:hover{border-color:var(--accent);transform:translateY(-2px)}#matrix-fb{text-align:center;font-size:15px;font-weight:700;min-height:26px;margin-top:10px}
+.tlx-item{margin-bottom:24px}.tlx-lbl{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px}.tlx-desc{font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5}.tlx-slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--border);outline:none}.tlx-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15)}.tlx-val{text-align:center;font-size:20px;font-weight:800;color:var(--accent);margin-top:4px}.tlx-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary)}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.res-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}.res-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:6px}.res-card-val{font-size:32px;font-weight:900;color:var(--accent)}.res-card-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}.risk-bar{height:12px;background:var(--border);border-radius:6px;overflow:hidden;margin:12px 0}.risk-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#22c55e,#eab308,#ef4444)}.reco{border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;background:var(--bg-card)}.reco-title{font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:5px}.reco-body{font-size:13px;color:var(--text-secondary);line-height:1.6}.vark-bar-row{margin-bottom:8px}.vark-bar-label{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px}.vark-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden}.vark-bar-fill{height:100%;border-radius:4px}
 </style>
 
-<div class="page-header">
-  <div class="page-title">Cognitive Assessment</div>
-  <div class="page-subtitle">A psychoeducational battery that maps how your brain learns.</div>
+<div class="progress-strip">
+  <div class="progress-step active" id="ps1"></div><div class="progress-step" id="ps2"></div><div class="progress-step" id="ps3"></div><div class="progress-step" id="ps4"></div><div class="progress-step" id="ps5"></div><div class="progress-step" id="ps6"></div><div class="progress-step" id="ps7"></div>
 </div>
 
-<div class="bat-wrap" id="batWrap">
-
-<!-- ════ INTRO ═════════════════════════════════════════════════ -->
-<div class="bat-screen active" id="sc-intro">
-  <div class="bat-intro">
-    <div class="bat-badge">Psychoeducational Battery · Advanced</div>
-    <div class="bat-title">How does your brain actually work?</div>
-    <div class="bat-sub">Six timed cognitive tasks — the same domains tested in $5,000 clinical assessments — adapted for your screen. Takes about 20 minutes. Results are analysed by AI to build your learning profile.</div>
-    <div class="bat-modules">
-      <div class="bat-module"><div class="bat-module-num">01</div><div class="bat-module-name">Working Memory</div><div class="bat-module-desc">Forward + backward digit span</div></div>
-      <div class="bat-module"><div class="bat-module-num">02</div><div class="bat-module-name">Processing Speed</div><div class="bat-module-desc">8-symbol timed matching</div></div>
-      <div class="bat-module"><div class="bat-module-num">03</div><div class="bat-module-name">Sustained Attention</div><div class="bat-module-desc">AX-CPT: sequence detection</div></div>
-      <div class="bat-module"><div class="bat-module-num">04</div><div class="bat-module-name">Fluid Reasoning</div><div class="bat-module-desc">Complex pattern completion</div></div>
-      <div class="bat-module"><div class="bat-module-num">05</div><div class="bat-module-name">Reading Rate</div><div class="bat-module-desc">Speed + deep comprehension</div></div>
-      <div class="bat-module"><div class="bat-module-num">06</div><div class="bat-module-name">Cognitive Flexibility</div><div class="bat-module-desc">Triple-rule task switching</div></div>
-    </div>
-    <div class="bat-disclaimer">This is an educational tool, not a medical device. Results are not a clinical diagnosis. For a formal psychoeducational evaluation, consult a licensed psychologist.</div>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="startBatBtn" style="padding:12px 32px;font-size:14px;">Begin Assessment</button>
-      <button class="btn btn-ghost" id="viewReportBtn" style="padding:12px 22px;font-size:14px;display:none;">View My Report</button>
-    </div>
-    <div id="existingNote" style="margin-top:12px;font-size:12px;color:var(--text-secondary);display:none;">You have a saved report. Retaking will replace it.</div>
+<!-- WELCOME -->
+<div id="phase-welcome" class="phase active">
+  <div class="phase-header">
+    <div class="phase-badge">Cognitive Assessment</div>
+    <div class="phase-title">Understand How Your Brain Works</div>
+    <div class="phase-desc">Six interactive tasks measuring attention, memory, flexibility, and learning style. Results power your personalized 90-day study plan.</div>
   </div>
-</div>
-
-<!-- ════ T1: DIGIT SPAN ════════════════════════════════════════ -->
-<div class="bat-screen" id="sc-t1-instr">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:0%"></div></div><div class="bat-progress-label">Test 1 / 6</div></div>
-  <div class="bat-instr">
-    <div class="bat-instr-num">Module 01 — Working Memory</div>
-    <div class="bat-instr-name">Digit Span — Forward &amp; Backward</div>
-    <div class="bat-instr-text">Digits will flash on screen one at a time. For <strong style="color:#93c5fd;">FORWARD</strong> trials, type them back in the same order. For <strong style="color:#f9a8d4;">BACKWARD</strong> trials, type them in <em>reverse</em> order — last digit first. You'll complete 15 forward and 15 backward trials, with spans from 3 to 9 digits.</div>
-    <div class="bat-instr-example"><strong>Forward:</strong> 3 → 7 → 1 → type 3, 7, 1 &nbsp;|&nbsp; <strong>Backward:</strong> 3 → 7 → 1 → type 1, 7, 3</div>
-  </div>
-  <button class="btn btn-primary" onclick="startT1()">Start Test →</button>
-</div>
-
-<div class="bat-screen" id="sc-t1">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:0%"></div></div><div class="bat-progress-label">Test 1 / 6</div></div>
-  <div class="bat-test-area" style="position:relative;">
-    <div id="t1ModeBadge" class="t1-mode-badge forward">Forward</div>
-    <div class="bat-phase-label" id="t1Phase">Get ready…</div>
-    <div class="digit-display" id="t1Display"></div>
-    <div class="digit-input-row" id="t1InputRow" style="display:none;"></div>
-    <div id="t1Feedback" style="margin-top:14px;font-size:14px;font-weight:600;"></div>
-  </div>
-</div>
-
-<!-- ════ T2: SYMBOL SEARCH ════════════════════════════════════ -->
-<div class="bat-screen" id="sc-t2-instr">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:17%"></div></div><div class="bat-progress-label">Test 2 / 6</div></div>
-  <div class="bat-instr">
-    <div class="bat-instr-num">Module 02 — Processing Speed</div>
-    <div class="bat-instr-name">Symbol Search</div>
-    <div class="bat-instr-text">A symbol will flash on screen. A key at the top shows 8 symbols, each paired with a number. Click the correct number <strong>before the time bar runs out</strong> — if you're too slow the item auto-advances. Go as fast as you can. Speed <em>and</em> accuracy both count. 40 items total.</div>
-    <div class="bat-instr-example"><strong>Key:</strong> ★=1, ●=2, ■=3, ▲=4, ◆=5, ♦=6, ✦=7, ❋=8 &nbsp;|&nbsp; <strong>Target: ▲</strong> → click <strong>4</strong></div>
-  </div>
-  <button class="btn btn-primary" onclick="startT2()">Start Test →</button>
-</div>
-
-<div class="bat-screen" id="sc-t2">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:17%"></div></div><div class="bat-progress-label">Test 2 / 6</div></div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-    <div style="font-size:13px;font-weight:700;color:var(--text-secondary);" id="t2ItemCounter">Item 0 of 40</div>
-    <div style="font-size:13px;font-weight:700;color:var(--text-secondary);" id="t2ScoreLine">Score: 0</div>
-  </div>
-  <div class="sym-timeout-bar"><div class="sym-timeout-fill" id="t2TimeBar"></div></div>
-  <div class="bat-test-area" style="gap:0;position:relative;padding-top:20px;">
-    <div class="sym-key" id="t2Key"></div>
-    <div class="sym-target" id="t2Target"></div>
-    <div class="sym-choices" id="t2Choices"></div>
-  </div>
-</div>
-
-<!-- ════ T3: AX-CPT ════════════════════════════════════════════ -->
-<div class="bat-screen" id="sc-t3-instr">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:33%"></div></div><div class="bat-progress-label">Test 3 / 6</div></div>
-  <div class="bat-instr">
-    <div class="bat-instr-num">Module 03 — Sustained Attention</div>
-    <div class="bat-instr-name">AX-CPT: Sequence Detection</div>
-    <div class="bat-instr-text">Letters flash one at a time. You must press <strong>SPACE</strong> (or tap below) <em>only</em> when you see <strong style="color:#6ee7b7;">X immediately after A</strong>. Do <em>not</em> press for X after any other letter — that's the trick. And do not press during A itself. Only A→X triggers a response. Stay focused: 40 letters total.</div>
-    <div class="bat-instr-example">
-      <strong>Press:</strong> …A… X → press SPACE on the X &nbsp;|&nbsp;
-      <strong>Don't press:</strong> …B… X → ignore the X &nbsp;|&nbsp; …A… K → ignore the K
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-title">What's included</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+      <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:var(--text-secondary);"><span style="font-size:18px;">⚡</span><span><strong style="color:var(--text-primary);">Go/No-Go Reaction Task</strong> — 3 min sustained attention test (120 trials)</span></div>
+      <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:var(--text-secondary);"><span style="font-size:18px;">📋</span><span><strong style="color:var(--text-primary);">ASRS Self-Report</strong> — 6 validated attention habit questions</span></div>
+      <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:var(--text-secondary);"><span style="font-size:18px;">🔢</span><span><strong style="color:var(--text-primary);">Digit Span</strong> — Visual forward + auditory backward recall</span></div>
+      <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:var(--text-secondary);"><span style="font-size:18px;">📚</span><span><strong style="color:var(--text-primary);">VARK Profile</strong> — Visual, Auditory, Read/Write, Kinesthetic</span></div>
+      <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:var(--text-secondary);"><span style="font-size:18px;">🃏</span><span><strong style="color:var(--text-primary);">Rule-Switching Matrix</strong> — Cognitive flexibility under changing rules (30 rounds)</span></div>
+      <div style="display:flex;gap:12px;align-items:center;font-size:13px;color:var(--text-secondary);"><span style="font-size:18px;">📊</span><span><strong style="color:var(--text-primary);">NASA-TLX</strong> — Mental workload self-rating scale</span></div>
     </div>
   </div>
-  <button class="btn btn-primary" onclick="startT3()">Start Test →</button>
-</div>
-
-<div class="bat-screen" id="sc-t3">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:33%"></div></div><div class="bat-progress-label">Test 3 / 6</div></div>
-  <div style="text-align:right;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--text-secondary);" id="t3TargetCounter">AX Sequences: 0 / 10</div>
-  <div class="bat-test-area" style="position:relative;" id="t3Area" tabindex="0">
-    <div class="cpt-flash" id="t3Flash"></div>
-    <div class="cpt-target-label">Press SPACE only when you see:
-      <span class="cpt-pair-display">A <span class="cpt-pair-arrow">→</span> X</span>
-    </div>
-    <div class="cpt-letter" id="t3Letter">+</div>
-    <div class="cpt-prev-letter" id="t3PrevLabel"></div>
-    <div class="cpt-spacebar-hint">Press <kbd>SPACE</kbd> or tap below</div>
-    <button class="btn btn-ghost" id="t3TapBtn" style="margin-top:12px;padding:10px 28px;" onclick="handleCPTResponse()">TAP</button>
+  <div class="card" style="background:var(--accent-light);border-color:var(--accent);margin-bottom:20px;">
+    <div style="font-size:12px;color:var(--accent);line-height:1.6;"><strong>⚠️ Disclaimer:</strong> For educational self-discovery only. Does not constitute a clinical diagnosis for ADHD or any other condition. Consult a licensed professional for clinical evaluation.</div>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Estimated time: <strong>15–20 minutes</strong>. Find a quiet space.</div>
+    <button class="btn btn-primary" style="font-size:15px;padding:12px 36px;" onclick="goPhase('cpt')">Begin Assessment →</button>
   </div>
 </div>
 
-<!-- ════ T4: MATRIX REASONING ═════════════════════════════════ -->
-<div class="bat-screen" id="sc-t4-instr">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:50%"></div></div><div class="bat-progress-label">Test 4 / 6</div></div>
-  <div class="bat-instr">
-    <div class="bat-instr-num">Module 04 — Fluid Reasoning</div>
-    <div class="bat-instr-name">Pattern Completion</div>
-    <div class="bat-instr-text">Each puzzle shows a 3×3 grid with the last piece missing. Patterns may follow number sequences, directional rules, letter progressions, or visual counts. Look for what changes across rows <em>and</em> columns simultaneously. Click the option that completes the pattern.</div>
-    <div class="bat-instr-example"><strong>Tip:</strong> Check if numbers multiply or add — arrows rotate — letters advance — or counts increase by a rule. Some puzzles use two rules at once.</div>
+<!-- CPT -->
+<div id="phase-cpt" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge">Task 1 of 6 — Attention</div>
+    <div class="phase-title">Go / No-Go Reaction Test</div>
+    <div class="phase-desc">Press <kbd style="background:var(--bg-main);border:1px solid var(--border);padding:1px 7px;border-radius:4px;">Space</kbd> or click the arena for a <span style="color:#22c55e;font-weight:700;">green circle ●</span>. Do NOT respond to a red circle or green triangle.</div>
   </div>
-  <button class="btn btn-primary" onclick="startT4()">Start Test →</button>
-</div>
-
-<div class="bat-screen" id="sc-t4">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:50%"></div></div><div class="bat-progress-label">Test 4 / 6</div></div>
-  <div class="bat-test-area" style="flex-direction:column;gap:16px;">
-    <div class="matrix-q-label" id="t4QLabel">Question 1 of 30</div>
-    <div class="matrix-grid" id="t4Grid"></div>
-    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Which completes the pattern?</div>
-    <div class="matrix-choices" id="t4Choices"></div>
+  <div id="cpt-pre" style="text-align:center;margin-bottom:18px;">
+    <button class="btn btn-primary" style="font-size:15px;padding:12px 32px;" onclick="startCPT()">Start 3-Minute Test →</button>
   </div>
-</div>
-
-<!-- ════ T5: READING ═══════════════════════════════════════════ -->
-<div class="bat-screen" id="sc-t5-instr">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:67%"></div></div><div class="bat-progress-label">Test 5 / 6</div></div>
-  <div class="bat-instr">
-    <div class="bat-instr-num">Module 05 — Reading Rate &amp; Comprehension</div>
-    <div class="bat-instr-name">Passage Reading</div>
-    <div class="bat-instr-text">Read each passage at your normal pace. When done, click "Done Reading". Then answer 10 questions — some test direct recall, others require inference and reasoning beyond what's stated. There are 3 passages and 30 questions total.</div>
-    <div class="bat-instr-example"><strong>Important:</strong> Inference questions (<span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:11px;font-weight:700;">INFERENCE</span>) require you to reason from the text — the answer won't be stated directly.</div>
-  </div>
-  <button class="btn btn-primary" onclick="startT5()">Start Reading →</button>
-</div>
-
-<div class="bat-screen" id="sc-t5-read">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:67%"></div></div><div class="bat-progress-label">Test 5 / 6</div></div>
-  <div class="read-passage" id="t5Passage"></div>
-  <button class="btn btn-primary" onclick="finishReading()" style="width:100%;">Done Reading →</button>
-</div>
-
-<div class="bat-screen" id="sc-t5-q">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:67%"></div></div><div class="bat-progress-label">Test 5 / 6</div></div>
-  <div id="t5Questions"></div>
-  <button class="btn btn-primary" id="t5SubmitBtn" onclick="submitReading()" disabled>Submit Answers →</button>
-</div>
-
-<!-- ════ T6: TASK SWITCHING ════════════════════════════════════ -->
-<div class="bat-screen" id="sc-t6-instr">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:83%"></div></div><div class="bat-progress-label">Test 6 / 6</div></div>
-  <div class="bat-instr">
-    <div class="bat-instr-num">Module 06 — Cognitive Flexibility</div>
-    <div class="bat-instr-name">Triple-Rule Task Switching</div>
-    <div class="bat-instr-text">A coloured shape will appear in big or small size. You'll be told to sort by <strong style="color:#93c5fd;">COLOUR</strong>, <strong style="color:#f9a8d4;">SHAPE</strong>, or <strong style="color:#86efac;">SIZE</strong>. The rule can switch at any trial without warning. Click the correct label as fast as you can — 36 trials total.</div>
-    <div class="bat-instr-example">
-      <strong>Colour:</strong> Red or Blue &nbsp;|&nbsp;
-      <strong>Shape:</strong> Circle or Square &nbsp;|&nbsp;
-      <strong>Size:</strong> Big or Small
+  <div id="cpt-running" style="display:none;">
+    <div id="cpt-arena" tabindex="0"><canvas id="cpt-canvas" width="460" height="260"></canvas></div>
+    <div id="cpt-timer">3:00 remaining</div>
+    <div class="cpt-stats">
+      <div class="cpt-stat"><div class="cpt-stat-val" id="cv-trials">0</div><div class="cpt-stat-lbl">Trials</div></div>
+      <div class="cpt-stat"><div class="cpt-stat-val" id="cv-hits">0</div><div class="cpt-stat-lbl">Hits</div></div>
+      <div class="cpt-stat"><div class="cpt-stat-val" id="cv-err">0</div><div class="cpt-stat-lbl">Errors</div></div>
+      <div class="cpt-stat"><div class="cpt-stat-val" id="cv-rt">—</div><div class="cpt-stat-lbl">Avg RT ms</div></div>
     </div>
   </div>
-  <button class="btn btn-primary" onclick="startT6()">Start Test →</button>
 </div>
 
-<div class="bat-screen" id="sc-t6">
-  <div class="bat-progress"><div class="bat-progress-track"><div class="bat-progress-fill" style="width:83%"></div></div><div class="bat-progress-label">Test 6 / 6</div></div>
-  <div class="bat-test-area" style="flex-direction:column;gap:12px;">
-    <div class="switch-rule" id="t6Rule"></div>
-    <div class="switch-card" id="t6Card"></div>
-    <div style="font-size:12px;color:var(--text-secondary);" id="t6TrialLabel">Trial 1 / 36</div>
-    <div class="switch-choices" id="t6Choices"></div>
+<!-- ASRS -->
+<div id="phase-asrs" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge">Task 2 of 6 — Self-Report</div>
+    <div class="phase-title">Attention Habits Questionnaire</div>
+    <div class="phase-desc">Rate how often each statement applies to you over the past 6 months. (0 = Never → 4 = Very Often)</div>
+  </div>
+  <div class="card" id="asrs-body"></div>
+  <div style="text-align:center;margin-top:18px;"><button class="btn btn-primary" id="asrs-btn" style="font-size:14px;padding:10px 28px;" onclick="submitASRS()" disabled>Continue →</button></div>
+</div>
+
+<!-- DIGIT SPAN -->
+<div id="phase-digitspan" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge" id="ds-badge">Task 3 of 6 — Working Memory</div>
+    <div class="phase-title" id="ds-title">Forward Digit Recall</div>
+    <div class="phase-desc" id="ds-desc">Watch the digits appear one by one. When finished, type them back in the same order.</div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div id="ds-status" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;font-weight:600;"></div>
+    <div id="digit-display">—</div>
+    <div id="digit-entry"></div>
+    <div id="digit-fb"></div>
+    <div id="ds-keypad">
+      <div class="digit-pad">
+        <button class="dkey" onclick="dKey('1')">1</button><button class="dkey" onclick="dKey('2')">2</button><button class="dkey" onclick="dKey('3')">3</button>
+        <button class="dkey" onclick="dKey('4')">4</button><button class="dkey" onclick="dKey('5')">5</button><button class="dkey" onclick="dKey('6')">6</button>
+        <button class="dkey" onclick="dKey('7')">7</button><button class="dkey" onclick="dKey('8')">8</button><button class="dkey" onclick="dKey('9')">9</button>
+        <button class="dkey" onclick="dKey('X')" style="font-size:15px;">⌫</button><button class="dkey" onclick="dKey('0')">0</button>
+        <button class="dkey" onclick="dSubmit()" style="background:var(--accent);color:#fff;border-color:var(--accent);">✓</button>
+      </div>
+    </div>
+    <div id="ds-next-btn" style="display:none;margin-top:16px;"><button class="btn btn-primary" onclick="startBackward()">Continue to Backward Recall →</button></div>
   </div>
 </div>
 
-<!-- ════ ANALYZING ════════════════════════════════════════════ -->
-<div class="bat-screen" id="sc-analyzing">
-  <div class="bat-analyzing">
-    <div class="bat-spinner"></div>
-    <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:8px;" id="analyzingTitle">Scoring your results…</div>
-    <div style="font-size:13px;color:var(--text-secondary);" id="analyzingSubtitle">This takes about 15 seconds</div>
+<!-- VARK -->
+<div id="phase-vark" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge">Task 4 of 6 — Learning Style</div>
+    <div class="phase-title">Learning Preference Profile</div>
+    <div class="phase-desc">For each scenario, pick the response that most closely matches your natural instinct.</div>
+  </div>
+  <div class="card" id="vark-body"></div>
+  <div style="text-align:center;margin-top:18px;"><button class="btn btn-primary" id="vark-btn" style="font-size:14px;padding:10px 28px;" onclick="submitVARK()" disabled>Continue →</button></div>
+</div>
+
+<!-- MATRIX -->
+<div id="phase-matrix" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge">Task 5 of 6 — Flexibility</div>
+    <div class="phase-title">Rule-Switching Matrix</div>
+    <div class="phase-desc">Sort the card by the active rule shown at the top. The rule changes every 5 rounds without warning.</div>
+  </div>
+  <div id="matrix-pre" style="text-align:center;">
+    <div class="card" style="text-align:left;margin-bottom:16px;">
+      <div class="card-title">How it works</div>
+      <ul style="font-size:13px;color:var(--text-secondary);line-height:1.8;padding-left:18px;margin:0;">
+        <li>A card appears showing colored shapes (stars ★ or diamonds ◆)</li>
+        <li>The banner tells you: SORT BY COLOR or SORT BY SHAPE</li>
+        <li>Tap the matching target at the bottom</li>
+        <li>After every 5 rounds the rule changes — stay alert</li>
+      </ul>
+    </div>
+    <button class="btn btn-primary" style="font-size:14px;padding:10px 28px;" onclick="startMatrix()">Start Matrix Task →</button>
+  </div>
+  <div id="matrix-running" style="display:none;text-align:center;">
+    <div id="matrix-rule-badge">SORT BY COLOR</div>
+    <div id="matrix-card-el"><div class="matrix-syms" id="matrix-syms"></div></div>
+    <div class="matrix-targets"><div class="matrix-tgt" id="mtgt-a" onclick="matrixPick('a')"></div><div class="matrix-tgt" id="mtgt-b" onclick="matrixPick('b')"></div></div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">Round <span id="m-round">1</span> of 30</div>
+    <div id="matrix-fb"></div>
   </div>
 </div>
 
-<!-- ════ REPORT ════════════════════════════════════════════════ -->
-<div class="bat-screen" id="sc-report">
-  <div id="reportContent"></div>
-  <div class="rep-cta" style="margin-top:20px;">
-    <button class="rep-btn primary" onclick="window.navigateTo('plan')" style="background:#191919;">Activate My 90-Day Plan 🐌</button>
-    <button class="rep-btn primary" onclick="window.navigateTo('study')">Start Focus Timer</button>
-    <button class="rep-btn ghost"   onclick="showScreen('sc-intro')">Retake Assessment</button>
+<!-- NASA-TLX -->
+<div id="phase-nasatlx" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge">Task 6 of 6 — Mental Load</div>
+    <div class="phase-title">Mental Workload Rating</div>
+    <div class="phase-desc">Rate how the rule-switching task felt. Drag each slider to reflect your experience.</div>
   </div>
+  <div class="card">
+    <div class="tlx-item">
+      <div class="tlx-lbl">Mental Demand</div>
+      <div class="tlx-desc">How much mental and perceptual activity was required? Was the task easy or demanding?</div>
+      <input type="range" class="tlx-slider" id="tlx-m" min="0" max="10" value="5" oninput="document.getElementById('tlx-mv').textContent=this.value">
+      <div class="tlx-val" id="tlx-mv">5</div><div class="tlx-scale"><span>Extremely Low</span><span>Extremely High</span></div>
+    </div>
+    <div class="tlx-item">
+      <div class="tlx-lbl">Temporal Demand</div>
+      <div class="tlx-desc">Did you feel rushed or pressured by the speed of the task transitions?</div>
+      <input type="range" class="tlx-slider" id="tlx-t" min="0" max="10" value="5" oninput="document.getElementById('tlx-tv').textContent=this.value">
+      <div class="tlx-val" id="tlx-tv">5</div><div class="tlx-scale"><span>Extremely Low</span><span>Extremely High</span></div>
+    </div>
+    <div class="tlx-item">
+      <div class="tlx-lbl">Frustration Level</div>
+      <div class="tlx-desc">How insecure, discouraged, irritated, or stressed did you feel during the task?</div>
+      <input type="range" class="tlx-slider" id="tlx-f" min="0" max="10" value="5" oninput="document.getElementById('tlx-fv').textContent=this.value">
+      <div class="tlx-val" id="tlx-fv">5</div><div class="tlx-scale"><span>Extremely Low</span><span>Extremely High</span></div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:20px;"><button class="btn btn-primary" style="font-size:14px;padding:10px 28px;" onclick="submitNASA()">View My Results →</button></div>
 </div>
 
-</div><!-- /bat-wrap -->
+<!-- RESULTS -->
+<div id="phase-results" class="phase">
+  <div class="phase-header">
+    <div class="phase-badge">Complete</div>
+    <div class="phase-title">Your Cognitive Profile</div>
+    <div class="phase-desc">Scored across all 6 tasks using validated psychometric formulas.</div>
+  </div>
+  <div id="results-body"></div>
+</div>
 
 <script>
-(function() {
-  /* ── Utilities ──────────────────────────────────────────────── */
-  function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
-  function rand(a,b) { return Math.floor(Math.random()*(b-a+1))+a }
-  function sleep(ms) { return new Promise(r=>setTimeout(r,ms)) }
-
-  function showScreen(id) {
-    document.querySelectorAll('.bat-screen').forEach(s=>s.classList.remove('active'))
-    const el = document.getElementById(id)
-    if (el) el.classList.add('active')
-  }
-  window.showScreen = showScreen
-
-  /* ── Results store ─────────────────────────────────────────── */
-  const RESULTS = {}
-
-  /* ── Intro ─────────────────────────────────────────────────── */
-  const saved = csGetJSON('cognitiveReport', null)
-  if (saved) {
-    document.getElementById('viewReportBtn').style.display = ''
-    document.getElementById('existingNote').style.display  = ''
-  }
-  document.getElementById('startBatBtn').addEventListener('click', () => showScreen('sc-t1-instr'))
-  document.getElementById('viewReportBtn')?.addEventListener('click', () => { renderReport(saved); showScreen('sc-report') })
-
-  /* ══════════════════════════════════════════════════════════════
-     TEST 1 — DIGIT SPAN (Forward + Backward)
-  ═══════════════════════════════════════════════════════════════ */
-  window.startT1 = async function() {
-    showScreen('sc-t1')
-    await runDigitSpan()
-  }
-
-  async function runDigitSpan() {
-    let fwdMaxSpan = 2, bwdMaxSpan = 2
-    let fwdCorrect = 0, bwdCorrect = 0, totalTrials = 0
-
-    // 15 forward trials (spans 3-9, ~2 trials each span, some spans get 3)
-    // 15 backward trials (spans 3-9)
-    const fwdTrials = [], bwdTrials = []
-    for (let span = 3; span <= 9; span++) {
-      const n = span <= 5 ? 3 : 2
-      for (let t = 0; t < n; t++) fwdTrials.push(span)
-    }
-    // Trim to 15
-    while (fwdTrials.length > 15) fwdTrials.pop()
-    while (fwdTrials.length < 15) fwdTrials.push(rand(3,7))
-    for (let span = 3; span <= 9; span++) {
-      const n = span <= 5 ? 3 : 2
-      for (let t = 0; t < n; t++) bwdTrials.push(span)
-    }
-    while (bwdTrials.length > 15) bwdTrials.pop()
-    while (bwdTrials.length < 15) bwdTrials.push(rand(3,6))
-
-    // Interleave: 2 forward, 2 backward alternating in blocks
-    const allTrials = []
-    for (let i = 0; i < 15; i++) {
-      allTrials.push({span: fwdTrials[i], mode: 'forward'})
-      allTrials.push({span: bwdTrials[i], mode: 'backward'})
-    }
-
-    for (const {span, mode} of allTrials) {
-      const seq = Array.from({length:span}, ()=>rand(1,9))
-      totalTrials++
-      const trialNum = totalTrials
-
-      // Mode badge
-      const badge = document.getElementById('t1ModeBadge')
-      badge.textContent = mode === 'forward' ? '▶ FORWARD — Type in order' : '◀ BACKWARD — Type in reverse'
-      badge.className = 't1-mode-badge ' + mode
-
-      document.getElementById('t1Phase').textContent = `Trial ${trialNum} / 30 — Span ${span}`
-      document.getElementById('t1InputRow').style.display = 'none'
-      document.getElementById('t1Feedback').textContent = ''
-
-      // Show digits
-      const disp = document.getElementById('t1Display')
-      for (const d of seq) {
-        disp.textContent = d
-        await sleep(650)
-        disp.textContent = ''
-        await sleep(200)
-      }
-
-      // Show input boxes
-      const dir = mode === 'forward' ? 'Type digits in order:' : 'Type digits in REVERSE order (last first):'
-      document.getElementById('t1Phase').textContent = dir
-
-      const row = document.getElementById('t1InputRow')
-      row.innerHTML = ''
-      row.style.display = 'flex'
-      const boxes = []
-      for (let i = 0; i < span; i++) {
-        const inp = document.createElement('input')
-        inp.type = 'text'; inp.maxLength = 1; inp.inputMode = 'numeric'
-        inp.className = 'digit-box'
-        inp.style.borderColor = mode === 'backward' ? '#f9a8d4' : ''
-        inp.addEventListener('input', () => {
-          inp.value = inp.value.replace(/[^0-9]/g,'')
-          const next = boxes[boxes.indexOf(inp)+1]
-          if (inp.value && next) next.focus()
-        })
-        inp.addEventListener('keydown', e => {
-          if (e.key==='Backspace' && !inp.value) { const prev=boxes[boxes.indexOf(inp)-1]; if(prev){prev.focus();prev.value=''} }
-        })
-        row.appendChild(inp); boxes.push(inp)
-      }
-      if (boxes[0]) boxes[0].focus()
-
-      const userSeq = await new Promise(resolve => {
-        function check() {
-          if (boxes.every(b=>b.value)) resolve(boxes.map(b=>parseInt(b.value)))
-        }
-        boxes.forEach(b=>b.addEventListener('input',check))
-        document.addEventListener('keydown', function onEnter(e){
-          if (e.key==='Enter' && boxes.every(b=>b.value)) {
-            document.removeEventListener('keydown',onEnter); resolve(boxes.map(b=>parseInt(b.value)))
-          }
-        })
-      })
-
-      // Determine correct sequence
-      const correctSeq = mode === 'forward' ? seq : [...seq].reverse()
-      const correct = correctSeq.every((d,i) => d === userSeq[i])
-
-      if (correct) {
-        if (mode==='forward') { fwdCorrect++; fwdMaxSpan=Math.max(fwdMaxSpan,span) }
-        else { bwdCorrect++; bwdMaxSpan=Math.max(bwdMaxSpan,span) }
-        document.getElementById('t1Feedback').innerHTML = '<span style="color:#16a34a;font-weight:700;">✓ Correct!</span>'
-      } else {
-        document.getElementById('t1Feedback').innerHTML = `<span style="color:#ef4444;font-weight:700;">✗ Incorrect</span> — correct was: ${correctSeq.join(' ')}`
-      }
-      await sleep(950)
-    }
-
-    const totalCorrect = fwdCorrect + bwdCorrect
-    RESULTS.t1 = {
-      fwdMaxSpan, bwdMaxSpan, maxSpan: Math.max(fwdMaxSpan, bwdMaxSpan),
-      fwdCorrect, bwdCorrect, totalCorrect, totalTrials,
-      accuracy: Math.round(totalCorrect/totalTrials*100)
-    }
-    showScreen('sc-t2-instr')
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     TEST 2 — SYMBOL SEARCH (8 symbols, timed)
-  ═══════════════════════════════════════════════════════════════ */
-  const SYMBOLS = ['★','●','■','▲','◆','♦','✦','❋']
-  const T2_TOTAL = 40
-  let t2Score=0, t2Total=0, t2Correct=0, t2Current, t2TimeoutId=null, t2TimerAnim=null
-
-  window.startT2 = function() {
-    showScreen('sc-t2')
-    t2Score=0; t2Total=0; t2Correct=0
-
-    const keyEl = document.getElementById('t2Key')
-    keyEl.innerHTML = SYMBOLS.map((s,i)=>`<div class="sym-key-pair"><div class="sym-key-sym">${s}</div><div class="sym-key-num">${i+1}</div></div>`).join('')
-
-    document.getElementById('t2ItemCounter').textContent = 'Item 0 of 40'
-    document.getElementById('t2ScoreLine').textContent = 'Score: 0'
-    nextSymbol()
-  }
-
-  function getT2TimeLimit() {
-    // Start at 2200ms, decrease by 35ms per item, floor at 900ms
-    return Math.max(900, 2200 - t2Total * 35)
-  }
-
-  function startT2Timer(limit) {
-    const fill = document.getElementById('t2TimeBar')
-    fill.style.transition = 'none'
-    fill.style.width = '100%'
-    // Force reflow
-    fill.getBoundingClientRect()
-    fill.style.transition = `width ${limit}ms linear`
-    fill.style.width = '0%'
-    fill.style.background = 'var(--accent)'
-  }
-
-  function nextSymbol() {
-    if (t2Total >= T2_TOTAL) { endT2(); return }
-    const idx = rand(0, 7)
-    t2Current = idx
-    document.getElementById('t2Target').textContent = SYMBOLS[idx]
-    document.getElementById('t2Target').style.opacity = '1'
-
-    // Shuffle choices: correct + 7 distractors (all 8 numbers shuffled)
-    const choices = [1,2,3,4,5,6,7,8].sort(()=>Math.random()-.5)
-    const chEl = document.getElementById('t2Choices')
-    chEl.innerHTML = choices.map(n=>`<div class="sym-choice" data-num="${n}">${n}</div>`).join('')
-    chEl.querySelectorAll('.sym-choice').forEach(el=>{
-      el.addEventListener('click',()=>handleSymClick(parseInt(el.dataset.num),el))
-    })
-
-    const limit = getT2TimeLimit()
-    startT2Timer(limit)
-    // Auto-advance on timeout (miss)
-    t2TimeoutId = setTimeout(()=>{
-      t2Total++
-      document.getElementById('t2ItemCounter').textContent = `Item ${t2Total} of ${T2_TOTAL}`
-      // Flash red briefly
-      const fill = document.getElementById('t2TimeBar')
-      fill.style.transition='none'; fill.style.background='#ef4444'
-      setTimeout(()=>nextSymbol(), 200)
-    }, limit)
-  }
-
-  function handleSymClick(num, el) {
-    if (t2TimeoutId) { clearTimeout(t2TimeoutId); t2TimeoutId = null }
-    t2Total++
-    const correct = num === t2Current + 1
-    if (correct) { t2Correct++; t2Score++; el.classList.add('correct') }
-    else { el.classList.add('wrong') }
-    document.getElementById('t2ScoreLine').textContent = `Score: ${t2Score}`
-    document.getElementById('t2ItemCounter').textContent = `Item ${t2Total} of ${T2_TOTAL}`
-    setTimeout(()=>{
-      el.classList.remove('correct','wrong')
-      nextSymbol()
-    }, correct ? 120 : 320)
-  }
-
-  function endT2() {
-    const accuracy = t2Total>0 ? Math.round(t2Correct/t2Total*100) : 0
-    RESULTS.t2 = { score:t2Score, total:t2Total, correct:t2Correct, accuracy, itemsPerMin:t2Total }
-    showScreen('sc-t3-instr')
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     TEST 3 — AX-CPT (Sequence Attention)
-  ═══════════════════════════════════════════════════════════════ */
-  const AX_LETTERS = 'BCDEFGHJK'  // non-A non-X fillers
-  const AX_TOTAL   = 40           // total letter presentations
-  const AX_TARGETS = 10           // desired AX pairs
-
-  let cptRunning=false, cptLetterIdx=0
-  let cptPrevLetter='', cptCurrentLetter='', cptIsTarget=false
-  let cptHits=0, cptMisses=0, cptBXerrors=0, cptOtherFAs=0, cptCorrectRej=0
-  let cptResponseMade=false, cptSequence=[]
-
-  function buildAXSequence() {
-    // Build sequence of letters with ~10 AX pairs, ~8 BX foils, ~6 AY foils, rest random
-    const seq = []
-    let axCount=0, bxCount=0, ayCount=0
-
-    // First, plan the sequence type for each pair slot
-    while (seq.length < AX_TOTAL) {
-      const r = Math.random()
-      if (axCount < AX_TARGETS && r < 0.27) {
-        // AX pair: push A then X
-        seq.push({letter:'A', prevWasA:false})
-        if (seq.length < AX_TOTAL) seq.push({letter:'X', prevWasA:true, isTarget:true})
-        axCount++
-      } else if (bxCount < 8 && r < 0.5) {
-        // BX foil: random non-A then X
-        const b = AX_LETTERS[rand(0, AX_LETTERS.length-1)]
-        seq.push({letter:b, prevWasA:false})
-        if (seq.length < AX_TOTAL) seq.push({letter:'X', prevWasA:false, isTarget:false, isBX:true})
-        bxCount++
-      } else if (ayCount < 6 && r < 0.7) {
-        // AY foil: A then non-X
-        seq.push({letter:'A', prevWasA:false})
-        const y = AX_LETTERS[rand(0, AX_LETTERS.length-1)]
-        if (seq.length < AX_TOTAL) seq.push({letter:y, prevWasA:true, isTarget:false, isAY:true})
-        ayCount++
-      } else {
-        // Regular filler
-        const f = AX_LETTERS[rand(0, AX_LETTERS.length-1)]
-        seq.push({letter:f, prevWasA:false, isTarget:false})
-      }
-    }
-    return seq.slice(0, AX_TOTAL)
-  }
-
-  window.startT3 = function() {
-    showScreen('sc-t3')
-    cptRunning=true; cptLetterIdx=0
-    cptHits=0; cptMisses=0; cptBXerrors=0; cptOtherFAs=0; cptCorrectRej=0
-    cptSequence = buildAXSequence()
-    document.getElementById('t3TargetCounter').textContent = 'AX Sequences: 0 / ' + AX_TARGETS
-    document.getElementById('t3PrevLabel').textContent = ''
-    document.getElementById('t3Area').focus()
-    runAXCPT()
-  }
-
-  async function runAXCPT() {
-    let axHit = 0
-    for (let i = 0; i < cptSequence.length && cptRunning; i++) {
-      const item = cptSequence[i]
-      cptCurrentLetter = item.letter
-      cptIsTarget = !!item.isTarget
-      cptResponseMade = false
-
-      const letterEl = document.getElementById('t3Letter')
-      const prevLabel = document.getElementById('t3PrevLabel')
-
-      // Dim A slightly to hint but not reveal
-      letterEl.className = 'cpt-letter' + (item.letter==='A' ? ' dim' : '')
-      letterEl.textContent = item.letter
-
-      if (i > 0) {
-        prevLabel.textContent = `Previous: ${cptSequence[i-1].letter}`
-      }
-
-      // Display for 700ms
-      await sleep(700)
-      if (!cptRunning) break
-
-      // Score non-responses
-      if (!cptResponseMade) {
-        if (cptIsTarget) cptMisses++
-        else cptCorrectRej++
-      }
-
-      cptIsTarget = false
-      letterEl.textContent = '+'
-      letterEl.className = 'cpt-letter'
-      await sleep(350)
-    }
-    if (cptRunning) { cptRunning=false; endT3() }
-  }
-
-  window.handleCPTResponse = function() {
-    if (!cptRunning || cptResponseMade) return
-    cptResponseMade = true
-    const flash = document.getElementById('t3Flash')
-
-    if (cptIsTarget) {
-      // AX hit
-      cptHits++
-      flash.className='cpt-flash hit'; setTimeout(()=>flash.className='cpt-flash',250)
-      const axHitCount = cptHits
-      document.getElementById('t3TargetCounter').textContent=`AX Sequences: ${axHitCount} / ${AX_TARGETS}`
-    } else {
-      // False alarm — is it BX or other?
-      const item = cptSequence[cptLetterIdx]
-      if (item && item.isBX) cptBXerrors++
-      else cptOtherFAs++
-      flash.className='cpt-flash miss'; setTimeout(()=>flash.className='cpt-flash',250)
-    }
-  }
-
-  // Space bar
-  document.addEventListener('keydown', e=>{
-    if (e.code==='Space' && document.getElementById('sc-t3').classList.contains('active')) {
-      e.preventDefault(); handleCPTResponse()
-    }
-  })
-
-  function endT3() {
-    const axTotal = Math.max(1, cptHits + cptMisses)
-    const hitRate  = Math.round(cptHits/axTotal*100)
-    const faRate   = Math.round((cptBXerrors+cptOtherFAs)/Math.max(1,AX_TOTAL)*100)
-    const dprime   = Math.round((hitRate - faRate*0.8)*10)/10
-    RESULTS.t3 = {
-      hits:cptHits, misses:cptMisses, bxErrors:cptBXerrors, otherFAs:cptOtherFAs,
-      correctRej:cptCorrectRej, hitRate, faRate, dprime, total:AX_TOTAL
-    }
-    showScreen('sc-t4-instr')
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     TEST 4 — MATRIX REASONING (30 advanced puzzles)
-  ═══════════════════════════════════════════════════════════════ */
-  const MATRIX_QS = [
-    // ─── Number Sequence Puzzles ──────────────────────────────
-    { grid:['2','4','6','3','6','9','4','8','?'], choices:['10','12','14','16'], correct:1, rule:'Each row adds n: row1+2, row2+3, row3+4' },
-    { grid:['1','2','3','2','4','6','3','6','?'], choices:['7','8','9','12'], correct:2, rule:'Multiplication table: row × column' },
-    { grid:['9','8','7','8','7','6','7','6','?'], choices:['4','5','6','7'], correct:1, rule:'Each row counts down; each row starts 1 lower' },
-    { grid:['1','4','9','4','9','16','9','16','?'], choices:['20','25','28','30'], correct:1, rule:'Consecutive perfect squares shift one forward each row' },
-    { grid:['3','6','12','4','8','16','5','10','?'], choices:['15','18','20','25'], correct:2, rule:'Each step doubles; starting value +1 per row' },
-    { grid:['7','5','3','8','6','4','9','7','?'], choices:['3','4','5','6'], correct:2, rule:'Each row -2 per step; first column +1 per row' },
-    { grid:['1','2','3','2','3','5','3','5','?'], choices:['6','7','8','9'], correct:2, rule:'Each row: n, n+1, n+(n+1) — Fibonacci-like sums' },
-    { grid:['1','3','6','2','6','12','3','9','?'], choices:['12','15','18','21'], correct:2, rule:'×3 then ×2 within each row; starting value +1' },
-    { grid:['4','2','1','8','4','2','12','6','?'], choices:['2','3','4','6'], correct:1, rule:'Halving each step; first column: 4, 8, 12 (+4 each row)' },
-    { grid:['2','6','18','3','9','27','4','12','?'], choices:['24','36','48','54'], correct:1, rule:'Each row ×3; starting value +1 per row' },
-    { grid:['6','4','2','7','5','3','8','6','?'], choices:['2','3','4','5'], correct:3, rule:'Each row -2 per step; start +1 per row. Row3: 8,6,4… wait, 8-2=6, 6-2=4. But that makes ?=4. Let me recalculate.','_correct':3 },
-    { grid:['3','5','7','6','10','14','9','15','?'], choices:['17','19','21','23'], correct:2, rule:'Row1 +2 each; row2 +4 each; row3 +6 each' },
-    // ─── Arrow / Direction ────────────────────────────────────
-    { grid:['↑','→','↓','→','↓','←','↓','←','?'], choices:['→','↑','←','↓'], correct:1, rule:'Each cell rotates 90° clockwise; each row starts where prev ended' },
-    { grid:['→','→','↑','→','↑','↑','↑','↑','?'], choices:['↓','→','↑','←'], correct:2, rule:'Each row gains one more ↑; row 3 col 3 = ↑' },
-    { grid:['↑','↑','→','↑','→','→','→','→','?'], choices:['↑','↓','→','←'], correct:2, rule:'→ arrows increase by row; row 3 has all →' },
-    { grid:['→','↓','←','↓','←','↑','←','↑','?'], choices:['↓','→','←','↑'], correct:1, rule:'Each column cycles 90°CW per row; col3: ←,↑,→' },
-    // ─── Count / Visual ───────────────────────────────────────
-    { grid:['●','●●','●●●','●●','●●●','●●●●','●●●','●●●●','?'], choices:['●●●●','●●●●●','●●●●●●','●●'], correct:1, rule:'Row start increases +1; each cell adds 1 more dot' },
-    { grid:['★','★★','★★★','★★','★★★','★★★★','★★★','★★★★','?'], choices:['★★★★★','★★★','★★','★'], correct:0, rule:'Row 3: 3, 4, 5 stars' },
-    { grid:['🌑','🌒','🌓','🌒','🌓','🌔','🌓','🌔','?'], choices:['🌕','🌗','🌑','🌔'], correct:0, rule:'Moon phases advance one step per cell; diagonal adds one phase per row' },
-    { grid:['☀️','🌤','⛅','🌤','⛅','🌧','⛅','🌧','?'], choices:['🌧','⛈','☀️','🌤'], correct:1, rule:'Each row gets cloudier by one step; diagonal progression' },
-    // ─── Letter / Mixed ───────────────────────────────────────
-    { grid:['A1','B2','C3','B2','C3','D4','C3','D4','?'], choices:['E4','E5','D5','F6'], correct:1, rule:'Letter and number both advance +1 each step; diagonal shifts' },
-    { grid:['AB','BC','CD','BC','CD','DE','CD','DE','?'], choices:['DE','EF','DF','FG'], correct:1, rule:'Letter pair shifts +1 each step; diagonal follows' },
-    { grid:['Z','Y','X','Y','X','W','X','W','?'], choices:['V','U','W','X'], correct:0, rule:'Reverse alphabet: each row steps back one more letter' },
-    { grid:['A','C','E','C','E','G','E','G','?'], choices:['H','I','J','K'], correct:1, rule:'Skip one letter each step (odd alphabet positions)' },
-    // ─── Harder mixed ─────────────────────────────────────────
-    { grid:['S','M','L','M','L','XL','L','XL','?'], choices:['XL','XXL','M','L'], correct:1, rule:'Sizes advance one step each cell; diagonal follows' },
-    { grid:['10','9','7','9','7','4','7','4','?'], choices:['0','1','2','3'], correct:0, rule:'Differences increase: 1, 2, 3, 4 — so 4-? diff is 4: ?=0' },
-    { grid:['16','8','4','12','6','3','8','4','?'], choices:['1','2','3','4'], correct:1, rule:'Halve each step; first column: 16,12,8 (-4); row3: 8→4→2' },
-    { grid:['1','2','4','2','4','8','4','8','?'], choices:['12','14','16','18'], correct:2, rule:'Doubling each step; each row starts where prev row col1 ended' },
-    { grid:['🔴','🔴','🔵','🔴','🔵','🔵','🔵','🔵','?'], choices:['🔴','🔵','🟡','🟢'], correct:1, rule:'Blue increases per row: 1,2,3; position 9 must be blue' },
-    { grid:['🐣','🐣','🐥','🐣','🐥','🐥','🐥','🐥','?'], choices:['🐔','🐥','🐣','🐦'], correct:0, rule:'Growth: eggs→chicks→hen; row 3 is all grown = hen' },
-  ]
-
-  let t4Q=0, t4Correct=0, t4Times=[], t4QStart
-
-  window.startT4 = function() { showScreen('sc-t4'); t4Q=0; t4Correct=0; t4Times=[]; renderMatrix() }
-
-  function renderMatrix() {
-    if (t4Q >= MATRIX_QS.length) { endT4(); return }
-    t4QStart = Date.now()
-    const q = MATRIX_QS[t4Q]
-    document.getElementById('t4QLabel').textContent = `Question ${t4Q+1} of ${MATRIX_QS.length}`
-    const grid = document.getElementById('t4Grid')
-    grid.innerHTML = q.grid.map((c,i) => i===8
-      ? `<div class="matrix-cell blank">?</div>`
-      : `<div class="matrix-cell">${c}</div>`).join('')
-    const choices = document.getElementById('t4Choices')
-    const shuffled = q.choices.map((c,i)=>({c,i})).sort(()=>Math.random()-.5)
-    choices.innerHTML = shuffled.map(({c,i})=>`<div class="matrix-opt" data-idx="${i}">${c}</div>`).join('')
-    choices.querySelectorAll('.matrix-opt').forEach(el=>{
-      el.addEventListener('click',()=>handleMatrix(parseInt(el.dataset.idx),el))
-    })
-  }
-
-  function handleMatrix(idx, el) {
-    const rt = Date.now() - t4QStart; t4Times.push(rt)
-    const correct = idx === MATRIX_QS[t4Q].correct
-    el.classList.add(correct ? 'correct' : 'wrong')
-    if (correct) t4Correct++
-    else {
-      document.querySelectorAll('.matrix-opt').forEach(o=>{
-        if (parseInt(o.dataset.idx)===MATRIX_QS[t4Q].correct) o.classList.add('correct-reveal')
-      })
-    }
-    t4Q++
-    setTimeout(renderMatrix, correct ? 400 : 950)
-  }
-
-  function endT4() {
-    const avgRT = t4Times.length ? Math.round(t4Times.reduce((a,b)=>a+b,0)/t4Times.length) : 0
-    RESULTS.t4 = { correct:t4Correct, total:MATRIX_QS.length, accuracy:Math.round(t4Correct/MATRIX_QS.length*100), avgRT }
-    showScreen('sc-t5-instr')
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     TEST 5 — READING RATE + COMPREHENSION
-  ═══════════════════════════════════════════════════════════════ */
-  const PASSAGES = [
-    {
-      title: 'Passage 1 of 3',
-      text: `The concept of spaced repetition is one of the most well-supported findings in cognitive psychology. When information is reviewed at increasing intervals rather than all at once, long-term retention improves dramatically. Hermann Ebbinghaus first described the forgetting curve in the 1880s — a pattern showing that memory declines rapidly without review, then more slowly as time passes. Modern researchers have built on his work to develop algorithms that schedule reviews at the precise moment forgetting is most likely. Studies consistently show that students using spaced repetition outperform peers who use massed practice — cramming — even when total study time is equal. The key mechanism is retrieval effort: the act of recalling information strengthens the memory trace more than simply re-reading it. This is why flashcard systems, when used correctly, are far more effective than highlighting or re-reading textbooks. Importantly, retrieval practice is most effective when it generates some difficulty — when recall is too easy, the memory benefit is reduced. This counterintuitive principle is sometimes called the desirable difficulties hypothesis: for learning to be deep, it must first be hard. Understanding these principles allows learners to study less while retaining more — a counterintuitive but repeatedly proven finding.`,
-      wordCount: 176,
-      questions: [
-        { q: 'Who first described the forgetting curve?', opts:['Wilhelm Wundt','Hermann Ebbinghaus','Sigmund Freud','William James'], correct:1, type:'recall' },
-        { q: 'What is the "desirable difficulties hypothesis"?', opts:['Harder content is more motivating','Difficulty during retrieval makes learning deeper','Difficult environments improve concentration','Spacing study over long periods is always superior'], correct:1, type:'recall' },
-        { q: 'Based on the passage, why would re-reading a textbook be less effective than flashcards?', opts:['Re-reading takes longer','Flashcards use spaced repetition by default','Re-reading does not generate retrieval effort','Textbooks contain outdated information'], correct:2, type:'inference' },
-        { q: 'When did Ebbinghaus first describe the forgetting curve?', opts:['1780s','1980s','1880s','1920s'], correct:2, type:'recall' },
-        { q: 'What do spaced repetition algorithms determine?', opts:['Which topics to skip','When forgetting is most likely','How long to study each day','Which learning style a student has'], correct:1, type:'recall' },
-        { q: 'If a student finds flashcard practice very easy, what does the passage suggest will happen?', opts:['Retention will be maximised','The memory benefit will be reduced','They should switch to re-reading','The spacing effect will increase'], correct:1, type:'inference' },
-        { q: 'Which study method does the passage say is less effective than flashcards?', opts:['Active recall','Spaced repetition','Highlighting or re-reading textbooks','Teaching others'], correct:2, type:'recall' },
-        { q: 'What happens to memory decline over time without review, according to Ebbinghaus?', opts:['It stays constant','It accelerates steadily','It declines rapidly at first, then more slowly','It stops after one week'], correct:2, type:'recall' },
-        { q: 'Which of the following best explains why cramming works in the short term but fails long term?', opts:['Cramming uses too much mental energy','Massed practice does not allow memory traces to strengthen through spaced retrieval','Cramming only works for factual subjects','Spaced repetition requires a computer algorithm to be effective'], correct:1, type:'inference' },
-        { q: 'What is the relationship between retrieval effort and memory strength according to the passage?', opts:['They are unrelated','Easier retrieval creates stronger memories','Greater retrieval effort strengthens memory traces','Retrieval effort only matters for procedural memory'], correct:2, type:'inference' },
-      ]
-    },
-    {
-      title: 'Passage 2 of 3',
-      text: `The Pomodoro Technique is a time-management method developed by Francesco Cirillo in the late 1980s. The method uses a timer to break work into focused intervals — traditionally 25 minutes long — separated by short breaks of 5 minutes. After completing four intervals, a longer break of 15 to 30 minutes is taken. Cirillo named the technique after the tomato-shaped kitchen timer he used as a university student, "pomodoro" being the Italian word for tomato. The core idea is that frequent, structured breaks improve mental agility and reduce the impact of both internal interruptions (mind-wandering, distraction from within) and external interruptions (notifications, other people). Time-boxing, a related concept, involves allocating a fixed maximum period to an activity and stopping when the time is up, regardless of whether the task is finished. This constraint actually increases urgency and helps avoid the tendency to let easy tasks expand to fill available time — a phenomenon known as Parkinson's Law. Research on focused work intervals suggests that the human brain can sustain high concentration for roughly 20 to 45 minutes before performance begins to decline. Structured breaks allow the brain to consolidate information and recover attentional resources, making the next interval more productive than if work had continued uninterrupted.`,
-      wordCount: 185,
-      questions: [
-        { q: 'Who developed the Pomodoro Technique?', opts:['Hermann Ebbinghaus','Francesco Cirillo','William James','Bluma Zeigarnik'], correct:1, type:'recall' },
-        { q: "What is Parkinson's Law as described in the passage?", opts:['Work expands to fill the time available','The brain can only focus for 25 minutes','Frequent breaks reduce Parkinson's disease risk','Structured timers prevent procrastination'], correct:0, type:'recall' },
-        { q: 'How does time-boxing help prevent Parkinson\'s Law, according to the passage?', opts:['It eliminates all distractions','By setting a fixed endpoint, it creates urgency and prevents task expansion','It schedules breaks at the right moment','By stopping all external interruptions'], correct:1, type:'inference' },
-        { q: 'How long is the short break between intervals?', opts:['2 minutes','10 minutes','5 minutes','15 minutes'], correct:2, type:'recall' },
-        { q: 'What does "pomodoro" mean in Italian?', opts:['Timer','Clock','Focus','Tomato'], correct:3, type:'recall' },
-        { q: 'How many intervals are completed before a long break?', opts:['Two','Three','Five','Four'], correct:3, type:'recall' },
-        { q: 'A student uses Pomodoro but keeps checking their phone during the 25-minute interval. Based on the passage, what is happening?', opts:['They are experiencing external interruptions that the technique is meant to reduce','They have completed too many intervals without a break','Their brain has exceeded its natural attention window','The Pomodoro intervals are too short for their task'], correct:0, type:'inference' },
-        { q: 'How long can the human brain sustain high concentration, according to the passage?', opts:['10 to 20 minutes','60 to 90 minutes','5 to 10 minutes','20 to 45 minutes'], correct:3, type:'recall' },
-        { q: 'What does the passage say structured breaks allow the brain to do?', opts:['Sleep more efficiently','Consolidate information and recover attentional resources','Increase working memory capacity','Reduce false alarm responses'], correct:1, type:'recall' },
-        { q: 'If a person finds a task easy and has 3 hours available, what does the passage predict will happen without time-boxing?', opts:['The task will be completed in less time','The task will expand to fill the full 3 hours','The person will naturally use Pomodoro intervals','They will experience fewer internal interruptions'], correct:1, type:'inference' },
-      ]
-    },
-    {
-      title: 'Passage 3 of 3',
-      text: `Sleep plays a critical role in memory consolidation — the process by which newly acquired information is stabilised and integrated into long-term memory. During sleep, the brain replays experiences from the day, strengthening the neural connections that form memories. Research has identified two key sleep stages involved in this process: slow-wave sleep, which is particularly important for declarative memory — the type used to recall facts and events — and REM sleep, which is associated with procedural memory and creative problem-solving. Studies using electroencephalography have shown that memory traces formed during waking are reactivated during slow-wave sleep, allowing the hippocampus to transfer information to the neocortex for long-term storage. Sleep deprivation has been shown to impair both the encoding of new memories and the consolidation of those formed before the deprivation occurred. Students who sleep after studying retain significantly more material than those who stay awake. Even a 90-minute nap taken shortly after learning can double the amount of information retained compared to continued wakefulness. These findings have led sleep researchers to describe sleep not as a passive state, but as an active, essential component of the learning process. Notably, this also implies that pulling an all-night study session before an exam may actively harm the memories formed during earlier study — not simply fail to add new ones.`,
-      wordCount: 193,
-      questions: [
-        { q: 'What is memory consolidation?', opts:['The act of writing notes during study','The process of stabilising new information into long-term memory','A type of retrieval practice','A method of time management'], correct:1, type:'recall' },
-        { q: 'Which sleep stage is particularly important for declarative memory?', opts:['REM sleep','Light sleep','Slow-wave sleep','Hypnagogic sleep'], correct:2, type:'recall' },
-        { q: 'Based on the passage, why might an all-nighter before an exam be actively harmful (not just unhelpful)?', opts:['It causes students to oversleep the next day','Sleep deprivation impairs consolidation of memories formed during earlier study','Students who stay awake forget the material during the night','The hippocampus shuts down without REM sleep'], correct:1, type:'inference' },
-        { q: 'Where does the hippocampus transfer information during slow-wave sleep?', opts:['The cerebellum','The prefrontal cortex','The neocortex','The amygdala'], correct:2, type:'recall' },
-        { q: 'What method was used in research to show memory reactivation during sleep?', opts:['fMRI scanning','Electroencephalography','Blood glucose monitoring','Eye-tracking'], correct:1, type:'recall' },
-        { q: 'A student learns new material on Monday, sleeps well Monday night, then pulls an all-nighter Tuesday before a Wednesday exam. Based on the passage, what is the likely outcome?', opts:['Monday content will be consolidated but Tuesday content may not be','All content will be equally impaired','Only Wednesday performance will suffer','REM sleep on Monday will protect all memories'], correct:0, type:'inference' },
-        { q: 'How much more information can a 90-minute nap help retain compared to staying awake?', opts:['50% more','Three times as much','Double the amount','25% more'], correct:2, type:'recall' },
-        { q: 'What do sleep researchers conclude about the role of sleep?', opts:['Sleep is mostly passive but helpful','Sleep is an active, essential component of learning','Sleep can be replaced by short rest periods','Sleep only matters for physical recovery'], correct:1, type:'recall' },
-        { q: 'Which type of memory is REM sleep most associated with, according to the passage?', opts:['Declarative memory for facts','Procedural memory and creative problem-solving','Episodic memory for events','Semantic memory for language'], correct:1, type:'recall' },
-        { q: 'If slow-wave sleep handles fact memory and REM handles skills, what does this suggest about studying a musical instrument vs. memorising vocabulary?', opts:['Both types of memory rely equally on slow-wave sleep','Instrument practice benefits more from REM sleep; vocabulary from slow-wave sleep','Vocabulary and instrument learning require the same type of sleep','Only vocabulary consolidation happens during sleep'], correct:1, type:'inference' },
-      ]
-    }
-  ]
-
-  let t5PassageIdx=0, t5ReadStart, t5TotalReadTime=0, t5TotalWordCount=0, t5AllAnswers=[], t5QAnswers={}
-
-  window.startT5 = function() {
-    t5PassageIdx=0; t5TotalReadTime=0; t5TotalWordCount=0; t5AllAnswers=[]
-    showPassage()
-  }
-
-  function showPassage() {
-    const p = PASSAGES[t5PassageIdx]
-    showScreen('sc-t5-read')
-    document.getElementById('t5Passage').innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">${esc(p.title)}</div>${esc(p.text)}`
-    t5ReadStart = Date.now()
-  }
-
-  window.finishReading = function() {
-    const readingTime = Math.round((Date.now()-t5ReadStart)/1000)
-    t5TotalReadTime += readingTime
-    t5TotalWordCount += PASSAGES[t5PassageIdx].wordCount
-    t5QAnswers = {}
-    showScreen('sc-t5-q')
-    const p = PASSAGES[t5PassageIdx]
-    const qEl = document.getElementById('t5Questions')
-    const qOffset = t5PassageIdx * 10
-    qEl.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">${esc(p.title)} — Questions ${qOffset+1}–${qOffset+10}</div>` +
-      p.questions.map((q,qi)=>`
-      <div class="read-q">
-        <div class="read-q-text">${qOffset+qi+1}. ${esc(q.q)}
-          <span class="read-q-type ${q.type}">${q.type.toUpperCase()}</span>
-        </div>
-        <div class="read-opts">${q.opts.map((o,oi)=>`
-          <button class="read-opt" data-q="${qi}" data-o="${oi}" onclick="selectReadOpt(this,${qi})">${esc(o)}</button>`).join('')}
-        </div>
-      </div>`).join('')
-    document.getElementById('t5SubmitBtn').textContent = t5PassageIdx<2 ? 'Next Passage →' : 'Submit Answers →'
-    checkReadSubmit()
-  }
-
-  window.selectReadOpt = function(btn, qi) {
-    document.querySelectorAll(`.read-opt[data-q="${qi}"]`).forEach(b=>b.classList.remove('selected'))
-    btn.classList.add('selected')
-    t5QAnswers[qi] = parseInt(btn.dataset.o)
-    checkReadSubmit()
-  }
-
-  function checkReadSubmit() {
-    document.getElementById('t5SubmitBtn').disabled = Object.keys(t5QAnswers).length < PASSAGES[t5PassageIdx].questions.length
-  }
-
-  window.submitReading = function() {
-    const p = PASSAGES[t5PassageIdx]
-    p.questions.forEach((q,i)=>{ t5AllAnswers.push({correct:q.correct, given:t5QAnswers[i]??-1, type:q.type}) })
-    t5PassageIdx++
-    if (t5PassageIdx < PASSAGES.length) showPassage()
-    else endT5()
-  }
-
-  function endT5() {
-    const totalCorrect = t5AllAnswers.filter(a=>a.given===a.correct).length
-    const inferenceCorrect = t5AllAnswers.filter(a=>a.type==='inference'&&a.given===a.correct).length
-    const inferenceTotal = t5AllAnswers.filter(a=>a.type==='inference').length
-    const wpm = Math.round(t5TotalWordCount/(t5TotalReadTime/60))
-    RESULTS.t5 = {
-      readingTime:t5TotalReadTime, wpm,
-      comprehension:totalCorrect, comprehensionTotal:30, comprehensionPct:Math.round(totalCorrect/30*100),
-      inferenceCorrect, inferenceTotal, inferencePct:Math.round(inferenceCorrect/inferenceTotal*100)
-    }
-    showScreen('sc-t6-instr')
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     TEST 6 — TASK SWITCHING (3 rules: Color, Shape, Size)
-  ═══════════════════════════════════════════════════════════════ */
-  const SHAPES = [{shape:'●',label:'Circle'},{shape:'■',label:'Square'}]
-  const COLORS = [{color:'#ef4444',label:'Red'},{color:'#3b82f6',label:'Blue'}]
-  const SIZES  = [{size:'big',fontSize:'62px',label:'Big'},{size:'small',fontSize:'28px',label:'Small'}]
-  const RULES  = ['color','shape','size']
-  const T6_TOTAL = 36
-
-  let t6Trial=0, t6Correct=0, t6SwitchCost=[], t6RTs=[], t6CurrentRule=null, t6PrevRule=null
-  let t6SwitchTrials=[], t6ItemColor, t6ItemShape, t6ItemSize, t6TrialStart
-
-  window.startT6 = function() {
-    showScreen('sc-t6')
-    t6Trial=0; t6Correct=0; t6SwitchCost=[]; t6RTs=[]; t6SwitchTrials=[]
-    t6CurrentRule=null; t6PrevRule=null
-    nextSwitchTrial()
-  }
-
-  function nextSwitchTrial() {
-    if (t6Trial >= T6_TOTAL) { endT6(); return }
-
-    t6PrevRule = t6CurrentRule
-
-    // Rule switching: ~33% switch probability; force first rule to color
-    if (t6Trial === 0) {
-      t6CurrentRule = 'color'
-    } else if (Math.random() < 0.35) {
-      // Pick a different rule
-      const others = RULES.filter(r=>r!==t6CurrentRule)
-      t6CurrentRule = others[rand(0,others.length-1)]
-    }
-
-    const isSwitchTrial = t6PrevRule && t6PrevRule !== t6CurrentRule
-    t6SwitchTrials.push(!!isSwitchTrial)
-
-    // Randomise item attributes
-    const ci = rand(0,1), si = rand(0,1), szI = rand(0,1)
-    t6ItemColor = COLORS[ci]
-    t6ItemShape = SHAPES[si]
-    t6ItemSize  = SIZES[szI]
-
-    // Render card
-    const card = document.getElementById('t6Card')
-    card.style.background = t6ItemColor.color
-    card.style.fontSize    = t6ItemSize.fontSize
-    card.style.color       = '#fff'
-    card.textContent       = t6ItemShape.shape
-
-    // Rule label
-    const ruleEl = document.getElementById('t6Rule')
-    const ruleClass = {color:'color',shape:'shape',size:'size'}[t6CurrentRule]
-    ruleEl.className = `switch-rule ${ruleClass}${isSwitchTrial?' switch-highlight':''}`
-    const ruleText = t6CurrentRule==='color'?'SORT BY COLOUR':t6CurrentRule==='shape'?'SORT BY SHAPE':'SORT BY SIZE'
-    ruleEl.textContent = ruleText
-
-    document.getElementById('t6TrialLabel').textContent = `Trial ${t6Trial+1} / ${T6_TOTAL}`
-
-    // Render choices based on current rule
-    const choices = document.getElementById('t6Choices')
-    if (t6CurrentRule === 'color') {
-      choices.innerHTML = COLORS.map(c=>`<div class="switch-opt" data-val="${c.label}" style="border-color:${c.color};color:${c.color};">${c.label}</div>`).join('')
-    } else if (t6CurrentRule === 'shape') {
-      choices.innerHTML = SHAPES.map(s=>`<div class="switch-opt" data-val="${s.label}">${s.label}</div>`).join('')
-    } else {
-      choices.innerHTML = SIZES.map(s=>`<div class="switch-opt" data-val="${s.label}">${s.label}</div>`).join('')
-    }
-
-    t6TrialStart = Date.now()
-    choices.querySelectorAll('.switch-opt').forEach(el=>{
-      el.addEventListener('click',()=>handleSwitch(el.dataset.val))
-    })
-  }
-
-  function handleSwitch(val) {
-    const rt = Date.now() - t6TrialStart
-    t6RTs.push(rt)
-    let correctVal
-    if (t6CurrentRule==='color') correctVal = t6ItemColor.label
-    else if (t6CurrentRule==='shape') correctVal = t6ItemShape.label
-    else correctVal = t6ItemSize.label
-
-    const correct = val === correctVal
-    if (correct) t6Correct++
-    if (t6SwitchTrials[t6Trial]) t6SwitchCost.push(rt)
-    t6Trial++
-    setTimeout(nextSwitchTrial, correct ? 100 : 300)
-  }
-
-  function endT6() {
-    const avgRT = t6RTs.length ? Math.round(t6RTs.reduce((a,b)=>a+b,0)/t6RTs.length) : 0
-    const avgSwitchRT = t6SwitchCost.length ? Math.round(t6SwitchCost.reduce((a,b)=>a+b,0)/t6SwitchCost.length) : 0
-    const switchCost = avgSwitchRT - avgRT
-    RESULTS.t6 = { correct:t6Correct, total:T6_TOTAL, accuracy:Math.round(t6Correct/T6_TOTAL*100), avgRT, avgSwitchRT, switchCost }
-    runAnalysis()
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     AI ANALYSIS
-  ═══════════════════════════════════════════════════════════════ */
-  async function runAnalysis() {
-    showScreen('sc-analyzing')
-    const msgs=[
-      ['Scoring your results…','Calculating raw scores across all 6 modules'],
-      ['Mapping cognitive profile…','Comparing working memory, speed, and attention'],
-      ['Running pattern analysis…','Identifying strengths and areas for growth'],
-      ['Building your learning plan…','Personalising strategies to your profile'],
-    ]
-    let mi=0
-    const titleEl=document.getElementById('analyzingTitle'), subEl=document.getElementById('analyzingSubtitle')
-    const msgInt=setInterval(()=>{
-      mi=(mi+1)%msgs.length; titleEl.textContent=msgs[mi][0]; subEl.textContent=msgs[mi][1]
-    },2200)
-
-    function pct(score,low,high){ return Math.min(99,Math.max(1,Math.round((score-low)/(high-low)*100))) }
-    const scores={
-      workingMemory:  { raw:RESULTS.t1?.maxSpan||3,   pct:pct(RESULTS.t1?.maxSpan||3, 3, 9) },
-      backwardSpan:   { raw:RESULTS.t1?.bwdMaxSpan||2, pct:pct(RESULTS.t1?.bwdMaxSpan||2, 2, 7) },
-      processingSpeed:{ raw:RESULTS.t2?.score||0,      pct:pct(RESULTS.t2?.score||0, 5, 55) },
-      attention:      { raw:RESULTS.t3?.hitRate||50,   pct:pct((RESULTS.t3?.hitRate||50)-(RESULTS.t3?.faRate||0)*0.8, 20, 100) },
-      fluidReasoning: { raw:RESULTS.t4?.correct||0,    pct:pct(RESULTS.t4?.correct||0, 4, 28) },
-      readingRate:    { raw:RESULTS.t5?.wpm||150,       pct:pct(RESULTS.t5?.wpm||150, 100, 400) },
-      cogFlex:        { raw:RESULTS.t6?.accuracy||50,  pct:pct(RESULTS.t6?.accuracy||50, 40, 100) },
-    }
-
-    const subjects  = csGetJSON('subjects',[]).join(', ')||'not specified'
-    const dailyGoal = csGet('dailyGoalHours')||'not set'
-
-    const prompt=`You are a psychoeducational assessment specialist interpreting an advanced cognitive battery. Provide a clinical-level report with highly personalised learning recommendations.
-
-Student context — Subjects: ${subjects} | Daily goal: ${dailyGoal} hours
-
-RAW SCORES AND PERFORMANCE DATA:
-
-1. Working Memory — Forward + Backward Digit Span (30 trials: 15 fwd, 15 bwd; spans 3-9)
-   - Forward max span: ${RESULTS.t1?.fwdMaxSpan} | Backward max span: ${RESULTS.t1?.bwdMaxSpan}
-   - Forward correct: ${RESULTS.t1?.fwdCorrect}/15 | Backward correct: ${RESULTS.t1?.bwdCorrect}/15
-   - Overall accuracy: ${RESULTS.t1?.accuracy}% | WM percentile: ${scores.workingMemory.pct}th | Backward span percentile: ${scores.backwardSpan.pct}th
-   - NOTE: Backward span measures working memory MANIPULATION, not just storage. A large gap between forward and backward spans is clinically significant.
-
-2. Processing Speed — Symbol Search (40 items, 8 symbols, auto-timed per item)
-   - Items completed: ${RESULTS.t2?.total}, Correct: ${RESULTS.t2?.correct}
-   - Accuracy: ${RESULTS.t2?.accuracy}% | Estimated percentile: ${scores.processingSpeed.pct}th
-
-3. Sustained Attention — AX-CPT (40 letters; target = X after A only)
-   - Hit rate: ${RESULTS.t3?.hitRate}% | BX foil errors (pressing X after non-A): ${RESULTS.t3?.bxErrors}
-   - Other false alarms: ${RESULTS.t3?.otherFAs} | Correct rejections: ${RESULTS.t3?.correctRej}
-   - Signal sensitivity d-prime: ${RESULTS.t3?.dprime} | Percentile: ${scores.attention.pct}th
-   - NOTE: BX errors indicate impulsive responding to salient stimuli without context checking — clinically significant for ADHD-spectrum traits.
-
-4. Fluid Reasoning — Pattern Completion (30 advanced puzzles: number sequences, arrows, letters)
-   - Correct: ${RESULTS.t4?.correct}/30 (${RESULTS.t4?.accuracy}%)
-   - Average response time: ${RESULTS.t4?.avgRT}ms | Percentile: ${scores.fluidReasoning.pct}th
-
-5. Reading Rate + Comprehension (3 passages, 30 Qs — mix of direct recall and inference)
-   - Reading speed: ${RESULTS.t5?.wpm} WPM (avg: 200-250)
-   - Total comprehension: ${RESULTS.t5?.comprehension}/30 (${RESULTS.t5?.comprehensionPct}%)
-   - Inference questions: ${RESULTS.t5?.inferenceCorrect}/${RESULTS.t5?.inferenceTotal} (${RESULTS.t5?.inferencePct}%)
-   - Percentile: ${scores.readingRate.pct}th
-   - NOTE: A large gap between recall and inference accuracy reveals surface vs deep reading strategies.
-
-6. Cognitive Flexibility — Triple-Rule Task Switching (36 trials: color/shape/size rules)
-   - Accuracy: ${RESULTS.t6?.accuracy}% | Avg RT: ${RESULTS.t6?.avgRT}ms
-   - Switch trial RT: ${RESULTS.t6?.avgSwitchRT}ms | Switch cost: ${RESULTS.t6?.switchCost}ms
-   - Percentile: ${scores.cogFlex.pct}th
-   - NOTE: High switch cost (>300ms) indicates significant executive function load when changing mental rules.
-
-Return ONLY valid JSON (no markdown), with this structure:
-{
-  "profileTitle": "A specific 4-6 word label for this learner's cognitive profile",
-  "overallSummary": "3-4 sentences: clinical-style interpretation referencing specific scores. Note the forward/backward span difference, BX error rate, and recall vs inference gap if meaningful.",
-  "cognitiveStrengths": [
-    {"domain": "name", "finding": "specific clinical observation about this score", "implication": "what this means for studying"}
-  ],
-  "cognitiveWeaknesses": [
-    {"domain": "name", "finding": "specific clinical observation about this score", "implication": "what this holds them back from"}
-  ],
-  "recommendedTimer": "Pomodoro 25 | Focus 45 | Deep Work 60 | Marathon 90",
-  "timerRationale": "one sentence citing specific scores that justify this recommendation",
-  "studyStrategies": [
-    {"title": "strategy name", "desc": "specific actionable strategy tailored to their exact scores", "basedOn": "which test score drives this recommendation"}
-  ],
-  "watchOut": "One specific, data-driven warning about a pattern in their scores",
-  "longTermPlan": "2-3 sentences: what they should focus on developing over the next 3 months"
+;(function(){
+'use strict'
+const R={cpt:{trials:[],commission:0,omission:0,hits:0,rtSum:0,rtCount:0},asrs:{},ds:{fwd:0,bwd:0},vark:{V:0,A:0,R:0,K:0},matrix:{trials:[],switchCost:0,accuracy:0},tlx:{mental:5,temporal:5,frustration:5}}
+const PHASES=['welcome','cpt','asrs','digitspan','vark','matrix','nasatlx','results']
+let curPhase='welcome'
+function goPhase(n){document.getElementById('phase-'+curPhase).classList.remove('active');document.getElementById('phase-'+n).classList.add('active');curPhase=n;updateProg();const pc=document.querySelector('.page-content');if(pc)pc.scrollTo(0,0)}
+window.goPhase=goPhase
+function updateProg(){const idx=PHASES.indexOf(curPhase);for(let i=1;i<=7;i++){const el=document.getElementById('ps'+i);if(!el)continue;el.className='progress-step';if(i<idx)el.classList.add('done');else if(i===idx)el.classList.add('active')}}
+
+// ── CPT ──────────────────────────────────────────────
+let cptTrials=[],cptIdx=0,cptStart=0,cptStimulusT=null,cptReplied=false,cptRunning=false,cptTimerID=null,cptIsiID=null
+function buildTrials(){const t=[];for(let i=0;i<96;i++)t.push({type:'GO'});for(let i=0;i<24;i++)t.push({type:'NO_GO',variant:Math.random()<.5?'red':'tri'});for(let i=t.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[t[i],t[j]]=[t[j],t[i]]}const isis=[1000,1500,2000];return t.map((x,i)=>({...x,index:i,isi:isis[Math.floor(Math.random()*3)]}))}
+window.startCPT=function(){document.getElementById('cpt-pre').style.display='none';document.getElementById('cpt-running').style.display='';cptTrials=buildTrials();cptIdx=0;cptStart=performance.now();cptRunning=true;const ar=document.getElementById('cpt-arena');ar.addEventListener('click',cptResp);document.addEventListener('keydown',cptKey);ar.focus();cptTimerID=setInterval(()=>{const rem=Math.max(0,180000-(performance.now()-cptStart));const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);document.getElementById('cpt-timer').textContent=`${m}:${s.toString().padStart(2,'0')} remaining`;if(rem<=0){clearInterval(cptTimerID);cptDone()}},200);nextCPT()}
+function cptKey(e){if(e.code==='Space'){e.preventDefault();cptResp()}}
+function cptResp(){if(!cptRunning||!cptStimulusT||cptReplied)return;const rt=performance.now()-cptStimulusT;const trial=cptTrials[cptIdx-1];if(!trial)return;cptReplied=true;if(trial.type==='GO'){R.cpt.hits++;R.cpt.rtSum+=rt;R.cpt.rtCount++;logCPT(trial,'TAP',rt,'HIT');flashAr('#22c55e')}else{R.cpt.commission++;logCPT(trial,'TAP',rt,'COMMISSION_ERROR');flashAr('#ef4444')}updateCStats()}
+function logCPT(t,a,rt,c){R.cpt.trials.push({trial_index:t.index,stimulus_type:t.type,isi_duration_ms:t.isi,user_action:a,reaction_time_ms:rt?Math.round(rt):null,classification:c})}
+function flashAr(c){const ar=document.getElementById('cpt-arena');ar.style.borderColor=c;setTimeout(()=>ar.style.borderColor='',200)}
+function nextCPT(){if(!cptRunning)return;if(cptIdx>=cptTrials.length||(performance.now()-cptStart)>=180000){cptDone();return}const trial=cptTrials[cptIdx++];cptStimulusT=null;cptReplied=false;const cv=document.getElementById('cpt-canvas');const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);setTimeout(()=>{if(!cptRunning)return;cptStimulusT=performance.now();drawStim(ctx,trial,cv.width,cv.height);setTimeout(()=>{ctx.clearRect(0,0,cv.width,cv.height);if(!cptReplied){if(trial.type==='GO'){R.cpt.omission++;logCPT(trial,'NONE',null,'OMISSION_ERROR')}else logCPT(trial,'NONE',null,'CORRECT_REJECTION');updateCStats()}cptStimulusT=null;cptIsiID=setTimeout(nextCPT,trial.isi-400)},400)},80)}
+function drawStim(ctx,t,w,h){const cx=w/2,cy=h/2,r=58;ctx.clearRect(0,0,w,h);if(t.type==='GO'){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#22c55e';ctx.fill()}else if(t.variant==='red'){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill()}else{ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r,cy+r*.7);ctx.lineTo(cx-r,cy+r*.7);ctx.closePath();ctx.fillStyle='#22c55e';ctx.fill()}}
+function updateCStats(){document.getElementById('cv-trials').textContent=R.cpt.trials.length;document.getElementById('cv-hits').textContent=R.cpt.hits;document.getElementById('cv-err').textContent=R.cpt.commission+R.cpt.omission;document.getElementById('cv-rt').textContent=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):'—'}
+function cptDone(){if(!cptRunning)return;cptRunning=false;clearInterval(cptTimerID);clearTimeout(cptIsiID);document.removeEventListener('keydown',cptKey);const ctx=document.getElementById('cpt-canvas').getContext('2d');ctx.clearRect(0,0,460,260);ctx.fillStyle='#4b5563';ctx.font='600 15px system-ui';ctx.textAlign='center';ctx.fillText('Task complete! Well done.',230,130);setTimeout(()=>{goPhase('asrs');buildASRS()},1400)}
+
+// ── ASRS ─────────────────────────────────────────────
+const ASRS=[{id:'A1',q:'How often do you have trouble wrapping up the final details of a project, even after the challenging parts are done?',thresh:2},{id:'A2',q:'How often do you struggle to bring order to things when performing a task that requires careful organization?',thresh:2},{id:'A3',q:'When you have a task that requires a lot of deep mental effort, how often do you avoid, delay, or skip starting it?',thresh:3},{id:'A4',q:'How often do you misplace, lose, or struggle to find items at home or at work (e.g., keys, wallet, phone, study guides)?',thresh:3},{id:'A5',q:'How often are you distracted or thrown off track by activity or noises happening around you?',thresh:2},{id:'A6',q:'How often do you find yourself fidgeting, squirming, or tapping your hands or feet when required to sit still for a long time?',thresh:3}]
+const ALBLS=['Never','Rarely','Sometimes','Often','Very Often']
+let asrsAns={}
+function buildASRS(){document.getElementById('asrs-body').innerHTML=ASRS.map(item=>`<div class="likert-q"><div class="likert-q-text">${item.q}</div><div class="likert-opts">${ALBLS.map((l,sc)=>`<div class="likert-opt" onclick="pickA('${item.id}',${sc},this)" data-aid="${item.id}"><span class="sc">${sc}</span><span class="lb">${l}</span></div>`).join('')}</div></div>`).join('')}
+window.pickA=function(id,sc,el){document.querySelectorAll(`.likert-opt[data-aid="${id}"]`).forEach(e=>e.classList.remove('sel'));el.classList.add('sel');asrsAns[id]=sc;if(Object.keys(asrsAns).length===ASRS.length)document.getElementById('asrs-btn').disabled=false}
+window.submitASRS=function(){R.asrs=asrsAns;goPhase('digitspan');startFwd()}
+
+// ── DIGIT SPAN ────────────────────────────────────────
+let dsMode='fwd',dsLen=3,dsSeq=[],dsInput='',dsReady=false,dsCorrStrk=0,dsWrongStrk=0,dsBestFwd=0,dsBestBwd=0
+function genSeq(n){const s=[];let last=-1;for(let i=0;i<n;i++){let d;do{d=Math.floor(Math.random()*10)}while(d===last);s.push(d);last=d}return s}
+function startFwd(){dsMode='fwd';dsLen=3;dsCorrStrk=0;dsWrongStrk=0;dsBestFwd=0;document.getElementById('ds-title').textContent='Forward Digit Recall';document.getElementById('ds-desc').textContent='Watch the digits appear one by one. Type them back in the same order.';document.getElementById('ds-next-btn').style.display='none';document.getElementById('ds-keypad').style.display='';nextDS()}
+window.startBackward=function(){dsMode='bwd';dsLen=3;dsCorrStrk=0;dsWrongStrk=0;dsBestBwd=0;document.getElementById('ds-title').textContent='Backward Digit Recall';document.getElementById('ds-desc').textContent='Watch/listen to the digits. Type them back in REVERSE order.';document.getElementById('ds-next-btn').style.display='none';document.getElementById('ds-keypad').style.display='';nextDS()}
+function nextDS(){dsInput='';dsReady=false;dsSeq=genSeq(dsLen);document.getElementById('digit-entry').textContent='';document.getElementById('digit-fb').textContent='';document.getElementById('ds-status').textContent='Sequence length: '+dsLen;setDK(true);playSeq(dsSeq,()=>{dsReady=true;setDK(false);document.getElementById('digit-display').textContent='?';document.getElementById('digit-display').style.color='var(--text-secondary)';document.getElementById('digit-fb').textContent='Enter the sequence...';document.getElementById('digit-fb').style.color='var(--text-secondary)'})}
+function playSeq(seq,cb){document.getElementById('digit-display').style.color='var(--accent)';let i=0;function nx(){if(i>=seq.length){document.getElementById('digit-display').textContent='';setTimeout(cb,300);return}document.getElementById('digit-display').textContent=seq[i];if(dsMode==='bwd'&&window.speechSynthesis){const u=new SpeechSynthesisUtterance(seq[i].toString());u.rate=.85;speechSynthesis.speak(u)}i++;setTimeout(()=>{document.getElementById('digit-display').textContent='';setTimeout(nx,200)},800)}nx()}
+function setDK(d){document.querySelectorAll('.dkey').forEach(k=>k.disabled=d)}
+window.dKey=function(v){if(!dsReady)return;if(v==='X')dsInput=dsInput.slice(0,-1);else dsInput+=v;document.getElementById('digit-entry').textContent=dsInput.split('').join(' ')}
+window.dSubmit=function(){if(!dsReady||!dsInput)return;dsReady=false;setDK(true);const entered=dsInput.split('').map(Number);const target=dsMode==='bwd'?[...dsSeq].reverse():dsSeq;const ok=JSON.stringify(entered)===JSON.stringify(target);const fb=document.getElementById('digit-fb');if(ok){fb.textContent='✓ Correct!';fb.style.color='#22c55e';dsCorrStrk++;dsWrongStrk=0;if(dsMode==='fwd')dsBestFwd=Math.max(dsBestFwd,dsLen);else dsBestBwd=Math.max(dsBestBwd,dsLen);if(dsCorrStrk>=2){dsLen++;dsCorrStrk=0}setTimeout(nextDS,900)}else{fb.textContent='✗ Expected: '+target.join(' ');fb.style.color='#ef4444';dsWrongStrk++;dsCorrStrk=0;if(dsWrongStrk>=2)setTimeout(endDSMode,1100);else setTimeout(nextDS,1300)}}
+function endDSMode(){if(dsMode==='fwd'){R.ds.fwd=dsBestFwd;document.getElementById('digit-display').textContent='🎉';document.getElementById('digit-fb').textContent='Forward span: '+dsBestFwd+' digits';document.getElementById('digit-fb').style.color='var(--accent)';document.getElementById('ds-keypad').style.display='none';document.getElementById('ds-next-btn').style.display=''}else{R.ds.bwd=dsBestBwd;goPhase('vark');buildVARK()}}
+
+// ── VARK ─────────────────────────────────────────────
+const VARK=[{id:'L1',sc:'You are learning how to operate a complex new app or technical platform. What is your initial instinct?',opts:[{t:'Look for an illustrated flowchart, map, or screenshot diagram.',s:'V'},{t:'Listen to a video tutorial walkthrough or discuss features with a peer.',s:'A'},{t:'Read through the text documentation or user manual line-by-line.',s:'R'},{t:'Open the app immediately and start tapping options to test how it works.',s:'K'}]},{id:'L2',sc:'You are prepping for a final exam covering highly dense, technical material. How do you format your core study space?',opts:[{t:'Create color-coded mind maps, timeline graphs, and highlight key concepts.',s:'V'},{t:'Record my voice explaining the notes and play it back while walking.',s:'A'},{t:'Write out comprehensive summaries and re-read flashcards repeatedly.',s:'R'},{t:'Build physical model structures, write on whiteboards, or run practice simulations.',s:'K'}]},{id:'L3',sc:'Someone is giving you complicated driving directions to a remote location. What format keeps you from getting lost?',opts:[{t:'Look at a digital map trace showing landmarks and geographical intersections.',s:'V'},{t:'Have them say the turn-by-turn directions aloud so I can hear them.',s:'A'},{t:'Write down the physical list of street names and mile markers.',s:'R'},{t:'Drive the route once beforehand or follow a vehicle to build a memory of the turns.',s:'K'}]}]
+let varkAns={}
+function buildVARK(){document.getElementById('vark-body').innerHTML=VARK.map((item,i)=>`<div style="${i>0?'border-top:1px solid var(--border);padding-top:18px;margin-top:4px;':''}"><div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Scenario ${i+1}</div><div class="vark-scenario">${item.sc}</div><div class="vark-opts">${item.opts.map(o=>`<div class="vark-opt" onclick="pickV('${item.id}','${o.s}',this)" data-vid="${item.id}">${o.t}</div>`).join('')}</div></div>`).join('')}
+window.pickV=function(id,s,el){document.querySelectorAll(`.vark-opt[data-vid="${id}"]`).forEach(e=>e.classList.remove('sel'));el.classList.add('sel');varkAns[id]=s;if(Object.keys(varkAns).length===VARK.length)document.getElementById('vark-btn').disabled=false}
+window.submitVARK=function(){Object.values(varkAns).forEach(s=>R.vark[s]++);goPhase('matrix')}
+
+// ── MATRIX ───────────────────────────────────────────
+const MRULES=['COLOR','SHAPE']
+let mRound=0,mRuleIdx=0,mCard=null,mWaiting=false,mRTs=[],mLastSwitch=0,mRoundStart=0
+function genCard(){return{color:['cyan','magenta'][Math.floor(Math.random()*2)],shape:['star','diamond'][Math.floor(Math.random()*2)],count:[1,2,3][Math.floor(Math.random()*3)]}}
+window.startMatrix=function(){mRound=0;mRuleIdx=0;mRTs=[];mLastSwitch=0;mWaiting=false;document.getElementById('matrix-pre').style.display='none';document.getElementById('matrix-running').style.display='';showMTrial()}
+function showMTrial(){if(mRound>=30){finishMatrix();return}if(mRound>0&&mRound%5===0){mRuleIdx=(mRuleIdx+1)%MRULES.length;mLastSwitch=mRound;const b=document.getElementById('matrix-rule-badge');b.style.background='#eab308';setTimeout(()=>b.style.background='var(--accent)',600)}const rule=MRULES[mRuleIdx];document.getElementById('matrix-rule-badge').textContent='SORT BY '+rule;document.getElementById('m-round').textContent=mRound+1;mCard=genCard();renderMCard(mCard);renderMTgts(rule);document.getElementById('matrix-fb').textContent='';mRoundStart=performance.now();mWaiting=true}
+function renderMCard(c){const cm={cyan:'#00bcd4',magenta:'#e91e63'};const sym=c.shape==='star'?'★':'◆';document.getElementById('matrix-syms').innerHTML=Array(c.count).fill(`<span style="color:${cm[c.color]};font-size:${c.count===1?'44px':'32px'}">${sym}</span>`).join('')}
+function renderMTgts(rule){const a=document.getElementById('mtgt-a'),b=document.getElementById('mtgt-b');if(rule==='COLOR'){a.innerHTML='<div style="font-size:28px;color:#00bcd4">■</div><div style="font-size:12px;font-weight:700;color:#00bcd4">CYAN</div>';b.innerHTML='<div style="font-size:28px;color:#e91e63">■</div><div style="font-size:12px;font-weight:700;color:#e91e63">MAGENTA</div>';a.dataset.v='cyan';b.dataset.v='magenta'}else{a.innerHTML='<div style="font-size:28px">★</div><div style="font-size:12px;font-weight:700;color:var(--text-secondary)">STAR</div>';b.innerHTML='<div style="font-size:28px">◆</div><div style="font-size:12px;font-weight:700;color:var(--text-secondary)">DIAMOND</div>';a.dataset.v='star';b.dataset.v='diamond'}}
+window.matrixPick=function(side){if(!mWaiting)return;mWaiting=false;const rt=performance.now()-mRoundStart;const rule=MRULES[mRuleIdx];const chosen=document.getElementById('mtgt-'+side).dataset.v;const correct=chosen===mCard[rule.toLowerCase()];const postSwitch=mRound-mLastSwitch<2;mRTs.push({round:mRound,rule,rt,correct,postSwitch});const fb=document.getElementById('matrix-fb');if(correct){fb.textContent='✓ Correct';fb.style.color='#22c55e'}else{fb.textContent='✗ It was '+mCard[rule.toLowerCase()];fb.style.color='#ef4444'}mRound++;setTimeout(showMTrial,550)}
+function finishMatrix(){const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;const post=mRTs.filter(t=>t.postSwitch&&t.correct).map(t=>t.rt);const steady=mRTs.filter(t=>!t.postSwitch&&t.correct).map(t=>t.rt);R.matrix.switchCost=Math.round(avg(post)-avg(steady));R.matrix.accuracy=Math.round(mRTs.filter(t=>t.correct).length/mRTs.length*100);R.matrix.trials=mRTs;goPhase('nasatlx')}
+
+// ── NASA-TLX ─────────────────────────────────────────
+window.submitNASA=function(){R.tlx={mental:+document.getElementById('tlx-m').value,temporal:+document.getElementById('tlx-t').value,frustration:+document.getElementById('tlx-f').value};buildResults();goPhase('results')}
+
+// ── RESULTS ──────────────────────────────────────────
+function buildResults(){
+  const totalNoGo=R.cpt.trials.filter(t=>t.stimulus_type==='NO_GO').length||24
+  const totalGo=R.cpt.trials.filter(t=>t.stimulus_type==='GO').length||96
+  let asrsNorm=0;ASRS.forEach(item=>{const sc=R.asrs[item.id]||0;if(sc>=item.thresh)asrsNorm+=sc})
+  const risk=Math.min(100,Math.round((R.cpt.commission/totalNoGo)*35+(R.cpt.omission/totalGo)*35+(asrsNorm/24)*30))
+  let rl,rc;if(risk<25){rl='Low';rc='#22c55e'}else if(risk<50){rl='Moderate';rc='#eab308'}else if(risk<75){rl='Elevated';rc='#f97316'}else{rl='High';rc='#ef4444'}
+  const avgRT=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):0
+  const VN={V:'Visual',A:'Auditory',R:'Read/Write',K:'Kinesthetic'},VC={V:'#6366f1',A:'#f59e0b',R:'#10b981',K:'#ec4899'}
+  const vt=R.vark.V+R.vark.A+R.vark.R+R.vark.K||1
+  const vd=Object.entries(R.vark).sort((a,b)=>b[1]-a[1])[0][0]
+  const recos=[]
+  if(risk>=50)recos.push({icon:'⏱️',title:'Micro-Pomodoro Protocol',body:'Your attention profile shows elevated risk for sustained-focus blocks. Use a 20-minute on, 5-minute off rhythm. Block background notifications and avoid multi-tasking during study windows.'})
+  if(vd==='V')recos.push({icon:'🗺️',title:'Visual Learning Strategy',body:'You encode best through visuals. Convert lecture notes into color-coded mind maps, timeline flowcharts, and diagrams. Avoid pure audio without visual anchors.'})
+  else if(vd==='A')recos.push({icon:'🎧',title:'Auditory Learning Strategy',body:'You encode best through sound. Record yourself explaining concepts, replay lectures while walking, and discuss material aloud with peers.'})
+  else if(vd==='R')recos.push({icon:'📝',title:'Read/Write Learning Strategy',body:'You retain material best through written text. Prioritize note-taking, written summaries, and flashcard review. Rewrite key concepts in your own words.'})
+  else recos.push({icon:'🏗️',title:'Kinesthetic Learning Strategy',body:'You learn by doing. Use practice problems, simulations, and physical note-taking. Turn content into active tasks rather than passive reading.'})
+  if(R.matrix.switchCost>200||R.tlx.frustration>=7)recos.push({icon:'🎯',title:'Single-Topic Blocking',body:'Your cognitive flexibility profile shows elevated context-switching costs. Enforce 90-minute hyper-focus sessions dedicated entirely to one subject. Minimize subject-switching within a session.'})
+  const wmAvg=(R.ds.fwd+R.ds.bwd)/2
+  if(wmAvg<4)recos.push({icon:'🧩',title:'Working Memory Support',body:'Your working memory span is below average. Use external scaffolding: write out multi-step problems, use structured outlines, and chunk information into smaller units.'})
+  if(recos.length===1&&risk<25)recos.push({icon:'✨',title:'Strong Cognitive Profile',body:'Your scores show well-balanced attention, memory, and flexibility. Continue using varied study techniques and challenge yourself with progressively harder material.'})
+
+  document.getElementById('results-body').innerHTML=`
+    <div class="card" style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:6px;">Attention Divergence Risk Score</div>
+      <div style="font-size:60px;font-weight:900;color:${rc};line-height:1;">${risk}</div>
+      <div style="font-size:14px;font-weight:700;color:${rc};margin-bottom:12px;">${rl} Risk</div>
+      <div class="risk-bar"><div class="risk-bar-fill" style="width:${risk}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary);margin-bottom:10px;"><span>Low</span><span>Moderate</span><span>Elevated</span><span>High</span></div>
+      <div style="font-size:11px;color:var(--text-secondary);line-height:1.6;">Computed from commission errors, omission errors, and self-report responses. <strong>Not a clinical diagnosis.</strong></div>
+    </div>
+    <div class="res-grid">
+      <div class="res-card"><div class="res-card-title">Commission Errors</div><div class="res-card-val" style="color:#ef4444">${R.cpt.commission}</div><div class="res-card-sub">Impulsivity marker</div></div>
+      <div class="res-card"><div class="res-card-title">Omission Errors</div><div class="res-card-val" style="color:#f97316">${R.cpt.omission}</div><div class="res-card-sub">Inattention marker</div></div>
+      <div class="res-card"><div class="res-card-title">Avg Reaction Time</div><div class="res-card-val">${avgRT}<span style="font-size:14px">ms</span></div><div class="res-card-sub">${avgRT<300?'Fast':avgRT<500?'Average':'Slow'} response</div></div>
+      <div class="res-card"><div class="res-card-title">CPT Hits</div><div class="res-card-val" style="color:#22c55e">${R.cpt.hits}</div><div class="res-card-sub">of ${totalGo} Go trials</div></div>
+      <div class="res-card"><div class="res-card-title">Memory Span</div><div class="res-card-val">${R.ds.fwd}<span style="font-size:14px"> fwd / ${R.ds.bwd} bwd</span></div><div class="res-card-sub">digits</div></div>
+      <div class="res-card"><div class="res-card-title">Matrix Accuracy</div><div class="res-card-val">${R.matrix.accuracy}<span style="font-size:14px">%</span></div><div class="res-card-sub">Switch cost: ${R.matrix.switchCost>0?'+':''}${R.matrix.switchCost}ms</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Learning Style — Dominant: <span style="color:${VC[vd]}">${VN[vd]}</span></div>
+      ${Object.entries(VN).map(([k,name])=>`<div class="vark-bar-row"><div class="vark-bar-label"><span style="font-weight:700;color:${VC[k]}">${name}</span><span>${R.vark[k]}/${vt}</span></div><div class="vark-bar"><div class="vark-bar-fill" style="width:${Math.round(R.vark[k]/vt*100)}%;background:${VC[k]}"></div></div></div>`).join('')}
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Mental Workload (NASA-TLX)</div>
+      <div style="display:flex;gap:16px;text-align:center;flex-wrap:wrap;">
+        ${[['Mental Demand',R.tlx.mental,'#6366f1'],['Temporal Demand',R.tlx.temporal,'#f59e0b'],['Frustration',R.tlx.frustration,'#ef4444']].map(([l,v,c])=>`<div style="flex:1;min-width:70px;"><div style="font-size:28px;font-weight:900;color:${c}">${v}</div><div style="font-size:11px;color:var(--text-secondary);font-weight:600;">${l}</div><div style="height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;"><div style="width:${v*10}%;height:100%;background:${c};border-radius:2px;"></div></div></div>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;">📋 Personalized Study Strategies</div>
+    ${recos.map(r=>`<div class="reco"><div class="reco-title">${r.icon} ${r.title}</div><div class="reco-body">${r.body}</div></div>`).join('')}
+    <div style="text-align:center;margin-top:24px;">
+      <button class="btn btn-primary" style="font-size:15px;padding:12px 28px;" onclick="window.navigateTo&&window.navigateTo('plan')">Activate My 90-Day Plan 🐌</button>
+    </div>`
+
+  const user=localStorage.getItem('cs_currentUser')||'user'
+  localStorage.setItem(`cs_${user}_cogProfile`,JSON.stringify({adhdRisk:risk,riskLabel:rl,commission:R.cpt.commission,omission:R.cpt.omission,avgRT,forwardSpan:R.ds.fwd,backwardSpan:R.ds.bwd,vark:R.vark,varkDominant:vd,switchCost:R.matrix.switchCost,matrixAccuracy:R.matrix.accuracy,tlx:R.tlx,recos:recos.map(r=>r.title),completedAt:new Date().toISOString()}))
 }
-Rules: cognitiveStrengths = 2 items, cognitiveWeaknesses = 2 items, studyStrategies = 4 items. Reference actual numbers. Do not give generic advice.`
 
-    try {
-      const provider=localStorage.getItem('ai_provider')||'gemini'
-      const apiKey=localStorage.getItem('ai_key_'+provider)
-      let report
-
-      if (apiKey || provider==='ollama') {
-        const res=await (window.aiChat||window.api.askAI)({
-          systemPrompt:'You are a psychoeducational assessment specialist. Respond only with valid JSON.',
-          messages:[{role:'user',content:prompt}]
-        })
-        clearInterval(msgInt)
-        const raw=(res.reply||'').trim()
-        const match=raw.match(/\{[\s\S]*\}/)
-        report=JSON.parse(match?match[0]:raw)
-      } else {
-        clearInterval(msgInt)
-        report=buildFallbackReport(scores)
-      }
-
-      report._scores=scores; report._results=RESULTS; report._date=new Date().toISOString()
-      csSetJSON('cognitiveReport',report)
-      renderReport(report)
-      showScreen('sc-report')
-    } catch(e) {
-      clearInterval(msgInt)
-      const report=buildFallbackReport(scores)
-      report._scores=scores; report._results=RESULTS; report._date=new Date().toISOString()
-      csSetJSON('cognitiveReport',report)
-      renderReport(report)
-      showScreen('sc-report')
-    }
-  }
-
-  function buildFallbackReport(scores){
-    const wm=scores.workingMemory.pct, bwd=scores.backwardSpan.pct
-    const ps=scores.processingSpeed.pct, at=scores.attention.pct
-    const fr=scores.fluidReasoning.pct, rr=scores.readingRate.pct, cf=scores.cogFlex.pct
-    const allDomains=[
-      {k:'Working Memory',v:wm},{k:'Processing Speed',v:ps},{k:'Sustained Attention',v:at},
-      {k:'Fluid Reasoning',v:fr},{k:'Reading Rate',v:rr},{k:'Cognitive Flexibility',v:cf}
-    ].sort((a,b)=>b.v-a.v)
-    const best=allDomains[0], worst=allDomains[allDomains.length-1]
-    const spanGap = wm - bwd
-    const timerMap = at<30||wm<30?'Pomodoro 25':at>60&&wm>60?'Focus 45':'Pomodoro 25'
-    return {
-      profileTitle:`${best.k.split(' ')[0]}-Dominant Learner`,
-      overallSummary:`Your strongest domain is ${best.k} (${best.v}th percentile). Your forward digit span (${RESULTS.t1?.fwdMaxSpan||'?'}) vs backward span (${RESULTS.t1?.bwdMaxSpan||'?'}) ${spanGap>2?'shows a notable gap, suggesting working memory manipulation is harder than storage':' are closely matched, indicating balanced working memory'}. Your weakest domain is ${worst.k} (${worst.v}th percentile), which should be the primary target for development.`,
-      cognitiveStrengths:[
-        {domain:best.k,finding:`${best.v}th percentile — above average`,implication:'Leverage this domain as your primary learning modality'},
-        {domain:allDomains[1].k,finding:`${allDomains[1].v}th percentile — solid`,implication:'Use as a secondary strategy when the primary approach feels blocked'},
-      ],
-      cognitiveWeaknesses:[
-        {domain:worst.k,finding:`${worst.v}th percentile — below average`,implication:'This is costing you efficiency — address it with targeted daily exercises'},
-        {domain:allDomains[allDomains.length-2].k,finding:`${allDomains[allDomains.length-2].v}th percentile — room to grow`,implication:'Moderate improvement here will compound across all domains'},
-      ],
-      recommendedTimer:timerMap,
-      timerRationale:`Based on your attention score (${at}th percentile) and working memory (${wm}th percentile), ${timerMap} sessions match your natural focus window.`,
-      studyStrategies:[
-        {title:'Chunk to your span',desc:`Your digit span of ${RESULTS.t1?.fwdMaxSpan||'?'} means you can hold ~${RESULTS.t1?.fwdMaxSpan||5} items — never try to learn more concepts at once. Break chapters into ${RESULTS.t1?.fwdMaxSpan||5}-concept blocks.`,basedOn:'Working Memory'},
-        {title:'Timed item practice',desc:'Your processing speed benefits from time pressure — set a countdown for every practice set and track items per minute week-over-week.',basedOn:'Processing Speed'},
-        {title:'Active inference reading',desc:`Your comprehension is ${RESULTS.t5?.comprehensionPct||'?'}% — after reading each paragraph, pause and ask "what does this imply?" rather than just noting what was stated.`,basedOn:'Reading Comprehension'},
-        {title:'Single-rule study blocks',desc:`Your switch cost of ${RESULTS.t6?.switchCost||'?'}ms suggests context-switching is expensive — dedicate full 25-min blocks to one subject only.`,basedOn:'Cognitive Flexibility'},
-      ],
-      watchOut:`Your ${worst.k.toLowerCase()} score (${worst.v}th percentile) is your biggest bottleneck. Without targeted work on this domain, gains in other areas will plateau.`,
-      longTermPlan:`Focus the next 3 months on building ${worst.k}. Use 10 minutes per session on targeted exercises: ${worst.k==='Working Memory'?'n-back tasks and backward span drills':worst.k==='Processing Speed'?'timed symbol drills and rapid flashcards':worst.k==='Sustained Attention'?'AX-CPT practice and single-task focus blocks':worst.k==='Fluid Reasoning'?'logic puzzles and matrix problems':'focused reading with inference practice'}. Small daily improvements over 90 days create significant gains.`,
-    }
-  }
-
-  /* ── Render Report ─────────────────────────────────────────── */
-  function renderReport(report){
-    if (!report) return
-    const s=report._scores||{}
-    const colorClass=pct=>pct>=70?'c-green bg-green':pct>=40?'c-yellow bg-yellow':'c-red bg-red'
-    const scoreCards=[
-      {label:'Working Memory',pct:s.workingMemory?.pct||0},
-      {label:'Processing Speed',pct:s.processingSpeed?.pct||0},
-      {label:'Attention',pct:s.attention?.pct||0},
-      {label:'Fluid Reasoning',pct:s.fluidReasoning?.pct||0},
-      {label:'Reading Rate',pct:s.readingRate?.pct||0},
-      {label:'Cog. Flexibility',pct:s.cogFlex?.pct||0},
-    ]
-    const dateStr=report._date?new Date(report._date).toLocaleDateString():''
-
-    document.getElementById('reportContent').innerHTML=`
-      <div class="rep-header">
-        <div class="rep-header-top">
-          <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#6ee7b7;margin-bottom:8px;">Cognitive Assessment Report${dateStr?' · '+dateStr:''}</div>
-            <div class="rep-title">${esc(report.profileTitle||'Your Learning Profile')}</div>
-          </div>
-        </div>
-        <div class="rep-summary">${esc(report.overallSummary||'')}</div>
-      </div>
-
-      <div class="rep-scores">
-        ${scoreCards.map(sc=>{
-          const cc=colorClass(sc.pct)
-          const [textC,bgC]=cc.split(' ')
-          return `<div class="rep-score-card">
-            <div class="rep-score-val ${textC}">${sc.pct}<span style="font-size:12px;font-weight:500;">th</span></div>
-            <div class="rep-score-label">${esc(sc.label)}</div>
-            <div class="rep-score-bar-wrap"><div class="rep-score-bar ${bgC}" style="width:${sc.pct}%"></div></div>
-          </div>`}).join('')}
-      </div>
-
-      <div class="rep-section">
-        <div class="rep-section-title">Cognitive Strengths</div>
-        ${(report.cognitiveStrengths||[]).map(s=>`
-          <div class="rep-item">
-            <div class="rep-item-icon">▲</div>
-            <div><div class="rep-item-title">${esc(s.domain)}</div><div class="rep-item-desc"><em>${esc(s.finding)}</em> — ${esc(s.implication)}</div></div>
-          </div>`).join('')}
-      </div>
-
-      <div class="rep-section">
-        <div class="rep-section-title">Areas to Develop</div>
-        ${(report.cognitiveWeaknesses||[]).map(w=>`
-          <div class="rep-item">
-            <div class="rep-item-icon">▼</div>
-            <div><div class="rep-item-title">${esc(w.domain)}</div><div class="rep-item-desc"><em>${esc(w.finding)}</em> — ${esc(w.implication)}</div></div>
-          </div>`).join('')}
-      </div>
-
-      <div class="rep-section">
-        <div class="rep-section-title">Recommended Timer</div>
-        <div style="display:flex;align-items:center;gap:16px;background:var(--accent-light);border-radius:6px;padding:14px 18px;margin-bottom:10px;">
-          <div style="font-size:36px;font-weight:900;color:var(--accent);line-height:1;">${esc((report.recommendedTimer||'25').replace(/\D+/g,''))}<span style="font-size:14px;font-weight:600;opacity:.6">min</span></div>
-          <div><div style="font-size:13px;font-weight:700;color:var(--accent);">${esc(report.recommendedTimer||'')}</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">${esc(report.timerRationale||'')}</div></div>
-        </div>
-      </div>
-
-      <div class="rep-section">
-        <div class="rep-section-title">Study Strategies</div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          ${(report.studyStrategies||[]).map(st=>`
-            <div class="rep-item">
-              <div class="rep-item-icon">→</div>
-              <div><div class="rep-item-title">${esc(st.title)}</div><div class="rep-item-desc">${esc(st.desc)} <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:99px;font-weight:700;">Based on: ${esc(st.basedOn)}</span></div></div>
-            </div>`).join('')}
-        </div>
-      </div>
-
-      <div class="rep-section" style="border-left:3px solid var(--accent);">
-        <div class="rep-section-title">90-Day Development Plan</div>
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.65;">${esc(report.longTermPlan||'')}</div>
-      </div>
-
-      <div class="rep-watchout">
-        <div class="rep-watchout-title">Watch Out For</div>
-        <div class="rep-watchout-text">${esc(report.watchOut||'')}</div>
-      </div>`
-  }
-
+updateProg()
 })()
 </script>
