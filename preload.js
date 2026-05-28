@@ -16,7 +16,8 @@ contextBridge.exposeInMainWorld('api', {
   offGuardNudge: ()   => ipcRenderer.removeAllListeners('guard:nudge'),
 
   // ── Screen recorder ─────────────────────────────────────────────
-  getSources:      ()                   => ipcRenderer.invoke('recorder:getSources'),
+  getSources:           ()        => ipcRenderer.invoke('recorder:getSources'),
+  setPreferredSource:   (id)      => ipcRenderer.send('recorder:setPreferredSource', id),
   saveRecording:   (buffer, filename)   => ipcRenderer.invoke('recorder:save', { buffer, filename }),
   listRecordings:  ()                   => ipcRenderer.invoke('recorder:list'),
   openRecording:   (filepath)           => ipcRenderer.invoke('recorder:open', filepath),

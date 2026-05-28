@@ -11,12 +11,20 @@ const { execSync, spawnSync } = require('child_process')
 const Imap = require('imap')
 const { simpleParser } = require('mailparser')
 
+// ── Preferred source for screen recorder ─────────────────────────
+let _preferredSourceId = null
+ipcMain.on('recorder:setPreferredSource', (_e, id) => { _preferredSourceId = id })
+
 // ── Window factory ────────────────────────────────────────────────
 function createWindow() {
-  // Allow renderer to call getUserMedia with desktop sources (Electron 22+)
+  // Allow renderer to call getDisplayMedia — picks user-selected source if set
   session.defaultSession.setDisplayMediaRequestHandler((_req, callback) => {
     desktopCapturer.getSources({ types: ['screen', 'window'] }).then(sources => {
-      callback({ video: sources[0] })
+      const preferred = _preferredSourceId
+        ? sources.find(s => s.id === _preferredSourceId)
+        : null
+      callback({ video: preferred || sources[0] })
+      _preferredSourceId = null   // reset after use
     }).catch(() => callback({}))
   })
 

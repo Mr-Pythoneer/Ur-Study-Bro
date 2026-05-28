@@ -561,24 +561,20 @@
   startBtn.addEventListener('click', startRecording)
   stopBtn.addEventListener('click',  stopRecording)
 
+  // Show inline recording error in the source grid area
+  function showRecError(msg) {
+    const grid = document.getElementById('sourceGrid')
+    if (grid) grid.innerHTML = `<div style="grid-column:1/-1;color:#ef4444;font-size:13px;padding:8px 0;">${msg}</div>`
+  }
+
   async function startRecording() {
     try {
-      if (selectedSourceId) {
-        // Use the source selected from our thumbnail picker
-        recStream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            mandatory: {
-              chromeMediaSource: 'desktop',
-              chromeMediaSourceId: selectedSourceId,
-              maxWidth: 1920, maxHeight: 1080,
-            }
-          }
-        })
-      } else {
-        // Fall back to OS screen picker (also works via setDisplayMediaRequestHandler)
-        recStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      // Tell main process which source to use, then call getDisplayMedia
+      // (setDisplayMediaRequestHandler in main.js will pick it automatically)
+      if (selectedSourceId && window.api.setPreferredSource) {
+        window.api.setPreferredSource(selectedSourceId)
       }
+      recStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
       preview.srcObject = recStream
       preview.classList.add('visible')
 
@@ -602,7 +598,14 @@
         recTimerEl.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
       }, 1000)
     } catch(e) {
-      alert('Could not start recording: '+e.message+'\n\nMake sure Ur Study Bro has Screen Recording permission in System Settings → Privacy & Security.')
+      const msg = e.message || String(e)
+      if (msg.includes('Permission') || msg.includes('permission') || msg.includes('NotAllowed')) {
+        showRecError('🎥 Screen Recording permission needed. Go to System Settings → Privacy & Security → Screen Recording and enable Ur Study Bro, then restart.')
+      } else if (msg.includes('cancel') || msg.includes('AbortError')) {
+        // user cancelled the picker — no message needed
+      } else {
+        showRecError('⚠️ Could not start recording: ' + msg)
+      }
     }
   }
 
