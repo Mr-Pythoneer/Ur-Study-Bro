@@ -24,7 +24,7 @@ function createWindow() {
         ? sources.find(s => s.id === _preferredSourceId)
         : null
       callback({ video: preferred || sources[0] })
-      _preferredSourceId = null   // reset after use
+      _preferredSourceId = null
     }).catch(() => callback({}))
   })
 
