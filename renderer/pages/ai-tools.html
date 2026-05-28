@@ -225,7 +225,7 @@
 
   async function callAI(systemPrompt, userContent) {
     const { provider, apiKey, model } = getApiCfg()
-    if (!apiKey) { alert('Enter your API key in the yellow bar above first.'); return null }
+    if (!apiKey) throw new Error('no_key')
     const res = await window.api.askAI({ provider, apiKey, model, systemPrompt, messages:[{ role:'user', content:userContent }] })
     if (res.error) throw new Error(res.error)
     return res.reply
@@ -234,11 +234,23 @@
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
   function setLoading(btn, on, orig) { btn.disabled=on; btn.innerHTML=on?`<span class="spinner"></span>Thinking…`:orig }
 
+  function showErr(placeholderId, msg) {
+    const el = document.getElementById(placeholderId)
+    if (!el) return
+    const friendly = msg === 'no_key'
+      ? '🔑 No API key set. Add one in the yellow bar at the top of this page.'
+      : msg.includes('quota') || msg.includes('rate') || msg.includes('429')
+        ? '⏳ API rate limit hit. Wait a minute and try again, or switch to a different AI provider in Settings.'
+        : '⚠️ ' + msg
+    el.innerHTML = `<div class="placeholder-box"><div class="ph-icon">😬</div><p style="color:#ef4444;font-size:13px;">${esc(friendly)}</p></div>`
+    el.style.display = ''
+  }
+
   /* ══ ASSIGNMENT CHECKER ══════════════════════════════════════════ */
   document.getElementById('checkBtn').addEventListener('click', async () => {
     const instructions = document.getElementById('instrText').value.trim()
     const work = document.getElementById('workText').value.trim()
-    if (!instructions || !work) { alert('Fill in both the instructions and your work.'); return }
+    if (!instructions || !work) { showErr('gradePlaceholder', 'Fill in both the instructions and your work.'); return }
     const btn = document.getElementById('checkBtn')
     setLoading(btn, true, 'Check')
     document.getElementById('gradeResultCard').style.display='none'
@@ -252,7 +264,7 @@
       try { const m=raw.match(/\{[\s\S]*\}/); data=JSON.parse(m?m[0]:raw) }
       catch { document.getElementById('gradePlaceholder').innerHTML=`<div class="placeholder-box"><div class="ph-icon">⚠️</div><p>Couldn't parse response. Try again.</p><small style="color:#ef4444">${esc(raw.slice(0,200))}</small></div>`; return }
       renderGrade(data)
-    } catch(e) { alert('Error: '+e.message) }
+    } catch(e) { showErr('gradePlaceholder', e.message) }
     finally { setLoading(btn, false, 'Check') }
   })
 
@@ -281,7 +293,7 @@
 
   document.getElementById('detectBtn').addEventListener('click', async () => {
     const text=document.getElementById('detectText').value.trim()
-    if(!text||text.split(/\s+/).length<20){alert('Paste at least 20 words to analyze.');return}
+    if(!text||text.split(/\s+/).length<20){showErr('detectPlaceholder','Paste at least 20 words to analyze.');return}
     const btn=document.getElementById('detectBtn')
     setLoading(btn,true,'Analyze')
     document.getElementById('detectResultCard').style.display='none'
@@ -293,9 +305,9 @@
       if(!raw)return
       let data
       try{const m=raw.match(/\{[\s\S]*\}/);data=JSON.parse(m?m[0]:raw)}
-      catch{alert('Could not parse response. Try again.');return}
+      catch{showErr('detectPlaceholder','Could not parse response. Try again.');return}
       renderDetect(data)
-    } catch(e){alert('Error: '+e.message)}
+    } catch(e){showErr('detectPlaceholder',e.message)}
     finally{setLoading(btn,false,'Analyze')}
   })
 
@@ -320,7 +332,7 @@
   async function runHumanize(){
     const text=document.getElementById('humanInput').value.trim()
     const tone=document.getElementById('humanTone').value
-    if(!text){alert('Paste some text to humanize first.');return}
+    if(!text){showErr('humanPlaceholder','Paste some text to humanize first.');return}
     const btn=document.getElementById('humanBtn')
     setLoading(btn,true,'Humanize')
     document.getElementById('humanResultCard').style.display='none'
@@ -332,7 +344,7 @@
       document.getElementById('humanPlaceholder').style.display='none'
       document.getElementById('humanResultCard').style.display=''
       document.getElementById('humanOutput').textContent=result
-    }catch(e){alert('Error: '+e.message)}
+    }catch(e){showErr('humanPlaceholder',e.message)}
     finally{setLoading(btn,false,'Humanize')}
   }
   document.getElementById('humanBtn').addEventListener('click',runHumanize)

@@ -349,10 +349,16 @@
   /* ── AI call ── */
   async function callAI(system, user) {
     const { provider, apiKey, model } = getApiCfg()
-    if(!apiKey){alert('Enter your API key in the sidebar first.');return null}
+    if(!apiKey) throw new Error('no_key')
     const res = await window.api.askAI({provider,apiKey,model,systemPrompt:system,messages:[{role:'user',content:user}]})
     if(res.error) throw new Error(res.error)
     return res.reply
+  }
+
+  function friendlyErr(msg) {
+    if(msg==='no_key') return '🔑 No API key — add one via AI Tutor → Settings.'
+    if(msg.includes('quota')||msg.includes('rate')||msg.includes('429')) return '⏳ Rate limit hit. Wait a moment and try again.'
+    return '⚠️ ' + msg
   }
 
   /* ── Response panel ── */
@@ -455,7 +461,7 @@
     }
 
     const action = actions[id]; if(!action)return
-    if(!fullText.trim()&&!selected){alert('Write something first.');return}
+    if(!fullText.trim()&&!selected){showResponse('Error','Write something first.');return}
 
     showSpinner(action.title)
     const allBtns = document.querySelectorAll('.ai-action-btn')
@@ -466,8 +472,7 @@
       if(reply) showResponse(action.title.replace('…',''), reply)
       else document.getElementById('responsePanel').style.display='none'
     } catch(e) {
-      document.getElementById('responsePanel').style.display='none'
-      alert('Error: '+e.message)
+      showResponse('Error', friendlyErr(e.message))
     } finally {
       allBtns.forEach(b=>b.disabled=false)
     }
@@ -489,7 +494,7 @@
   document.getElementById('btnGenCite').addEventListener('click', async () => {
     const source = document.getElementById('citeInput').value.trim()
     const style  = document.getElementById('citeStyle').value
-    if (!source) { alert('Paste a URL or source info first.'); return }
+    if (!source) { document.getElementById('citeResult').style.display=''; document.getElementById('citeText').textContent='Paste a URL or source info first.'; return }
     const btn = document.getElementById('btnGenCite')
     btn.disabled = true; btn.textContent = '…'
     document.getElementById('citeResult').style.display = 'none'
@@ -501,7 +506,7 @@
       if (!reply) return
       document.getElementById('citeText').textContent = reply
       document.getElementById('citeResult').style.display = ''
-    } catch(e) { alert('Error: '+e.message) }
+    } catch(e) { document.getElementById('citeResult').style.display=''; document.getElementById('citeText').textContent=friendlyErr(e.message) }
     finally { btn.disabled = false; btn.textContent = 'Format' }
   })
 
@@ -529,7 +534,7 @@
   document.getElementById('btnSave').addEventListener('click', () => {
     const html  = body.innerHTML.trim()
     const title = titleInput.value.trim() || 'Untitled'
-    if(!html||html==='<br>'){alert('Nothing to save.');return}
+    if(!html||html==='<br>'){document.getElementById('btnSave').textContent='Nothing to save'; setTimeout(()=>document.getElementById('btnSave').textContent='Save',1500);return}
     const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
     const date = new Date().toISOString().slice(0,10)
     const existing = docs.findIndex(d=>d.title===title)
