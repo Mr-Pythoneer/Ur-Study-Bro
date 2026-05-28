@@ -495,7 +495,24 @@
     const grid = document.getElementById('sourceGrid')
     grid.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;grid-column:1/-1;">Loading…</div>'
     try {
-      const sources = await window.api.getSources()
+      const result = await window.api.getSources()
+      if (!result.ok || result.error === 'permission_denied') {
+        grid.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:24px 16px;">
+            <div style="font-size:32px;margin-bottom:12px;">🎥</div>
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Screen Recording permission needed</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
+              To record your screen, you need to allow Ur Study Bro access in macOS.<br>
+              Go to <strong>System Settings → Privacy &amp; Security → Screen Recording</strong> and enable it, then restart the app.
+            </div>
+            <button onclick="window.api.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')"
+              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;">
+              Open System Settings
+            </button>
+          </div>`
+        return
+      }
+      const sources = result.sources
       if (!sources.length) { grid.innerHTML='<div style="color:var(--text-secondary);font-size:13px;grid-column:1/-1;">No sources found.</div>'; return }
       grid.innerHTML = sources.map(s=>`
         <div class="source-card ${s.id===selectedSourceId?'selected':''}" data-id="${esc(s.id)}">
@@ -510,7 +527,19 @@
         })
       })
     } catch(e) {
-      grid.innerHTML=`<div style="color:#ef4444;font-size:13px;grid-column:1/-1;">Error loading sources: ${esc(e.message)}</div>`
+      grid.innerHTML=`
+        <div style="grid-column:1/-1;text-align:center;padding:24px 16px;">
+          <div style="font-size:32px;margin-bottom:12px;">🎥</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Screen Recording permission needed</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
+            To record your screen, you need to allow Ur Study Bro access in macOS.<br>
+            Go to <strong>System Settings → Privacy &amp; Security → Screen Recording</strong> and enable it, then restart the app.
+          </div>
+          <button onclick="window.api.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture')"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;">
+            Open System Settings
+          </button>
+        </div>`
     }
   }
 

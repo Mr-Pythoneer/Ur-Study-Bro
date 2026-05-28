@@ -61,7 +61,7 @@ function createWindow() {
 
 // ── Open URLs in default browser ──────────────────────────────────
 ipcMain.on('shell:open', (_e, url) => {
-  if (url && /^https?:\/\//i.test(url)) shell.openExternal(url)
+  if (url && /^(https?:\/\/|x-apple\.systempreferences:)/i.test(url)) shell.openExternal(url)
 })
 
 // ── Focus main window ─────────────────────────────────────────────
@@ -90,15 +90,19 @@ ipcMain.on('notify:event', (_e, ev) => {
 
 // ── Screen recorder: get sources ──────────────────────────────────
 ipcMain.handle('recorder:getSources', async () => {
-  const sources = await desktopCapturer.getSources({
-    types: ['screen', 'window'],
-    thumbnailSize: { width: 320, height: 180 },
-  })
-  return sources.map(s => ({
-    id:        s.id,
-    name:      s.name,
-    thumbnail: s.thumbnail.toDataURL(),
-  }))
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen', 'window'],
+      thumbnailSize: { width: 320, height: 180 },
+    })
+    return { ok: true, sources: sources.map(s => ({
+      id:        s.id,
+      name:      s.name,
+      thumbnail: s.thumbnail.toDataURL(),
+    })) }
+  } catch (err) {
+    return { ok: false, error: 'permission_denied', message: err.message }
+  }
 })
 
 // ── Screen recorder: save .webm file ─────────────────────────────
