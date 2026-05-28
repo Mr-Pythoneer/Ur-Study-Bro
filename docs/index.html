@@ -561,7 +561,7 @@
 <section class="section" id="ai">
   <div class="section-label">Artificial Intelligence</div>
   <h2>AI that actually helps you study.</h2>
-  <p class="section-sub">Bring your own API key (free tiers on all providers) — paste it once and every tool in the app just works. No middleman, no markup.</p>
+  <p class="section-sub">Runs on <strong>Ollama</strong> by default — fully local, no API key, no internet required. Cloud providers (Gemini, Claude, GPT-4o, Groq) available if you want them.</p>
 
   <div class="grid grid-3" style="margin-bottom:16px;">
     <div class="grid-card">
@@ -784,8 +784,8 @@
   <div class="grid grid-3">
     <div class="grid-card">
       <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
-      <h3>14 Badges</h3>
-      <p>First Step, Pomodoro Pro, Hot Streak, Unstoppable, Flow State, Scholar, Diamond Mind, and more.</p>
+      <h3>100+ Badges</h3>
+      <p>First Step, Pomodoro Pro, Hot Streak, Unstoppable, Flow State, Scholar, Diamond Mind, and way more to unlock.</p>
     </div>
     <div class="grid-card">
       <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
@@ -826,7 +826,7 @@
         Which AI providers are supported?
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div class="faq-a">Google Gemini, Anthropic Claude, OpenAI GPT-4o, and Groq. All four have free tiers. You bring your own API key — Ur Study Bro never sees or stores it beyond your device. Set it once in Settings and every AI feature uses it automatically.</div>
+      <div class="faq-a">By default the app uses <strong>Ollama</strong> (local, no key needed). Optionally you can switch to Google Gemini, Anthropic Claude, OpenAI GPT-4o, or Groq in Settings — all have free tiers. Your API key never leaves your device.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
@@ -844,19 +844,10 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        How do I get an API key?
+        Do I need an API key for AI features?
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div class="faq-a">
-        All four providers have free tiers with no credit card required to start:
-        <ul style="margin-top:8px;padding-left:18px;display:flex;flex-direction:column;gap:4px;">
-          <li><a href="https://aistudio.google.com/apikey" target="_blank">Google Gemini → aistudio.google.com/apikey</a></li>
-          <li><a href="https://console.anthropic.com/" target="_blank">Anthropic Claude → console.anthropic.com</a></li>
-          <li><a href="https://platform.openai.com/api-keys" target="_blank">OpenAI GPT-4o → platform.openai.com/api-keys</a></li>
-          <li><a href="https://console.groq.com/keys" target="_blank">Groq → console.groq.com/keys</a></li>
-        </ul>
-        Once you have a key, paste it into Settings → AI Settings inside the app.
-      </div>
+      <div class="faq-a">Nope. The app uses <strong>Ollama</strong> by default — a free, local AI that runs entirely on your machine. No API key, no account, no internet needed for AI. Just install Ollama, pull a model (e.g. <code>ollama pull llama3.2</code>), and every AI feature works out of the box. If you want to use a cloud provider (Gemini, Claude, GPT-4o, Groq) you can switch in Settings — but it's completely optional.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
