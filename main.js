@@ -669,29 +669,56 @@ function detectMeeting(body, subject) {
   return { link, dateStr, timeStr, summary }
 }
 
-// ── Auto-updater ──────────────────────────────────────────────────
-function setupAutoUpdater() {
-  autoUpdater.autoDownload = true          // download silently in background
-  autoUpdater.autoInstallOnAppQuit = true  // install when user quits normally
+// ── GitHub release update checker ─────────────────────────────────
+const https = require('https')
 
-  autoUpdater.on('update-available', (info) => {
-    const win = BrowserWindow.getAllWindows()[0]
-    if (win) win.webContents.send('update:available', info.version)
-  })
-
-  autoUpdater.on('update-downloaded', (info) => {
-    const win = BrowserWindow.getAllWindows()[0]
-    if (win) win.webContents.send('update:downloaded', info.version)
-  })
-
-  // Check once on launch, then every 2 hours
-  autoUpdater.checkForUpdates().catch(() => {})
-  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 2 * 60 * 60 * 1000)
+function _semverGt(a, b) {
+  if (!a || !b) return false
+  const pa = a.replace(/^v/i, '').split('.').map(Number)
+  const pb = b.replace(/^v/i, '').split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return true
+    if ((pa[i] || 0) < (pb[i] || 0)) return false
+  }
+  return false
 }
 
-ipcMain.on('update:install', () => {
-  autoUpdater.quitAndInstall()
+ipcMain.handle('app:checkUpdate', async () => {
+  try {
+    const data = await new Promise((res, rej) => {
+      const req = https.get(
+        'https://api.github.com/repos/Mr-Pythoneer/Ur-Study-Bro/releases/latest',
+        { headers: { 'User-Agent': 'Ur-Study-Bro-App' } },
+        (resp) => {
+          let d = ''
+          resp.on('data', c => d += c)
+          resp.on('end', () => { try { res(JSON.parse(d)) } catch { rej(new Error('parse')) } })
+        }
+      )
+      req.on('error', rej)
+      req.setTimeout(8000, () => req.destroy(new Error('timeout')))
+    })
+    const latest  = (data.tag_name  || '').replace(/^v/i, '')
+    const current = app.getVersion()
+    return { current, latest, hasUpdate: _semverGt(latest, current), url: data.html_url || '' }
+  } catch {
+    return { current: app.getVersion(), latest: null, hasUpdate: false, url: '' }
+  }
 })
+
+// ── First-launch flag ─────────────────────────────────────────────
+const _firstLaunchFile = () => path.join(app.getPath('userData'), '.first-launch-done')
+
+ipcMain.handle('app:firstLaunchCheck', () => !fs.existsSync(_firstLaunchFile()))
+ipcMain.on('app:firstLaunchDone', () => {
+  try { fs.writeFileSync(_firstLaunchFile(), '1') } catch {}
+})
+
+// ── Permission status (Screen Recording + Accessibility) ──────────
+ipcMain.handle('app:permStatus', () => ({
+  screen:        require('electron').systemPreferences.getMediaAccessStatus('screen'),
+  accessibility: require('electron').systemPreferences.isTrustedAccessibilityClient(false),
+}))
 
 // ── App lifecycle ─────────────────────────────────────────────────
 app.whenReady().then(() => {

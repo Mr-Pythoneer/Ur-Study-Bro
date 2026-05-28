@@ -45,7 +45,13 @@ contextBridge.exposeInMainWorld('api', {
   onOllamaPullProgress:  (cb) => ipcRenderer.on('ollama:pull-progress', (_e, d) => cb(d)),
   offOllamaPullProgress: ()   => ipcRenderer.removeAllListeners('ollama:pull-progress'),
 
-  // ── Generic IPC (used by auto-updater UI) ───────────────────────
+  // ── First launch + permissions + update ─────────────────────────
+  firstLaunchCheck: ()    => ipcRenderer.invoke('app:firstLaunchCheck'),
+  firstLaunchDone:  ()    => ipcRenderer.send('app:firstLaunchDone'),
+  permStatus:       ()    => ipcRenderer.invoke('app:permStatus'),
+  checkUpdate:      ()    => ipcRenderer.invoke('app:checkUpdate'),
+
+  // ── Generic IPC ─────────────────────────────────────────────────
   send:    (channel, ...args) => ipcRenderer.send(channel, ...args),
   receive: (channel, cb)      => ipcRenderer.on(channel, (_e, ...args) => cb(...args)),
 })

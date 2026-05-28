@@ -149,11 +149,123 @@
 <body>
 
 <!-- ══════════════════════ UPDATE BANNER ════════════════════════ -->
-<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#2e7d5e;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;display:none;align-items:center;gap:12px;-webkit-app-region:no-drag;">
+<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#2e7d5e;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;align-items:center;gap:12px;-webkit-app-region:no-drag;">
   <span id="updateBannerText">A new version is available — downloading…</span>
   <button id="updateInstallBtn" onclick="window.api.send('update:install')" style="display:none;margin-left:auto;background:#fff;color:#2e7d5e;border:none;border-radius:8px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:12px;">Restart & Install</button>
   <button onclick="document.getElementById('updateBanner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;line-height:1;margin-left:auto;">✕</button>
 </div>
+
+<!-- ══════════════════ PERMISSIONS WIZARD ════════════════════════ -->
+<div id="perm-overlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1e2228 0%,#2e4a3a 100%);z-index:99999;display:none;align-items:center;justify-content:center;-webkit-app-region:drag;">
+  <div style="background:#fff;border-radius:20px;padding:44px 48px;width:460px;box-shadow:0 24px 60px rgba(0,0,0,.35);-webkit-app-region:no-drag;text-align:center;">
+    <div id="perm-step-dots" style="display:flex;justify-content:center;gap:6px;margin-bottom:28px;"></div>
+    <div id="perm-icon"  style="font-size:52px;margin-bottom:16px;"></div>
+    <div id="perm-title" style="font-size:20px;font-weight:800;color:#1a1a1a;letter-spacing:-.4px;margin-bottom:10px;"></div>
+    <div id="perm-desc"  style="font-size:14px;color:#6b7280;line-height:1.65;margin-bottom:28px;"></div>
+    <button id="perm-settings-btn" onclick="permOpenSettings()"
+      style="width:100%;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#0f7b6c;color:#fff;font-family:inherit;margin-bottom:10px;transition:opacity .15s;"
+      onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+      Open System Settings
+    </button>
+    <button id="perm-next-btn" onclick="permNext()"
+      style="width:100%;padding:11px;border:1.5px solid #e9e9e7;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#6b7280;font-family:inherit;">
+      I've done this →
+    </button>
+  </div>
+</div>
+<style>
+  #perm-overlay.visible { display:flex !important; }
+  .perm-dot { width:8px;height:8px;border-radius:50%;background:#d1d5db;transition:background .2s; }
+  .perm-dot.active { background:#0f7b6c; }
+</style>
+<script>
+const PERM_STEPS = [
+  {
+    icon: '🎥',
+    title: 'Allow Screen Recording',
+    desc: 'Ur Study Bro can record your screen so you can review study sessions later. You\'ll only share what you choose to record.',
+    settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
+    settingsLabel: 'Open System Settings → Screen Recording',
+  },
+  {
+    icon: '♿',
+    title: 'Allow Accessibility Access',
+    desc: 'Needed for the Focus Guard — it checks which app is active so it can gently nudge you back when you get distracted.',
+    settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+    settingsLabel: 'Open System Settings → Accessibility',
+  },
+  {
+    icon: '🔔',
+    title: 'Allow Notifications',
+    desc: 'Get reminders before your study sessions and calendar events. You can turn these off any time in System Settings.',
+    settingsUrl: 'x-apple.systempreferences:com.apple.preference.notifications',
+    settingsLabel: 'Open System Settings → Notifications',
+  },
+  {
+    icon: '✅',
+    title: 'You\'re all set!',
+    desc: 'You can always update these permissions later in System Settings → Privacy & Security. Time to study! 🐌',
+    settingsUrl: null,
+  },
+]
+let _permStep = 0
+
+function permRender() {
+  const step = PERM_STEPS[_permStep]
+  document.getElementById('perm-icon').textContent  = step.icon
+  document.getElementById('perm-title').textContent = step.title
+  document.getElementById('perm-desc').textContent  = step.desc
+
+  const settingsBtn = document.getElementById('perm-settings-btn')
+  const nextBtn     = document.getElementById('perm-next-btn')
+
+  if (step.settingsUrl) {
+    settingsBtn.style.display = 'block'
+    settingsBtn.textContent = step.settingsLabel || 'Open System Settings'
+    nextBtn.textContent = "I've done this →"
+  } else {
+    // Final "done" step
+    settingsBtn.style.display = 'none'
+    nextBtn.textContent = 'Start using Ur Study Bro →'
+    nextBtn.style.cssText = 'width:100%;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#0f7b6c;color:#fff;font-family:inherit;'
+  }
+
+  // Dots
+  const dots = document.getElementById('perm-step-dots')
+  dots.innerHTML = PERM_STEPS.slice(0, -1).map((_, i) =>
+    `<div class="perm-dot ${i === _permStep ? 'active' : ''}"></div>`
+  ).join('')
+}
+
+function permOpenSettings() {
+  const url = PERM_STEPS[_permStep].settingsUrl
+  if (url && window.api) window.api.openExternal(url)
+}
+
+function permNext() {
+  _permStep++
+  if (_permStep >= PERM_STEPS.length) {
+    // Done — hide overlay and mark first launch complete
+    document.getElementById('perm-overlay').classList.remove('visible')
+    if (window.api && window.api.firstLaunchDone) window.api.firstLaunchDone()
+    return
+  }
+  permRender()
+}
+
+async function checkFirstLaunch() {
+  try {
+    if (!window.api || !window.api.firstLaunchCheck) return
+    const isFirst = await window.api.firstLaunchCheck()
+    if (isFirst) {
+      _permStep = 0
+      permRender()
+      document.getElementById('perm-overlay').classList.add('visible')
+    }
+  } catch {}
+}
+document.addEventListener('DOMContentLoaded', checkFirstLaunch)
+</script>
 
 <!-- ══════════════════════ AUTH OVERLAY ══════════════════════════ -->
 <div id="auth-overlay">
@@ -868,22 +980,26 @@ function fmt12Time(t) {
 </script>
 
 <script>
-// ── Auto-update notifications ─────────────────────────────────────
-if (window.api && window.api.receive) {
-  window.api.receive('update:available', (version) => {
-    const banner = document.getElementById('updateBanner')
-    document.getElementById('updateBannerText').textContent =
-      `v${version} is available — downloading in the background…`
+// ── GitHub release update checker ─────────────────────────────────
+async function checkForAppUpdate() {
+  try {
+    if (!window.api || !window.api.checkUpdate) return
+    const info = await window.api.checkUpdate()
+    if (!info || !info.hasUpdate) return
+    const banner  = document.getElementById('updateBanner')
+    const textEl  = document.getElementById('updateBannerText')
+    const installBtn = document.getElementById('updateInstallBtn')
+    textEl.textContent = `🎉 Ur Study Bro v${info.latest} is available (you have v${info.current})`
+    // Repurpose install button as a download link
+    installBtn.textContent  = 'Download →'
+    installBtn.style.display = 'inline-block'
+    installBtn.onclick = () => { if (window.api) window.api.openExternal(info.url) }
     banner.style.display = 'flex'
-  })
-  window.api.receive('update:downloaded', (version) => {
-    const banner = document.getElementById('updateBanner')
-    document.getElementById('updateBannerText').textContent =
-      `v${version} is ready to install!`
-    document.getElementById('updateInstallBtn').style.display = 'inline-block'
-    banner.style.display = 'flex'
-  })
+  } catch {}
 }
+// Check on startup (slight delay so app is fully loaded) + every 4 hours
+setTimeout(checkForAppUpdate, 4000)
+setInterval(checkForAppUpdate, 4 * 60 * 60 * 1000)
 </script>
 
 </body>
