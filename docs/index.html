@@ -317,12 +317,12 @@
   </a>
   <div class="nav-links">
     <a class="nav-link" href="#features">Features</a>
+    <a class="nav-link" href="#recording">Recording</a>
     <a class="nav-link" href="#ai">AI</a>
     <a class="nav-link" href="#assessment">Assessment</a>
     <a class="nav-link" href="#plan">90-Day Plan</a>
     <a class="nav-link" href="#rewards">Rewards</a>
     <a class="nav-link" href="#faq">FAQ</a>
-    <a class="nav-link" href="#contact">Contact</a>
     <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a>
     <a class="nav-btn" href="#download">Download</a>
   </div>
@@ -330,9 +330,9 @@
 
 <!-- Hero -->
 <section class="hero">
-  <p class="hero-tag">Free &amp; open source · macOS, Windows, Linux</p>
+  <p class="hero-tag">Free &amp; open source · macOS, Windows, Linux · v5.0.0</p>
   <h1>Study smarter.<br><em>For how you think.</em></h1>
-  <p class="hero-sub">I built this because every other study app just told me to "try the Pomodoro technique" and called it personalised. This one actually figures out how your brain works first.</p>
+  <p class="hero-sub">I built this because every other study app just told me to "try the Pomodoro technique" and called it personalised. This one actually figures out how your brain works first — and now records your screen while you do it.</p>
   <div class="hero-actions" id="heroDl"></div>
   <p class="hero-note" id="heroNote">No account required · Free forever</p>
 
@@ -448,6 +448,115 @@
 
 <hr/>
 
+<!-- Screen Recording — BIG feature section -->
+<section class="section" id="recording">
+  <div class="section-label">🔴 New in v5.0</div>
+  <h2>Record your screen. Capture every lecture. Miss nothing.</h2>
+  <p class="section-sub">Built-in screen recorder right inside the app — no third-party software, no export hassle. Hit record, study, stop. Your session is saved locally and linked directly to your notes.</p>
+
+  <!-- Big recording showcase -->
+  <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:40px;background:#fafafa;">
+    <!-- fake window chrome -->
+    <div style="background:#f4f4f4;border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:6px;">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <span style="font-size:11px;color:#999;margin-left:8px;font-weight:500;">Ur Study Bro — Meeting Records</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;padding:3px 10px;border-radius:99px;">
+        ● REC 00:04:12
+      </span>
+    </div>
+    <div style="padding:28px 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <!-- left: controls -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="font-size:16px;font-weight:800;letter-spacing:-.3px;">Screen Recorder</div>
+        <div style="font-size:13px;color:#555;line-height:1.6;">Record any window or your full display. Pick your source, hit record — everything saves as a video file you can rewatch anytime.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#999;">Source</div>
+          <div style="border:1.5px solid var(--green);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);background:#f0f7f5;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" width="14" height="14"><rect x="2" y="3" width="16" height="11" rx="1.5"/><path d="M7 17h6M10 14v3"/></svg>
+            Entire Screen (Display 1) ✓
+          </div>
+          <div style="border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:#555;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" width="14" height="14"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M7 8h6M7 11h4"/></svg>
+            Notion — Lecture Notes
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <div style="background:#dc2626;color:#fff;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            ■ Stop Recording
+          </div>
+          <div style="border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;color:#555;">
+            Discard
+          </div>
+        </div>
+      </div>
+      <!-- right: saved recordings list -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#999;">Saved Recordings</div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;">
+            <div>
+              <div style="font-size:13px;font-weight:600;">Calc Lecture — Week 9</div>
+              <div style="font-size:11px;color:#999;">Today · 52 min · 1.2 GB</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <div style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:6px;">▶ Play</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;">
+            <div>
+              <div style="font-size:13px;font-weight:600;">Bio Lab Demo</div>
+              <div style="font-size:11px;color:#999;">Yesterday · 28 min · 650 MB</div>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:6px;">▶ Play</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;">
+            <div>
+              <div style="font-size:13px;font-weight:600;">History Seminar Notes</div>
+              <div style="font-size:11px;color:#999;">Mon · 41 min · 890 MB</div>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:6px;">▶ Play</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="grid-card" style="border-top:3px solid #dc2626;">
+      <div class="grid-icon" style="background:#fee2e2;"><svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="#dc2626"/></svg></div>
+      <h3>One-click recording</h3>
+      <p>Select your screen or any open window as the source. Press record — that's it. No setup, no extra software. The video is saved locally the moment you stop.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid var(--green);">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <h3>Stored on your device</h3>
+      <p>Every recording stays on your machine — never uploaded, never shared. Browse, play back, or delete from inside the app at any time.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #7c3aed;">
+      <div class="grid-icon" style="background:#ede9fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"/></svg></div>
+      <h3>Audio transcription</h3>
+      <p>Record your mic during a lecture and transcribe it using Whisper or Groq. The full transcript drops straight into your session notes — searchable, copyable, shareable.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #d97706;">
+      <div class="grid-icon" style="background:#fef3c7;"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <h3>Linked to your notes</h3>
+      <p>Recordings appear right inside Meeting Records alongside your written notes, ratings, and session metadata — everything for a class in one place.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #0ea5e9;">
+      <div class="grid-icon" style="background:#e0f2fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
+      <h3>Any window, any app</h3>
+      <p>Capture your entire display or just one specific window — your slides, browser, Zoom call, whatever you're studying from. Switch sources between sessions.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #16a34a;">
+      <div class="grid-icon" style="background:#d1fae5;"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <h3>Private by default</h3>
+      <p>Screen Recording permission is requested once on first launch. The app never runs the recorder in the background and never transmits any video data off your device.</p>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
 <!-- AI -->
 <section class="section" id="ai">
   <div class="section-label">Artificial Intelligence</div>
@@ -481,7 +590,7 @@
     </div>
   </div>
 
-  <p style="font-size:13px;color:var(--text-3);">Providers: Google Gemini · Anthropic Claude · OpenAI GPT-4o · Groq — free tiers available on all four.</p>
+  <p style="font-size:13px;color:var(--text-3);">Local (default): <strong style="color:var(--text-2);">Ollama</strong> — runs 100% on your machine, no API key needed &nbsp;·&nbsp; Cloud: Google Gemini · Anthropic Claude · OpenAI GPT-4o · Groq — free tiers available on all four.</p>
 </section>
 
 <hr/>
