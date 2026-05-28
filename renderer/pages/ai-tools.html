@@ -59,11 +59,12 @@
 <div class="key-bar" id="keyBar">
   <span class="key-bar-label">API Key:</span>
   <select id="kbProvider">
+    <option value="ollama">Ollama (Local — no key needed)</option>
     <option value="gemini">Gemini</option>
     <option value="anthropic">Claude</option>
     <option value="openai">OpenAI</option>
   </select>
-  <input type="password" id="kbInput" placeholder="Paste your API key here…" autocomplete="off"/>
+  <input type="password" id="kbInput" placeholder="Paste your API key here… (not needed for Ollama)" autocomplete="off"/>
   <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:6px 14px;white-space:nowrap;">Save &amp; Use</button>
 </div>
 
@@ -206,7 +207,7 @@
 
   function refreshKeyBar() {
     const { apiKey, provider } = getApiCfg()
-    keyBar.classList.toggle('hidden', !!apiKey)
+    keyBar.classList.toggle('hidden', provider === 'ollama' || !!apiKey)
     kbProvider.value = provider
   }
   refreshKeyBar()

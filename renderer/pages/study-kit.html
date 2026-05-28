@@ -64,7 +64,7 @@
 
 <div class="key-bar" id="keyBar">
   <span class="key-bar-label">API Key:</span>
-  <select id="kbProvider"><option value="gemini">Gemini</option><option value="anthropic">Claude</option><option value="openai">OpenAI</option></select>
+  <select id="kbProvider"><option value="ollama">Ollama (Local)</option><option value="gemini">Gemini</option><option value="anthropic">Claude</option><option value="openai">OpenAI</option></select>
   <input type="password" id="kbInput" placeholder="Paste your API key…" autocomplete="off"/>
   <button class="btn btn-primary" id="kbSaveBtn" style="font-size:12px;padding:6px 14px;">Save &amp; Use</button>
 </div>
@@ -245,10 +245,10 @@
 ;(function(){
   /* ── Key bar ── */
   function getApiCfg(){
-    const p=localStorage.getItem('ai_provider')||'gemini'
-    return{provider:p,apiKey:localStorage.getItem('ai_key_'+p)||'',model:localStorage.getItem('ai_model_'+p)||(p==='gemini'?'gemini-2.0-flash':p==='anthropic'?'claude-haiku-4-5-20251001':'gpt-4o-mini')}
+    const p=localStorage.getItem('ai_provider')||'ollama'
+    return{provider:p,apiKey:localStorage.getItem('ai_key_'+p)||'',model:localStorage.getItem('ai_model_'+p)||(p==='gemini'?'gemini-2.0-flash':p==='anthropic'?'claude-haiku-4-5-20251001':p==='ollama'?'llama3.2':'gpt-4o-mini')}
   }
-  function refreshKeyBar(){const{apiKey,provider}=getApiCfg();document.getElementById('keyBar').classList.toggle('hidden',!!apiKey);document.getElementById('kbProvider').value=provider}
+  function refreshKeyBar(){const{apiKey,provider}=getApiCfg();document.getElementById('keyBar').classList.toggle('hidden',provider==='ollama'||!!apiKey);document.getElementById('kbProvider').value=provider}
   refreshKeyBar()
   document.getElementById('kbSaveBtn').addEventListener('click',()=>{
     const k=document.getElementById('kbInput').value.trim();if(!k)return
