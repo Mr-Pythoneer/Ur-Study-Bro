@@ -34,6 +34,28 @@ function createWindow() {
     },
   })
   win.loadFile('renderer/index.html')
+
+  // ── Dev: inject test profile if QA_INJECT env var set ────────────
+  if (process.env.QA_INJECT === '1') {
+    win.webContents.on('did-finish-load', () => {
+      const fakeProfile = JSON.stringify({
+        adhdRisk:28, riskLabel:'Low', commission:3, omission:2, avgRT:380,
+        forwardSpan:7, backwardSpan:5, vark:{V:2,A:1,R:3,K:1}, varkDominant:'R',
+        switchCost:145, matrixAccuracy:83, tlx:{mental:5,temporal:4,frustration:3},
+        sessionLen:35, completedAt:new Date().toISOString(),
+        strengths:['Strong Impulse Control','Above-Average Working Memory','Sustained Attention'],
+        growth:['Context-Switching Cost','Fast Reaction Speed']
+      })
+      win.webContents.executeJavaScript(`
+        (function(){
+          const user = localStorage.getItem('cs_currentUser') || 'testuser';
+          localStorage.setItem('cs_'+user+'_cogProfile', '${fakeProfile.replace(/'/g,"\\'")}');
+          console.log('[QA] Injected cogProfile for', user);
+        })()
+      `).catch(()=>{})
+    })
+  }
+
   return win
 }
 
