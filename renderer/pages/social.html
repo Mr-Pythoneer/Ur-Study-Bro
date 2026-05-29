@@ -1,0 +1,826 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  FIREBASE SETUP (takes 5 minutes, completely free):         │
+  │  1. Go to https://console.firebase.google.com               │
+  │  2. Create a project (any name)                             │
+  │  3. Build → Realtime Database → Create database             │
+  │  4. Start in TEST MODE (rules = public read/write for now)  │
+  │  5. Project Settings → Your apps → Add web app             │
+  │  6. Copy the firebaseConfig and paste it below              │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9f9f9;color:#111;-webkit-font-smoothing:antialiased;}
+
+  .page-header{padding:28px 28px 0;}
+  .page-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#111;}
+  .page-sub{font-size:13px;color:#888;margin-top:4px;}
+
+  /* ── Setup banner ── */
+  #setup-banner{background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:14px 18px;margin:20px 28px;display:flex;align-items:center;gap:12px;font-size:13px;}
+  #setup-banner.hidden{display:none;}
+  #setup-banner strong{font-weight:700;}
+  #setup-banner a{color:#0f7b6c;font-weight:600;text-decoration:none;}
+
+  /* ── Tabs ── */
+  .tabs{display:flex;gap:0;border-bottom:1px solid #e5e5e5;padding:0 28px;margin-top:20px;}
+  .tab{padding:10px 18px;font-size:13px;font-weight:600;color:#888;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;}
+  .tab.active{color:#0f7b6c;border-bottom-color:#0f7b6c;}
+  .tab-pane{display:none;padding:24px 28px;}
+  .tab-pane.active{display:block;}
+
+  /* ── Friend code banner ── */
+  .code-banner{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+  .code-label{font-size:11px;font-weight:700;color:#888;letter-spacing:.5px;text-transform:uppercase;}
+  .code-value{font-size:22px;font-weight:900;letter-spacing:4px;color:#0f7b6c;font-variant-numeric:tabular-nums;}
+  .code-copy{margin-left:auto;padding:7px 14px;background:#f0f7f5;border:none;border-radius:7px;font-size:12px;font-weight:700;color:#0f7b6c;cursor:pointer;font-family:inherit;}
+  .code-copy:hover{background:#e0f0ec;}
+
+  /* ── Add friend form ── */
+  .add-friend-row{display:flex;gap:8px;margin-bottom:20px;}
+  .add-friend-row input{flex:1;padding:9px 13px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;}
+  .add-friend-row input:focus{border-color:#0f7b6c;}
+  .btn-green{padding:9px 18px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;white-space:nowrap;}
+  .btn-green:hover{opacity:.88;}
+
+  /* ── Friend list ── */
+  .friend-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+  .friend-card:hover{border-color:#0f7b6c;}
+  .avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+  .friend-info{flex:1;min-width:0;}
+  .friend-name{font-size:14px;font-weight:700;}
+  .friend-meta{font-size:12px;color:#888;margin-top:1px;}
+  .friend-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;}
+  .status-focus{background:#fef3c7;color:#b45309;}
+  .status-online{background:#d1fae5;color:#065f46;}
+  .status-offline{background:#f3f4f6;color:#6b7280;}
+  .friend-actions{display:flex;gap:6px;}
+  .btn-sm{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all .15s;}
+  .btn-chat{background:#0f7b6c;color:#fff;}
+  .btn-chat:hover{opacity:.88;}
+  .btn-remove{background:#fee2e2;color:#dc2626;}
+  .btn-remove:hover{background:#fecaca;}
+  .empty-state{text-align:center;padding:40px 20px;color:#888;font-size:13px;}
+  .empty-state .empty-icon{font-size:36px;margin-bottom:12px;}
+
+  /* ── Chat pane ── */
+  #chat-pane{display:flex;flex-direction:column;height:calc(100vh - 240px);background:#fff;border:1px solid #e5e5e5;border-radius:10px;}
+  .chat-header{padding:14px 18px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;gap:10px;}
+  .chat-back{background:none;border:none;font-size:18px;cursor:pointer;color:#666;padding:0 4px;}
+  .chat-title{font-size:14px;font-weight:700;}
+  .chat-status{font-size:12px;color:#888;margin-left:2px;}
+  .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+  .msg-row{display:flex;gap:8px;align-items:flex-end;}
+  .msg-row.mine{flex-direction:row-reverse;}
+  .msg-bubble{max-width:72%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;}
+  .msg-bubble.theirs{background:#f3f4f6;color:#111;border-bottom-left-radius:4px;}
+  .msg-bubble.mine{background:#0f7b6c;color:#fff;border-bottom-right-radius:4px;}
+  .msg-time{font-size:10px;color:#bbb;margin-bottom:3px;}
+  .msg-row.mine .msg-time{text-align:right;}
+  .chat-input-row{padding:12px 16px;border-top:1px solid #e5e5e5;display:flex;gap:8px;}
+  .chat-input{flex:1;padding:9px 13px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;outline:none;resize:none;}
+  .chat-input:focus{border-color:#0f7b6c;}
+  .chat-send{padding:9px 16px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+  /* ── Feed ── */
+  .feed-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:16px 18px;margin-bottom:10px;}
+  .feed-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .feed-body{font-size:13.5px;color:#111;line-height:1.55;}
+  .feed-achievement{display:inline-flex;align-items:center;gap:7px;background:var(--green-bg,#f0f7f5);border:1px solid #c5e4de;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:13px;font-weight:600;color:#0f7b6c;}
+  .feed-time{font-size:11px;color:#bbb;margin-top:8px;}
+  .feed-react{display:flex;gap:8px;margin-top:12px;}
+  .react-btn{background:#f3f4f6;border:none;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit;transition:background .1s;}
+  .react-btn:hover{background:#e5e7eb;}
+  .brag-btn{margin-bottom:16px;width:100%;padding:11px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s;}
+  .brag-btn:hover{opacity:.88;}
+
+  /* ── Goals ── */
+  .goal-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:18px 20px;margin-bottom:10px;}
+  .goal-title{font-size:14px;font-weight:700;margin-bottom:4px;}
+  .goal-meta{font-size:12px;color:#888;margin-bottom:12px;}
+  .goal-bar-wrap{background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px;}
+  .goal-bar{height:100%;background:#0f7b6c;border-radius:99px;transition:width .5s;}
+  .goal-bar-label{display:flex;justify-content:space-between;font-size:11px;color:#888;}
+  .goal-members{display:flex;gap:-6px;margin-top:10px;}
+  .goal-avatar{width:26px;height:26px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-right:-6px;}
+  .new-goal-form{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:20px;margin-bottom:16px;}
+  .new-goal-form h4{font-size:14px;font-weight:700;margin-bottom:14px;}
+  .form-row{margin-bottom:12px;}
+  .form-row label{display:block;font-size:11px;font-weight:700;color:#888;letter-spacing:.3px;text-transform:uppercase;margin-bottom:5px;}
+  .form-row input,.form-row select{width:100%;padding:9px 12px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:13px;font-family:inherit;outline:none;}
+  .form-row input:focus,.form-row select:focus{border-color:#0f7b6c;}
+
+  /* ── Notification ── */
+  #notif{position:fixed;top:16px;right:16px;background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;}
+  #notif.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div id="notif"></div>
+
+<div class="page-header">
+  <div class="page-title">Social</div>
+  <div class="page-sub">Chat with friends, share achievements, set group goals</div>
+</div>
+
+<div id="setup-banner">
+  <span style="font-size:20px;">⚠️</span>
+  <div>
+    <strong>Firebase not connected</strong> — social features need a free Firebase Realtime Database.
+    <a href="#" onclick="showFirebaseHelp()">Setup guide (5 min) →</a>
+    &nbsp;&nbsp;
+    <a href="#" onclick="enterDemoMode()">Demo mode (local only) →</a>
+  </div>
+  <button onclick="document.getElementById('setup-banner').classList.add('hidden')" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:#888;">×</button>
+</div>
+
+<!-- Friend code -->
+<div style="padding:0 28px;">
+  <div class="code-banner">
+    <div>
+      <div class="code-label">Your Friend Code</div>
+      <div class="code-value" id="myCode">——</div>
+    </div>
+    <div style="font-size:12px;color:#888;max-width:200px;line-height:1.5;">Share this with friends so they can add you. It's based on your username.</div>
+    <button class="code-copy" onclick="copyCode()">Copy</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('friends')">Friends</button>
+  <button class="tab" onclick="switchTab('chat')">Chat</button>
+  <button class="tab" onclick="switchTab('feed')">Feed</button>
+  <button class="tab" onclick="switchTab('goals')">Group Goals</button>
+</div>
+
+<!-- ── FRIENDS TAB ── -->
+<div class="tab-pane active" id="tab-friends">
+  <div class="add-friend-row">
+    <input type="text" id="addFriendInput" placeholder="Enter friend code (e.g. SNAIL)" maxlength="8" style="text-transform:uppercase;"/>
+    <button class="btn-green" onclick="sendFriendRequest()">Add Friend</button>
+  </div>
+  <div id="pending-section" style="display:none;margin-bottom:16px;">
+    <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">Pending Requests</div>
+    <div id="pending-list"></div>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">My Friends (<span id="friend-count">0</span>)</div>
+  <div id="friends-list">
+    <div class="empty-state"><div class="empty-icon">👋</div>No friends yet — share your friend code and add someone!</div>
+  </div>
+</div>
+
+<!-- ── CHAT TAB ── -->
+<div class="tab-pane" id="tab-chat">
+  <!-- Conversation list view -->
+  <div id="convo-list-view">
+    <div style="font-size:13px;color:#888;margin-bottom:16px;">Select a friend to start chatting.</div>
+    <div id="convo-list"></div>
+  </div>
+  <!-- Chat view (shown when a convo is open) -->
+  <div id="chat-view" style="display:none;">
+    <div id="chat-pane">
+      <div class="chat-header">
+        <button class="chat-back" onclick="closeChat()">←</button>
+        <div class="avatar" id="chat-avatar" style="background:#0f7b6c;width:30px;height:30px;font-size:12px;"></div>
+        <div>
+          <div class="chat-title" id="chat-friend-name"></div>
+          <div class="chat-status" id="chat-friend-status"></div>
+        </div>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Message…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+        <button class="chat-send" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEED TAB ── -->
+<div class="tab-pane" id="tab-feed">
+  <button class="brag-btn" onclick="openBragModal()">🏆 Share an Achievement</button>
+  <div id="feed-list">
+    <div class="empty-state"><div class="empty-icon">📣</div>No posts yet — be the first to brag!</div>
+  </div>
+</div>
+
+<!-- ── GOALS TAB ── -->
+<div class="tab-pane" id="tab-goals">
+  <div class="new-goal-form">
+    <h4>Create a Group Goal</h4>
+    <div class="form-row">
+      <label>Goal Title</label>
+      <input type="text" id="goalTitle" placeholder="e.g. Study 2 hours today"/>
+    </div>
+    <div class="form-row">
+      <label>Target (minutes total, across all members)</label>
+      <input type="number" id="goalTarget" placeholder="e.g. 120" min="1"/>
+    </div>
+    <div class="form-row">
+      <label>Expires In</label>
+      <select id="goalExpiry">
+        <option value="86400000">24 hours</option>
+        <option value="604800000">1 week</option>
+        <option value="2592000000">1 month</option>
+      </select>
+    </div>
+    <button class="btn-green" onclick="createGoal()">Create Goal</button>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;">Active Goals</div>
+  <div id="goals-list">
+    <div class="empty-state"><div class="empty-icon">🎯</div>No active goals — create one above!</div>
+  </div>
+</div>
+
+<!-- Brag modal -->
+<div id="brag-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9000;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px;">Share Achievement</div>
+    <div class="form-row">
+      <label>What did you accomplish?</label>
+      <input type="text" id="bragText" placeholder="e.g. Finished 90-min deep work session!"/>
+    </div>
+    <div class="form-row">
+      <label>Attach a stat (optional)</label>
+      <select id="bragStat">
+        <option value="">None</option>
+        <option value="streak">My current streak</option>
+        <option value="xp">My total XP</option>
+        <option value="session">Session just completed</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn-green" onclick="postBrag()" style="flex:1;">Post</button>
+      <button onclick="closeBragModal()" style="flex:1;padding:9px;background:#f3f4f6;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Setup Modal -->
+<div id="firebase-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:32px;width:500px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+    <div style="font-size:18px;font-weight:800;margin-bottom:16px;">🔥 Firebase Setup</div>
+    <div style="font-size:13px;color:#555;line-height:1.7;margin-bottom:16px;">
+      <strong>Step 1:</strong> Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#0f7b6c;">console.firebase.google.com</a><br>
+      <strong>Step 2:</strong> Create a project (any name)<br>
+      <strong>Step 3:</strong> Build → Realtime Database → Create database → Start in test mode<br>
+      <strong>Step 4:</strong> Project Settings ⚙️ → Your apps → Add web app →  Copy config<br>
+      <strong>Step 5:</strong> Paste your config JSON below:
+    </div>
+    <textarea id="firebaseConfigInput" rows="8" style="width:100%;padding:10px;border:1.5px solid #e5e5e5;border-radius:8px;font-size:12px;font-family:monospace;resize:none;outline:none;" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-green" onclick="saveFirebaseConfig()" style="flex:1;">Save & Connect</button>
+      <button onclick="closeFirebaseModal()" style="flex:1;padding:9px;background:#f3f4f6;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config & state ────────────────────────────────────────────
+const ME = (localStorage.getItem('cs_currentUser') || 'you').toLowerCase()
+const MY_CODE = generateCode(ME)
+let friends = JSON.parse(localStorage.getItem(`social_friends_${ME}`) || '[]')
+let pendingReqs = JSON.parse(localStorage.getItem(`social_pending_${ME}`) || '[]')
+let messages = JSON.parse(localStorage.getItem(`social_messages_${ME}`) || '{}') // {friendCode: [...]}
+let feed = JSON.parse(localStorage.getItem(`social_feed`) || '[]')
+let goals = JSON.parse(localStorage.getItem(`social_goals`) || '[]')
+let currentChatFriend = null
+let db = null // Firebase DB reference (null = demo mode)
+let chatUnsub = null
+
+// ── Friend code generation ────────────────────────────────────
+function generateCode(username) {
+  let hash = 0
+  for (let i = 0; i < username.length; i++) hash = ((hash << 5) - hash) + username.charCodeAt(i)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  let h = Math.abs(hash)
+  for (let i = 0; i < 5; i++) { code += chars[h % chars.length]; h = Math.floor(h / chars.length) || (h + 7919) }
+  return code
+}
+
+// ── Save helpers ──────────────────────────────────────────────
+function saveFriends() { localStorage.setItem(`social_friends_${ME}`, JSON.stringify(friends)) }
+function saveMessages() { localStorage.setItem(`social_messages_${ME}`, JSON.stringify(messages)) }
+function saveFeed() { localStorage.setItem(`social_feed`, JSON.stringify(feed)) }
+function saveGoals() { localStorage.setItem(`social_goals`, JSON.stringify(goals)) }
+
+// ── Notification toast ────────────────────────────────────────
+function toast(msg, dur=2500) {
+  const el = document.getElementById('notif')
+  el.textContent = msg
+  el.classList.add('show')
+  clearTimeout(el._t)
+  el._t = setTimeout(() => el.classList.remove('show'), dur)
+}
+
+// ── Init ──────────────────────────────────────────────────────
+function init() {
+  document.getElementById('myCode').textContent = MY_CODE
+
+  // Try to load Firebase if config exists
+  const savedCfg = localStorage.getItem('social_firebase_config')
+  if (savedCfg) {
+    try { initFirebase(JSON.parse(savedCfg)) } catch(e) { console.warn('Firebase init failed', e) }
+  } else {
+    document.getElementById('setup-banner').classList.remove('hidden')
+  }
+
+  renderFriends()
+  renderConvoList()
+  renderFeed()
+  renderGoals()
+
+  // Auto-share session completions
+  listenForSessionComplete()
+}
+
+// ── Firebase ──────────────────────────────────────────────────
+function initFirebase(config) {
+  // Dynamically load Firebase SDK
+  const script1 = document.createElement('script')
+  script1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js'
+  document.head.appendChild(script1)
+  script1.onload = () => {
+    const script2 = document.createElement('script')
+    script2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js'
+    document.head.appendChild(script2)
+    script2.onload = () => {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(config)
+        db = firebase.database()
+        document.getElementById('setup-banner').classList.add('hidden')
+        registerPresence()
+        subscribeToFriendRequests()
+        renderFeed()
+        renderGoals()
+        toast('🔥 Connected to Firebase!')
+      } catch(e) { console.error('Firebase connect error', e) }
+    }
+    document.head.appendChild(script2)
+  }
+}
+
+function registerPresence() {
+  if (!db) return
+  const ref = db.ref(`users/${MY_CODE}`)
+  ref.set({ username: ME, code: MY_CODE, status: 'online', xp: parseInt(localStorage.getItem(csKey ? window.csKey('planXPTotal') : 0) || 0), streak: parseInt(localStorage.getItem(window.csKey ? window.csKey('planStreak') : 0) || 0), lastSeen: Date.now() })
+  ref.child('status').onDisconnect().set('offline')
+}
+
+function subscribeToFriendRequests() {
+  if (!db) return
+  db.ref(`requests/${MY_CODE}`).on('value', snap => {
+    const data = snap.val() || {}
+    const newReqs = Object.values(data).filter(r => r.status === 'pending')
+    if (newReqs.length) {
+      pendingReqs = newReqs
+      localStorage.setItem(`social_pending_${ME}`, JSON.stringify(pendingReqs))
+      renderFriends()
+    }
+  })
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['friends','chat','feed','goals'][i] === name))
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
+  document.getElementById(`tab-${name}`).classList.add('active')
+  if (name === 'feed') renderFeed()
+  if (name === 'goals') renderGoals()
+  if (name === 'chat') renderConvoList()
+}
+
+// ── Copy code ─────────────────────────────────────────────────
+function copyCode() {
+  navigator.clipboard.writeText(MY_CODE).then(() => toast('Friend code copied! 🐌'))
+}
+
+// ── Friends ───────────────────────────────────────────────────
+const COLORS = ['#0f7b6c','#7c3aed','#d97706','#dc2626','#0ea5e9','#16a34a']
+function colorFor(code) { return COLORS[code.charCodeAt(0) % COLORS.length] }
+function initialsFor(name) { return name.slice(0,2).toUpperCase() }
+
+async function sendFriendRequest() {
+  const code = document.getElementById('addFriendInput').value.trim().toUpperCase()
+  if (!code || code.length < 4) return toast('Enter a valid friend code')
+  if (code === MY_CODE) return toast("That's your own code!")
+  if (friends.find(f => f.code === code)) return toast('Already friends!')
+
+  if (db) {
+    // Real Firebase request
+    await db.ref(`requests/${code}/${MY_CODE}`).set({ from: ME, code: MY_CODE, status: 'pending', ts: Date.now() })
+    toast('Friend request sent! 📨')
+  } else {
+    // Demo mode: just add directly
+    const newFriend = { code, username: `user_${code.toLowerCase()}`, status: 'offline', demo: true }
+    friends.push(newFriend)
+    saveFriends()
+    renderFriends()
+    toast('Friend added (demo mode — no real sync)')
+  }
+  document.getElementById('addFriendInput').value = ''
+}
+
+function acceptRequest(req) {
+  friends.push({ code: req.code, username: req.from, status: 'online' })
+  saveFriends()
+  pendingReqs = pendingReqs.filter(r => r.code !== req.code)
+  localStorage.setItem(`social_pending_${ME}`, JSON.stringify(pendingReqs))
+  if (db) {
+    db.ref(`requests/${MY_CODE}/${req.code}`).remove()
+    db.ref(`friends/${MY_CODE}/${req.code}`).set({ username: req.from, code: req.code, since: Date.now() })
+    db.ref(`friends/${req.code}/${MY_CODE}`).set({ username: ME, code: MY_CODE, since: Date.now() })
+  }
+  renderFriends()
+  toast(`You and ${req.from} are now friends! 🎉`)
+}
+
+function removeFriend(code) {
+  friends = friends.filter(f => f.code !== code)
+  saveFriends()
+  if (db) { db.ref(`friends/${MY_CODE}/${code}`).remove(); db.ref(`friends/${code}/${MY_CODE}`).remove() }
+  renderFriends()
+  toast('Friend removed')
+}
+
+function renderFriends() {
+  const list = document.getElementById('friends-list')
+  const pList = document.getElementById('pending-list')
+  const pSec = document.getElementById('pending-section')
+  document.getElementById('friend-count').textContent = friends.length
+
+  // Pending
+  if (pendingReqs.length) {
+    pSec.style.display = 'block'
+    pList.innerHTML = pendingReqs.map(r => `
+      <div class="friend-card" style="cursor:default;">
+        <div class="avatar" style="background:${colorFor(r.code)};">${initialsFor(r.from)}</div>
+        <div class="friend-info"><div class="friend-name">${r.from}</div><div class="friend-meta">Sent you a friend request</div></div>
+        <div class="friend-actions">
+          <button class="btn-sm btn-chat" onclick='acceptRequest(${JSON.stringify(r)})'>Accept</button>
+          <button class="btn-sm btn-remove" onclick="pendingReqs=pendingReqs.filter(x=>x.code!=='${r.code}');localStorage.setItem('social_pending_${ME}',JSON.stringify(pendingReqs));renderFriends()">Decline</button>
+        </div>
+      </div>`).join('')
+  } else pSec.style.display = 'none'
+
+  // Friends
+  if (!friends.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">👋</div>No friends yet — share your friend code!</div>'
+    return
+  }
+
+  // If Firebase, fetch live status; otherwise use stored
+  if (db) {
+    Promise.all(friends.map(f => db.ref(`users/${f.code}`).once('value').then(s => ({ ...f, ...(s.val()||{}) }))))
+      .then(updated => { friends = updated; saveFriends(); _renderFriendCards() })
+  } else _renderFriendCards()
+}
+
+function _renderFriendCards() {
+  const list = document.getElementById('friends-list')
+  list.innerHTML = friends.map(f => {
+    const statusClass = f.status === 'focus' ? 'status-focus' : f.status === 'online' ? 'status-online' : 'status-offline'
+    const statusLabel = f.status === 'focus' ? '🎯 In Focus' : f.status === 'online' ? '● Online' : '○ Offline'
+    return `
+    <div class="friend-card">
+      <div class="avatar" style="background:${colorFor(f.code)};">${initialsFor(f.username||f.code)}</div>
+      <div class="friend-info">
+        <div class="friend-name">${f.username || f.code}</div>
+        <div class="friend-meta">Code: ${f.code}${f.streak ? ` · 🔥 ${f.streak} day streak` : ''}${f.xp ? ` · ⭐ ${f.xp} XP` : ''}</div>
+      </div>
+      <span class="friend-status ${statusClass}">${statusLabel}</span>
+      <div class="friend-actions">
+        <button class="btn-sm btn-chat" onclick="openChat('${f.code}','${f.username||f.code}','${f.status||'offline'}')">Chat</button>
+        <button class="btn-sm btn-remove" onclick="removeFriend('${f.code}')">Remove</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ── Chat ──────────────────────────────────────────────────────
+function openChat(code, name, status) {
+  currentChatFriend = { code, name, status }
+  document.getElementById('chat-friend-name').textContent = name
+  document.getElementById('chat-friend-status').textContent = status === 'focus' ? '🎯 In Focus Mode' : status === 'online' ? '● Online' : '○ Offline'
+  document.getElementById('chat-avatar').textContent = initialsFor(name)
+  document.getElementById('chat-avatar').style.background = colorFor(code)
+  document.getElementById('convo-list-view').style.display = 'none'
+  document.getElementById('chat-view').style.display = 'block'
+
+  if (!messages[code]) messages[code] = []
+  renderMessages()
+  switchTab('chat')
+
+  // Subscribe to Firebase messages
+  if (db) {
+    const roomId = [MY_CODE, code].sort().join('_')
+    if (chatUnsub) chatUnsub()
+    db.ref(`chats/${roomId}`).on('value', snap => {
+      const data = snap.val() || {}
+      messages[code] = Object.values(data).sort((a,b) => a.ts - b.ts)
+      saveMessages()
+      renderMessages()
+    })
+    chatUnsub = () => db.ref(`chats/${[MY_CODE, code].sort().join('_')}`).off()
+  }
+}
+
+function closeChat() {
+  if (chatUnsub) { chatUnsub(); chatUnsub = null }
+  currentChatFriend = null
+  document.getElementById('convo-list-view').style.display = 'block'
+  document.getElementById('chat-view').style.display = 'none'
+  renderConvoList()
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input')
+  const text = input.value.trim()
+  if (!text || !currentChatFriend) return
+  input.value = ''
+  input.style.height = ''
+
+  const msg = { from: MY_CODE, fromName: ME, text, ts: Date.now() }
+
+  if (db) {
+    const roomId = [MY_CODE, currentChatFriend.code].sort().join('_')
+    await db.ref(`chats/${roomId}`).push(msg)
+  } else {
+    if (!messages[currentChatFriend.code]) messages[currentChatFriend.code] = []
+    messages[currentChatFriend.code].push(msg)
+    saveMessages()
+    renderMessages()
+  }
+}
+
+function renderMessages() {
+  if (!currentChatFriend) return
+  const msgs = messages[currentChatFriend.code] || []
+  const container = document.getElementById('chat-messages')
+  container.innerHTML = msgs.length ? msgs.map(m => {
+    const isMine = m.from === MY_CODE
+    const time = new Date(m.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+    return `<div class="msg-row ${isMine?'mine':''}">
+      ${!isMine ? `<div class="avatar" style="background:${colorFor(m.from)};width:26px;height:26px;font-size:10px;">${initialsFor(m.fromName||m.from)}</div>` : ''}
+      <div>
+        <div class="msg-time">${time}</div>
+        <div class="msg-bubble ${isMine?'mine':'theirs'}">${escHtml(m.text)}</div>
+      </div>
+    </div>`
+  }).join('') : '<div style="text-align:center;color:#bbb;font-size:13px;padding:20px;">No messages yet — say hi!</div>'
+  container.scrollTop = container.scrollHeight
+}
+
+function renderConvoList() {
+  const list = document.getElementById('convo-list')
+  if (!friends.length) { list.innerHTML = '<div style="color:#888;font-size:13px;">Add friends to start chatting.</div>'; return }
+  list.innerHTML = friends.map(f => {
+    const msgs = messages[f.code] || []
+    const last = msgs[msgs.length-1]
+    return `<div class="friend-card" onclick="openChat('${f.code}','${f.username||f.code}','${f.status||'offline'}')">
+      <div class="avatar" style="background:${colorFor(f.code)};">${initialsFor(f.username||f.code)}</div>
+      <div class="friend-info">
+        <div class="friend-name">${f.username||f.code}</div>
+        <div class="friend-meta">${last ? escHtml(last.text.slice(0,40)) : 'No messages yet'}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ── Feed ──────────────────────────────────────────────────────
+function openBragModal() { document.getElementById('brag-modal').style.display = 'flex' }
+function closeBragModal() { document.getElementById('brag-modal').style.display = 'none' }
+
+async function postBrag() {
+  const text = document.getElementById('bragText').value.trim()
+  if (!text) return toast('Write something first!')
+  const stat = document.getElementById('bragStat').value
+
+  let statText = ''
+  if (stat === 'streak') statText = `🔥 ${parseInt(window.csGet?.('planStreak') || localStorage.getItem(window.csKey?.('planStreak')) || 0)} day streak`
+  else if (stat === 'xp') statText = `⭐ ${parseInt(window.csGet?.('planXPTotal') || 0)} total XP`
+  else if (stat === 'session') statText = '✅ Just completed a focus session'
+
+  const post = { id: Date.now(), author: ME, code: MY_CODE, text, stat: statText, ts: Date.now(), reactions: {} }
+
+  if (db) {
+    await db.ref(`feed`).push(post)
+  } else {
+    feed.unshift(post)
+    saveFeed()
+    renderFeed()
+  }
+
+  document.getElementById('bragText').value = ''
+  document.getElementById('bragStat').value = ''
+  closeBragModal()
+  switchTab('feed')
+  toast('Posted! 🎉')
+}
+
+function listenForSessionComplete() {
+  // Watch for focus session completions to auto-post
+  const origSet = localStorage.setItem.bind(localStorage)
+  // We'll hook into study page's session done event via a storage key
+  window.addEventListener('storage', e => {
+    if (e.key === 'social_auto_brag' && e.newValue) {
+      const data = JSON.parse(e.newValue)
+      autoPostSession(data)
+      localStorage.removeItem('social_auto_brag')
+    }
+  })
+}
+
+async function autoPostSession(data) {
+  const post = { id: Date.now(), author: ME, code: MY_CODE, text: `Completed a ${data.duration} focus session! 💪`, stat: `+${data.pts} points earned`, ts: Date.now(), reactions: {}, auto: true }
+  if (db) await db.ref(`feed`).push(post)
+  else { feed.unshift(post); saveFeed() }
+  renderFeed()
+}
+
+function renderFeed() {
+  const list = document.getElementById('feed-list')
+
+  const loadFeed = (items) => {
+    if (!items.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📣</div>No posts yet — be the first to brag!</div>'; return }
+    list.innerHTML = items.slice(0,30).map(p => {
+      const reactionCount = Object.values(p.reactions||{}).reduce((s,v) => s + v, 0)
+      const time = timeAgo(p.ts)
+      return `<div class="feed-card">
+        <div class="feed-header">
+          <div class="avatar" style="background:${colorFor(p.code||'A')};width:34px;height:34px;font-size:13px;">${initialsFor(p.author||'?')}</div>
+          <div><div style="font-size:14px;font-weight:700;">${escHtml(p.author||'Someone')}</div><div style="font-size:12px;color:#888;">${time}</div></div>
+        </div>
+        <div class="feed-body">${escHtml(p.text)}</div>
+        ${p.stat ? `<div class="feed-achievement">${p.stat}</div>` : ''}
+        <div class="feed-react">
+          <button class="react-btn" onclick="react('${p.id}','🔥')">🔥 ${p.reactions?.['🔥']||0}</button>
+          <button class="react-btn" onclick="react('${p.id}','🐌')">🐌 ${p.reactions?.['🐌']||0}</button>
+          <button class="react-btn" onclick="react('${p.id}','💪')">💪 ${p.reactions?.['💪']||0}</button>
+          <button class="react-btn" onclick="react('${p.id}','👏')">👏 ${p.reactions?.['👏']||0}</button>
+        </div>
+      </div>`
+    }).join('')
+  }
+
+  if (db) {
+    db.ref('feed').orderByChild('ts').limitToLast(30).on('value', snap => {
+      const data = snap.val() || {}
+      const items = Object.values(data).sort((a,b) => b.ts - a.ts)
+      feed = items; saveFeed()
+      loadFeed(items)
+    })
+  } else {
+    loadFeed(feed)
+  }
+}
+
+async function react(postId, emoji) {
+  if (db) {
+    const ref = db.ref(`feed`)
+    const snap = await ref.orderByChild('ts').once('value')
+    const data = snap.val() || {}
+    const [key, post] = Object.entries(data).find(([k,v]) => v.id == postId) || []
+    if (!key) return
+    const cur = (post.reactions||{})[emoji] || 0
+    await db.ref(`feed/${key}/reactions/${emoji}`).set(cur + 1)
+  } else {
+    const p = feed.find(f => f.id == postId)
+    if (!p) return
+    if (!p.reactions) p.reactions = {}
+    p.reactions[emoji] = (p.reactions[emoji]||0) + 1
+    saveFeed()
+    renderFeed()
+  }
+}
+
+// ── Goals ─────────────────────────────────────────────────────
+async function createGoal() {
+  const title = document.getElementById('goalTitle').value.trim()
+  const target = parseInt(document.getElementById('goalTarget').value)
+  const expiry = parseInt(document.getElementById('goalExpiry').value)
+  if (!title) return toast('Enter a goal title')
+  if (!target || target < 1) return toast('Enter a valid target')
+
+  const goal = { id: Date.now(), title, target, progress: 0, creator: ME, creatorCode: MY_CODE, members: { [MY_CODE]: { name: ME, progress: 0 } }, expires: Date.now() + expiry, ts: Date.now() }
+
+  if (db) await db.ref('goals').push(goal)
+  else { goals.unshift(goal); saveGoals() }
+
+  document.getElementById('goalTitle').value = ''
+  document.getElementById('goalTarget').value = ''
+  renderGoals()
+  toast('Goal created! Share your friend code so others can join 🎯')
+}
+
+function renderGoals() {
+  const list = document.getElementById('goals-list')
+
+  const showGoals = (items) => {
+    const active = items.filter(g => g.expires > Date.now())
+    if (!active.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🎯</div>No active goals — create one above!</div>'; return }
+    list.innerHTML = active.map(g => {
+      const pct = Math.min(100, Math.round((g.progress||0) / g.target * 100))
+      const memberNames = Object.values(g.members||{}).map(m => m.name)
+      const timeLeft = g.expires - Date.now()
+      const hoursLeft = Math.max(0, Math.floor(timeLeft / 3600000))
+      const isMember = g.members?.[MY_CODE]
+      return `<div class="goal-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div class="goal-title">${escHtml(g.title)}</div>
+          ${!isMember ? `<button class="btn-sm btn-chat" onclick="joinGoal('${g.id}')">Join</button>` : ''}
+        </div>
+        <div class="goal-meta">by ${g.creator} · ${hoursLeft}h left · ${memberNames.length} members</div>
+        <div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div>
+        <div class="goal-bar-label"><span>${g.progress||0} / ${g.target} min</span><span>${pct}%</span></div>
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+          ${memberNames.map((n,i) => `<div class="goal-avatar" style="background:${COLORS[i%COLORS.length]};">${initialsFor(n)}</div>`).join('')}
+          ${isMember ? `<button class="btn-sm" style="background:#f0f7f5;color:#0f7b6c;border:none;margin-left:8px;" onclick="contributeGoal('${g.id}',10)">+10 min</button>` : ''}
+        </div>
+      </div>`
+    }).join('')
+  }
+
+  if (db) {
+    db.ref('goals').on('value', snap => {
+      const data = snap.val() || {}
+      goals = Object.entries(data).map(([k,v]) => ({...v, _key: k}))
+      saveGoals()
+      showGoals(goals)
+    })
+  } else showGoals(goals)
+}
+
+async function joinGoal(id) {
+  if (db) {
+    const snap = await db.ref('goals').orderByChild('ts').once('value')
+    const data = snap.val() || {}
+    const [key] = Object.entries(data).find(([k,v]) => v.id == id) || []
+    if (key) await db.ref(`goals/${key}/members/${MY_CODE}`).set({ name: ME, progress: 0 })
+  } else {
+    const g = goals.find(g => g.id == id)
+    if (g) { if (!g.members) g.members = {}; g.members[MY_CODE] = { name: ME, progress: 0 }; saveGoals() }
+    renderGoals()
+  }
+  toast('Joined goal! 🎯')
+}
+
+async function contributeGoal(id, mins) {
+  if (db) {
+    const snap = await db.ref('goals').once('value')
+    const data = snap.val() || {}
+    const [key, g] = Object.entries(data).find(([k,v]) => v.id == id) || []
+    if (key) {
+      await db.ref(`goals/${key}/progress`).set((g.progress||0) + mins)
+      await db.ref(`goals/${key}/members/${MY_CODE}/progress`).set(((g.members?.[MY_CODE]?.progress)||0) + mins)
+    }
+  } else {
+    const g = goals.find(g => g.id == id)
+    if (g) { g.progress = (g.progress||0) + mins; if (g.members?.[MY_CODE]) g.members[MY_CODE].progress = (g.members[MY_CODE].progress||0) + mins; saveGoals() }
+    renderGoals()
+  }
+  toast(`+${mins} minutes contributed! 💪`)
+}
+
+// ── Firebase config modal ─────────────────────────────────────
+function showFirebaseHelp() { document.getElementById('firebase-modal').style.display = 'flex' }
+function closeFirebaseModal() { document.getElementById('firebase-modal').style.display = 'none' }
+function saveFirebaseConfig() {
+  const raw = document.getElementById('firebaseConfigInput').value.trim()
+  try {
+    const cfg = JSON.parse(raw)
+    if (!cfg.databaseURL) { toast('Config needs a databaseURL field'); return }
+    localStorage.setItem('social_firebase_config', raw)
+    closeFirebaseModal()
+    initFirebase(cfg)
+  } catch(e) { toast('Invalid JSON — check your config') }
+}
+function enterDemoMode() {
+  document.getElementById('setup-banner').classList.add('hidden')
+  toast('Demo mode — data stays on this device only')
+}
+
+// ── Utilities ─────────────────────────────────────────────────
+function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000)
+  if (s < 60) return 'just now'
+  if (s < 3600) return `${Math.floor(s/60)}m ago`
+  if (s < 86400) return `${Math.floor(s/3600)}h ago`
+  return `${Math.floor(s/86400)}d ago`
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+init()
+</script>
+</body>
+</html>

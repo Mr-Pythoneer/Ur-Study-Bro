@@ -583,6 +583,8 @@
       const prevPts = parseInt(csGet('studyPoints') || '0')
       csSet('studyPoints', String(prevPts + earned))
       showNudge(`+${earned} Study Points earned!`)
+      // Broadcast to Social page for auto-post
+      try { localStorage.setItem('social_auto_brag', JSON.stringify({ duration: G.label || `${mins} min`, pts: earned })) } catch(e){}
     }
 
     if (G.isPomodoro) {
