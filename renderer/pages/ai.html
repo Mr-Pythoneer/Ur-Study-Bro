@@ -23,6 +23,13 @@
   .persona-card textarea:focus { border-color:var(--accent); }
 
   .new-chat-btn { width:100%; }
+  .conv-item { position:relative; padding:7px 28px 7px 10px; border-radius:5px; cursor:pointer; transition:background .12s; }
+  .conv-item:hover { background:var(--bg-main); }
+  .conv-item.active { background:var(--accent-light); }
+  .conv-title { font-size:12px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .conv-meta  { font-size:10px; color:var(--text-secondary); margin-top:1px; }
+  .conv-del   { position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-secondary); font-size:14px; opacity:0; transition:opacity .12s; padding:0 2px; }
+  .conv-item:hover .conv-del { opacity:1; }
 
   /* ── Chat area ── */
   .ai-chat { flex:1; display:flex; flex-direction:column; min-width:0; }
@@ -121,6 +128,12 @@
     </div>
 
     <button class="btn btn-ghost new-chat-btn" id="newChatBtn">New chat</button>
+
+    <!-- Conversation history sidebar -->
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Recent Chats</div>
+      <div id="convSidebar" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;"></div>
+    </div>
   </div>
 
   <!-- Chat -->
@@ -225,11 +238,85 @@
 
   loadSettings()
 
+  /* ── Conversation persistence ── */
+  const CONV_KEY = 'aiConversations'
+  let convList = csGetJSON(CONV_KEY, [])   // [{id, title, ts, messages:[]}]
+  let activeConvId = null
+
+  function saveConversations() { csSetJSON(CONV_KEY, convList) }
+
+  function newConversation(keepCurrent = false) {
+    if (!keepCurrent && messages.length) {
+      // Save current conv
+      const existing = convList.find(c => c.id === activeConvId)
+      if (existing) { existing.messages = messages; existing.ts = Date.now() }
+      else convList.unshift({ id: activeConvId || Date.now(), title: messages[0]?.content?.slice(0,40) || 'Chat', ts: Date.now(), messages })
+      if (convList.length > 20) convList = convList.slice(0, 20)
+      saveConversations()
+    }
+    messages = []
+    activeConvId = Date.now()
+    document.getElementById('chatHistory').innerHTML = ''
+    renderConvSidebar()
+  }
+
+  function loadConversation(id) {
+    // Save current first
+    if (messages.length && activeConvId) {
+      const ex = convList.find(c => c.id === activeConvId)
+      if (ex) { ex.messages = messages; ex.ts = Date.now() }
+      else convList.unshift({ id: activeConvId, title: messages[0]?.content?.slice(0,40)||'Chat', ts: Date.now(), messages })
+      saveConversations()
+    }
+    const conv = convList.find(c => c.id === id)
+    if (!conv) return
+    activeConvId = id
+    messages = conv.messages || []
+    document.getElementById('chatHistory').innerHTML = ''
+    messages.forEach(m => addMessage(m.role, m.content, true))
+    renderConvSidebar()
+  }
+
+  function deleteConversation(id) {
+    convList = convList.filter(c => c.id !== id)
+    saveConversations()
+    if (activeConvId === id) newConversation(true)
+    else renderConvSidebar()
+  }
+
+  function renderConvSidebar() {
+    const sidebar = document.getElementById('convSidebar')
+    if (!sidebar) return
+    sidebar.innerHTML = convList.length
+      ? convList.map(c => `
+        <div class="conv-item ${c.id === activeConvId ? 'active' : ''}" onclick="loadConversation(${c.id})">
+          <div class="conv-title">${esc(c.title || 'Chat')}</div>
+          <div class="conv-meta">${new Date(c.ts).toLocaleDateString()}</div>
+          <button class="conv-del" onclick="event.stopPropagation();deleteConversation(${c.id})" title="Delete">×</button>
+        </div>`).join('')
+      : '<div style="font-size:12px;color:var(--text-secondary);padding:12px 8px;">No saved chats yet</div>'
+  }
+
+  // Auto-save every message
+  function persistCurrentConv() {
+    if (!messages.length) return
+    const title = messages[0]?.content?.slice(0,40) || 'Chat'
+    const ex = convList.find(c => c.id === activeConvId)
+    if (ex) { ex.messages = messages; ex.ts = Date.now(); ex.title = title }
+    else { convList.unshift({ id: activeConvId, title, ts: Date.now(), messages }); if (convList.length > 20) convList.pop() }
+    saveConversations()
+    renderConvSidebar()
+  }
+
+  // Init active conversation
+  activeConvId = Date.now()
+  renderConvSidebar()
+
   /* ── Chat history ── */
   let messages = []  // {role, content}
 
-  function addMessage(role, content) {
-    messages.push({ role, content })
+  function addMessage(role, content, replay = false) {
+    if (!replay) { messages.push({ role, content }); persistCurrentConv() }
     const history = document.getElementById('chatHistory')
 
     const wrapper = document.createElement('div')
@@ -340,9 +427,12 @@
 
   /* ── New chat ── */
   document.getElementById('newChatBtn').addEventListener('click', () => {
-    if (messages.length && !confirm('Start a new chat? This clears the current conversation.')) return
-    messages = []
-    document.getElementById('chatHistory').innerHTML = ''
+    if (messages.length && !confirm('Start a new chat? This will save the current one.')) return
+    newConversation()
   })
+
+  // Expose for sidebar onclick
+  window.loadConversation = loadConversation
+  window.deleteConversation = deleteConversation
 })()
 </script>

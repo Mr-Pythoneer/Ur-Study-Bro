@@ -152,6 +152,17 @@
         <div class="url-parse-feedback" id="linkFeedback"></div>
       </div>
 
+      <div class="input-group" style="margin-top:10px;">
+        <label>Repeat</label>
+        <select id="evRepeat">
+          <option value="none">Does not repeat</option>
+          <option value="daily">Every day</option>
+          <option value="weekly">Every week (same day)</option>
+          <option value="biweekly">Every 2 weeks</option>
+          <option value="monthly">Every month (same date)</option>
+        </select>
+      </div>
+
       <div class="form-error" id="evError"></div>
       <button class="btn btn-primary" style="width:100%; margin-top:4px;" id="addEvBtn">+ Add Event</button>
     </div>
@@ -170,6 +181,36 @@
   /* ── Data helpers ─────────────────────────────────────────── */
   function getEvents() { return csGetJSON('calEvents', []) }
   function saveEvents(e) { csSetJSON('calEvents', e) }
+
+  // Expand recurring events for a date range
+  function getExpandedEvents(fromDate, toDate) {
+    const base = getEvents()
+    const results = []
+    const from = new Date(fromDate), to = new Date(toDate)
+    base.forEach(ev => {
+      if (!ev.repeat || ev.repeat === 'none') { results.push(ev); return }
+      // Generate occurrences
+      const start = new Date(ev.date)
+      let cur = new Date(start)
+      let count = 0
+      while (cur <= to && count < 200) {
+        if (cur >= from) {
+          const dateStr = cur.toISOString().slice(0,10)
+          results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}`, _parentId: ev.id, _isRecurring: true })
+        }
+        // Advance by recurrence interval
+        const next = new Date(cur)
+        if (ev.repeat === 'daily')    next.setDate(next.getDate() + 1)
+        else if (ev.repeat === 'weekly')   next.setDate(next.getDate() + 7)
+        else if (ev.repeat === 'biweekly') next.setDate(next.getDate() + 14)
+        else if (ev.repeat === 'monthly')  next.setMonth(next.getMonth() + 1)
+        else break
+        if (next.getTime() === cur.getTime()) break
+        cur = next; count++
+      }
+    })
+    return results
+  }
 
   /* ── URL parser ───────────────────────────────────────────── */
   function parseLink(raw) {
@@ -297,16 +338,15 @@
     const parsed = parseLink(rawLink)
     if (rawLink && !parsed.valid) return showErr(errEl, parsed.label)
 
+    const repeat = document.getElementById('evRepeat')?.value || 'none'
     const events = getEvents()
     events.push({
       id: Date.now().toString(),
-      title,
-      date,
-      start,
-      end,
+      title, date, start, end,
       link: parsed.url,
       linkType: parsed.type,
       linkLabel: parsed.label,
+      repeat,
     })
     saveEvents(events)
 
@@ -404,7 +444,9 @@
     const year = cursor.getFullYear(), month = cursor.getMonth()
     document.getElementById('calNavTitle').textContent = `${MONTHS[month]} ${year}`
 
-    const events = getEvents()
+    const fromDate = new Date(year, month, 1)
+    const toDate   = new Date(year, month+1, 0)
+    const events = getExpandedEvents(fromDate.toISOString().slice(0,10), toDate.toISOString().slice(0,10))
     const today  = new Date()
     const firstDow = new Date(year, month, 1).getDay()
     const daysInMonth = new Date(year, month+1, 0).getDate()
@@ -584,7 +626,7 @@
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 7)
     const cutoffStr = localDateStr(cutoff)
 
-    const upcoming = getEvents()
+    const upcoming = getExpandedEvents(today, cutoffStr)
       .filter(e => e.date >= today && e.date <= cutoffStr)
       .sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start))
       .slice(0, 6)
