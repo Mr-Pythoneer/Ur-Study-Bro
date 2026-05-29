@@ -500,6 +500,7 @@ function _renderFriendCards() {
       <span class="friend-status ${statusClass}">${statusLabel}</span>
       <div class="friend-actions">
         <button class="btn-sm btn-chat" onclick="openChat('${f.code}','${f.username||f.code}','${f.status||'offline'}')">Chat</button>
+        <button class="btn-sm" style="background:#f0f7f5;color:#0f7b6c;border:none;" onclick="startStudyTogether('${f.code}','${f.username||f.code}')">🤝 Study Together</button>
         <button class="btn-sm btn-remove" onclick="removeFriend('${f.code}')">Remove</button>
       </div>
     </div>`
@@ -819,8 +820,62 @@ function timeAgo(ts) {
   return `${Math.floor(s/86400)}d ago`
 }
 
+// ── Study Together ────────────────────────────────────────────
+const ST_KEY = 'studyTogether_session'
+
+window.startStudyTogether = function(friendCode, friendName) {
+  const session = {
+    host: MY_CODE,
+    hostName: ME,
+    guest: friendCode,
+    guestName: friendName,
+    startedAt: Date.now(),
+    active: true,
+    roomKey: [MY_CODE, friendCode].sort().join('_')
+  }
+  localStorage.setItem(ST_KEY, JSON.stringify(session))
+  if (db) db.ref(`studyTogether/${session.roomKey}`).set(session)
+
+  toast(`🤝 Study Together started with ${friendName}! Open Focus Mode to begin.`)
+
+  // Poll for friend joining (demo mode fallback)
+  setTimeout(() => {
+    // Simulate friend joining after 3s in demo mode
+    if (!db) {
+      const s = JSON.parse(localStorage.getItem(ST_KEY) || '{}')
+      if (s.active) { s.guestJoined = true; localStorage.setItem(ST_KEY, JSON.stringify(s)) }
+    }
+  }, 3000)
+}
+
+window.endStudyTogether = function() {
+  const s = JSON.parse(localStorage.getItem(ST_KEY) || '{}')
+  if (s.roomKey && db) db.ref(`studyTogether/${s.roomKey}`).remove()
+  localStorage.removeItem(ST_KEY)
+  toast('Study Together session ended')
+}
+
+// Check if we're invited to a study session
+function checkStudyTogetherInvite() {
+  if (!db) return
+  db.ref(`studyTogether`).on('value', snap => {
+    const sessions = snap.val() || {}
+    Object.values(sessions).forEach(s => {
+      if (s.guest === MY_CODE && s.active && !s.guestJoined) {
+        if (confirm(`${s.hostName} wants to study together! Join their session?`)) {
+          s.guestJoined = true
+          db.ref(`studyTogether/${s.roomKey}`).update({ guestJoined: true })
+          localStorage.setItem(ST_KEY, JSON.stringify(s))
+          toast('Joined! Open Focus Mode to sync.')
+        }
+      }
+    })
+  })
+}
+
 // ── Boot ──────────────────────────────────────────────────────
 init()
+if (db) checkStudyTogetherInvite()
 </script>
 </body>
 </html>

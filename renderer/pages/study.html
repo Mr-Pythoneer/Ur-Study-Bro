@@ -117,6 +117,16 @@
   <div class="page-subtitle">Focus up. Your partner is counting on you.</div>
 </div>
 
+<!-- ── Study Together Banner ────────────────────────────────────── -->
+<div id="studyTogetherBanner" style="display:none;background:linear-gradient(135deg,#0a2e28,#0f7b6c);border-radius:var(--radius);padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;color:#fff;">
+  <span style="font-size:24px;">🤝</span>
+  <div style="flex:1;">
+    <div style="font-size:14px;font-weight:700;" id="stBannerName">Studying together</div>
+    <div style="font-size:12px;opacity:.75;" id="stBannerMeta">Your timers are synced</div>
+  </div>
+  <button onclick="endStudySession()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">End Session</button>
+</div>
+
 <!-- ── Timer ───────────────────────────────────────────────────── -->
 <div class="card" style="text-align:center;">
   <div class="timer-mode-tabs" id="timerTabs">
@@ -324,6 +334,31 @@
     document.getElementById('totalSessions').textContent  = all.length
   }
   refreshStats()
+
+  /* ── Study Together integration ──────────────────────────── */
+  function checkStudyTogetherBanner() {
+    const raw = localStorage.getItem('studyTogether_session')
+    const banner = document.getElementById('studyTogetherBanner')
+    if (!banner) return
+    if (!raw) { banner.style.display = 'none'; return }
+    try {
+      const s = JSON.parse(raw)
+      if (!s.active) { banner.style.display = 'none'; return }
+      banner.style.display = 'flex'
+      const isHost = s.host === (localStorage.getItem('cs_currentUser') || '')
+      const partnerName = isHost ? s.guestName : s.hostName
+      document.getElementById('stBannerName').textContent = `Studying with ${partnerName} 🤝`
+      document.getElementById('stBannerMeta').textContent = s.guestJoined ? 'Both connected — timers synced!' : 'Waiting for friend to join…'
+    } catch(e) { banner.style.display = 'none' }
+  }
+  setInterval(checkStudyTogetherBanner, 2000)
+  checkStudyTogetherBanner()
+
+  window.endStudySession = function() {
+    localStorage.removeItem('studyTogether_session')
+    document.getElementById('studyTogetherBanner').style.display = 'none'
+    toast && toast('Study Together session ended')
+  }
 
   /* ── Timer utils ─────────────────────────────────────────── */
   function fmt(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}` }

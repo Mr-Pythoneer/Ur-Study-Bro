@@ -310,6 +310,12 @@
     </div>
   </div>
 
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+    <button class="btn btn-ghost" onclick="exportReport()" style="font-size:13px;gap:6px;">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" width="14" height="14"><path d="M4 14v2a1 1 0 001 1h10a1 1 0 001-1v-2M10 3v10M7 10l3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Export Report
+    </button>
+  </div>
   <div class="rewards-header-grid" id="statsGrid"></div>
   <div class="card weekly-card" id="weeklyCard"></div>
 
@@ -897,4 +903,115 @@
   renderShop()
   renderWishlist()
 })()
+
+// ── Export Report ─────────────────────────────────────────────────
+window.exportReport = function() {
+  const records    = csGetJSON('records', [])
+  const pts        = parseInt(csGet('studyPoints')||'0')
+  const name       = csGet('displayName') || currentUser()
+  const subjects   = csGetJSON('subjects', [])
+  const totalMins  = records.reduce((a,r)=>a+r.duration,0)
+  const totalHours = (totalMins/60).toFixed(1)
+  const sessions   = records.length
+  const today      = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
+
+  // Streak
+  const days = [...new Set(records.map(r=>r.date))].sort()
+  let streak=0, check=new Date().toISOString().slice(0,10)
+  while(days.includes(check)){streak++;const d=new Date(check);d.setDate(d.getDate()-1);check=d.toISOString().slice(0,10)}
+
+  // Subject breakdown
+  const subMins = {}
+  records.forEach(r=>{subMins[r.subject||'Other']=(subMins[r.subject||'Other']||0)+r.duration})
+  const maxSub = Math.max(1,...Object.values(subMins))
+  const subRows = Object.entries(subMins).sort((a,b)=>b[1]-a[1]).slice(0,10)
+    .map(([sub,mins])=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">${sub}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">
+      <div style="background:#e0f2ee;border-radius:4px;height:8px;width:100%;overflow:hidden;display:inline-block;vertical-align:middle;width:140px;margin-right:8px;">
+        <div style="background:#0f7b6c;height:100%;width:${Math.round(mins/maxSub*100)}%;"></div></div>
+      ${(mins/60).toFixed(1)}h</td></tr>`).join('')
+
+  // Top 10 sessions
+  const top10 = [...records].sort((a,b)=>b.duration-a.duration).slice(0,10)
+    .map(r=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.date}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.subject||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.duration}min</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${['','★','★★','★★★','★★★★','★★★★★'][r.rating||0]||'—'}</td></tr>`).join('')
+
+  // Heatmap last 30 days
+  const perDay={}; records.forEach(r=>{perDay[r.date]=(perDay[r.date]||0)+1})
+  const heatCells = Array.from({length:30},(_,i)=>{
+    const d=new Date(); d.setDate(d.getDate()-(29-i)); const ds=d.toISOString().slice(0,10)
+    const c=Math.min(4,perDay[ds]||0)
+    const colors=['#f0f0f0','#b7e3d8','#7ec9bf','#3daa9d','#0f7b6c']
+    return `<div style="width:16px;height:16px;border-radius:3px;background:${colors[c]};display:inline-block;margin:2px;" title="${ds}: ${perDay[ds]||0} sessions"></div>`
+  }).join('')
+
+  // Badges earned
+  const badgeCount = (() => {
+    const s = { sessions, hours:parseFloat(totalHours), pomodoros:records.filter(r=>r.source==='timer').length,
+      bestStreak:streak, uniqueDays:Object.keys(perDay).length, totalEarned:pts,
+      uniqueSubjects:Object.keys(subMins).length, excellentCount:records.filter(r=>r.rating===5).length,
+      maxInDay:Math.max(0,...Object.values(perDay)), goalDays:0, redeemed:0, socialPosts:0, friends:0,
+      snailClicks:0, didAssessment:false, fullTest:false, planTasks:0, groupGoals:0, recordings:0,
+      emailsRead:0, wordsWritten:0, factChecks:0, notesSynced:0, flashcards:0, gaveFeedback:false,
+      deepWork:records.filter(r=>r.duration>=60).length, marathon:records.filter(r=>r.duration>=90).length,
+      maxSingleSession:records.length?Math.max(...records.map(r=>r.duration/60)):0,
+      allTimers:false, highTestScore:false, notifClick:false, midnightStudy:false,
+      weekendStudy:false, ghostMode:0, perfectDays:0, earlyBird:false, nightOwl:false, maxDayPoints:0 }
+    return window._BADGES ? window._BADGES.filter(b=>b.req(s)).length : '—'
+  })()
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+<title>Study Report — ${name}</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; color:#111; padding:48px; max-width:800px; margin:0 auto; }
+  h1 { font-size:28px; font-weight:800; letter-spacing:-.5px; margin-bottom:4px; }
+  .sub { color:#888; font-size:14px; margin-bottom:32px; }
+  .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+  .stat { background:#f9f9f9; border-radius:10px; padding:18px 20px; }
+  .stat-val { font-size:28px; font-weight:900; color:#0f7b6c; }
+  .stat-lbl { font-size:12px; color:#888; margin-top:3px; font-weight:500; text-transform:uppercase; letter-spacing:.4px; }
+  h2 { font-size:16px; font-weight:700; margin-bottom:12px; margin-top:28px; border-bottom:2px solid #0f7b6c; padding-bottom:6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 12px; background:#f0f7f5; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#0f7b6c; }
+  .footer { margin-top:40px; padding-top:16px; border-top:1px solid #eee; font-size:12px; color:#bbb; display:flex; justify-content:space-between; }
+  @media print { body { padding:24px; } button { display:none; } }
+</style>
+</head><body>
+<button onclick="window.print()" style="float:right;padding:8px 18px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">🖨 Print / Save PDF</button>
+<div style="font-size:36px;margin-bottom:8px;">🐌</div>
+<h1>${name}'s Study Report</h1>
+<div class="sub">Generated ${today} · Ur Study Bro v5.2.0</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="stat-val">${sessions}</div><div class="stat-lbl">Total Sessions</div></div>
+  <div class="stat"><div class="stat-val">${totalHours}h</div><div class="stat-lbl">Hours Studied</div></div>
+  <div class="stat"><div class="stat-val">${streak}</div><div class="stat-lbl">Day Streak 🔥</div></div>
+  <div class="stat"><div class="stat-val">${pts}</div><div class="stat-lbl">Study Points</div></div>
+</div>
+
+<h2>Activity — Last 30 Days</h2>
+<div style="margin-bottom:8px;line-height:0;">${heatCells}</div>
+<div style="font-size:11px;color:#bbb;margin-top:4px;">Each square = 1 day. Darker = more sessions.</div>
+
+<h2>Subject Breakdown</h2>
+<table><thead><tr><th>Subject</th><th>Time</th></tr></thead><tbody>${subRows||'<tr><td colspan="2" style="padding:12px;color:#888;">No sessions logged yet</td></tr>'}</tbody></table>
+
+<h2>Badges</h2>
+<div style="font-size:14px;color:#0f7b6c;font-weight:700;">${badgeCount} badges unlocked</div>
+
+<h2>Top 10 Longest Sessions</h2>
+<table><thead><tr><th>Date</th><th>Subject</th><th>Duration</th><th>Rating</th></tr></thead><tbody>${top10||'<tr><td colspan="4" style="padding:12px;color:#888;">No sessions yet</td></tr>'}</tbody></table>
+
+<div class="footer">
+  <span>Ur Study Bro — Free & Open Source · github.com/Mr-Pythoneer/Ur-Study-Bro</span>
+  <span>Copyright Mr_Pythoneer 2026©</span>
+</div>
+</body></html>`
+
+  const win = window.open('', '_blank')
+  win.document.write(html)
+  win.document.close()
+}
 </script>
