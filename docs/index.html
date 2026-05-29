@@ -188,12 +188,14 @@
     .pill { font-size: 12px; font-weight: 600; color: var(--green); background: var(--green-bg); padding: 4px 12px; border-radius: 99px; }
 
     /* ── What you get ─────────────────────────── */
-    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media (max-width:560px) { .results-grid { grid-template-columns: 1fr; } }
-    .result-row { display: flex; gap: 14px; align-items: flex-start; }
-    .result-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 8px; }
-    .result-row strong { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 2px; }
-    .result-row span { font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
+    .result-row { display: flex; flex-direction: column; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: box-shadow .15s; }
+    .result-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+    .result-row-head { display: flex; align-items: center; gap: 10px; }
+    .result-dot { width: 28px; height: 28px; border-radius: 8px; background: #e8f5f3; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .result-row strong { font-size: 13.5px; font-weight: 700; color: var(--text); }
+    .result-row span { font-size: 12.5px; color: var(--text-2); line-height: 1.6; padding-left: 38px; }
 
     /* ── Streak / rewards ─────────────────────── */
     .streak-row {
@@ -777,13 +779,34 @@
 
   <p style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:20px;">What you actually get when you finish</p>
   <div class="results-grid">
-    <div class="result-row"><div class="result-dot"></div><div><strong>ADHD Risk Score</strong><span>A composite score (0–100) blending commission errors, omission errors, and ASRS responses — with a plain-English explanation of what it means for your studying.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Attention &amp; Executive Function Narrative</strong><span>A detailed paragraph interpreting your CPT results — reaction time, false alarms, and missed targets — in the context of real-world focus and impulse control.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Working Memory Profile</strong><span>Forward and backward span scores with an explanation of the gap between them and what it means for how you should structure your revision.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Learning Style Analysis</strong><span>Your VARK breakdown with specific study techniques recommended for your dominant modality — not generic advice, but methods matched to how you actually process information.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Cognitive Flexibility Score</strong><span>Your switching cost in milliseconds — how much your brain slows down when a rule changes — plus whether that means you should use single-subject or mixed-subject sessions.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>Optimal Study Blueprint</strong><span>Five personalised cards: ideal session length, environment setup, task sequencing strategy, review method, and one specific warning sign to watch for during study.</span></div></div>
-    <div class="result-row"><div class="result-dot"></div><div><strong>"Make My Study Plan" button</strong><span>One click turns your full cognitive profile into a 40-task Duolingo-style path, personalised to your scores. XP, streaks, and daily goals keep you on track.</span></div></div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">🧠</div><strong>ADHD Risk Score</strong></div>
+      <span>A composite score (0–100) blending commission errors, omission errors, and ASRS responses — with a plain-English explanation of what it means for your studying.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">⚡</div><strong>Attention &amp; Executive Function Narrative</strong></div>
+      <span>A detailed paragraph interpreting your CPT results — reaction time, false alarms, and missed targets — in the context of real-world focus and impulse control.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">💾</div><strong>Working Memory Profile</strong></div>
+      <span>Forward and backward span scores with an explanation of the gap between them and what it means for how you should structure your revision.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">🎨</div><strong>Learning Style Analysis</strong></div>
+      <span>Your VARK breakdown with specific study techniques recommended for your dominant modality — not generic advice, but methods matched to how you actually process information.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">🔀</div><strong>Cognitive Flexibility Score</strong></div>
+      <span>Your switching cost in milliseconds — how much your brain slows down when a rule changes — plus whether that means you should use single-subject or mixed-subject sessions.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">📋</div><strong>Optimal Study Blueprint</strong></div>
+      <span>Five personalised cards: ideal session length, environment setup, task sequencing strategy, review method, and one specific warning sign to watch for during study.</span>
+    </div>
+    <div class="result-row" style="grid-column:1/-1;flex-direction:row;align-items:center;gap:20px;background:linear-gradient(135deg,#e8f5f3,#f0faf8);border-color:#b2ddd7;">
+      <div class="result-dot" style="width:40px;height:40px;font-size:20px;background:#fff;flex-shrink:0;">🗺️</div>
+      <div><strong style="font-size:14px;">"Make My Study Plan" button</strong><br><span style="padding:0;">One click turns your full cognitive profile into a 40-task Duolingo-style path, personalised to your scores. XP, streaks, and daily goals keep you on track.</span></div>
+    </div>
   </div>
 </section>
 
