@@ -19,6 +19,26 @@
   --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* ── Page transition & spinner ────────────────────────────────── */
+#content { transition: opacity .2s; }
+.page-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ──────────────────────────────────────────────── */
+.empty-state-box {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 24px; text-align: center;
+  color: var(--text-secondary);
+}
+.empty-state-box .empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state-box p { font-size: 14px; line-height: 1.6; max-width: 280px; }
+
 /* ── Dark mode ────────────────────────────────────────────────── */
 body.dark-mode {
   --sidebar-bg:    #111111;
@@ -46,6 +66,33 @@ body.dark-mode .topbar { background: #1e1e1e; border-bottom-color: #2e2e2e; }
 body.dark-mode .user-menu { background: #2a2a2a; border-color: #3a3a3a; }
 body.dark-mode .user-menu-item { color: #e8e8e6; }
 body.dark-mode .user-menu-item:hover { background: #333; }
+
+/* ── Dark mode: page-level element overrides ──────────────────── */
+body.dark-mode .code-banner,
+body.dark-mode .friend-card,
+body.dark-mode #chat-pane,
+body.dark-mode .feed-card,
+body.dark-mode .goal-card,
+body.dark-mode .new-goal-form { background: var(--bg-card) !important; border-color: var(--border) !important; }
+
+body.dark-mode .rte-toolbar,
+body.dark-mode .summary-box { background: #2a2a2a; border-color: var(--border); }
+
+body.dark-mode .rte-btn { background: #2a2a2a; border-color: #3a3a3a; color: var(--text-primary); }
+body.dark-mode .rte-btn:hover { background: var(--accent-light); border-color: var(--accent); }
+
+body.dark-mode .rte-body { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+
+body.dark-mode .flashcard-back,
+body.dark-mode .source-chip { background: var(--bg-card); border-color: var(--border); }
+
+body.dark-mode .modal { background: var(--bg-card); }
+
+body.dark-mode .view-btn.active { background: var(--bg-card); color: var(--text-primary); }
+
+body.dark-mode .page-tab.active { background: var(--bg-card); color: var(--text-primary); }
+
+body.dark-mode .data-table tr:hover td { background: #2a2a2a; }
 
 /* ── Reset ────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

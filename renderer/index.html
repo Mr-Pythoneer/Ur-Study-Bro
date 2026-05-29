@@ -714,15 +714,30 @@ async function loadPage(name) {
     window._pageCleanup = null
   }
 
+  // Show loading spinner
+  const content = document.getElementById('content')
+  content.style.opacity = '0'
+  content.style.transition = 'opacity .18s'
+  content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:200px;">
+    <div class="page-spinner"></div>
+  </div>`
+  content.style.opacity = '1'
+
   const res = await fetch(PAGES[name])
   const html = await res.text()
 
   // Abort if the user navigated again before this fetch completed
   if (version !== _navVersion) return
 
+  // Fade out, swap content, fade in
+  content.style.transition = 'opacity .15s'
+  content.style.opacity = '0'
+
+  await new Promise(r => setTimeout(r, 80))
+  if (version !== _navVersion) return
+
   // Parse with DOMParser to safely handle large scripts and inline SVG strings
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  const content = document.getElementById('content')
   content.innerHTML = ''
 
   // DOMParser hoists <style> tags into doc.head — pull them back into content first
@@ -749,6 +764,12 @@ async function loadPage(name) {
     const s = document.createElement('script')
     s.textContent = old.textContent
     old.replaceWith(s)
+  })
+
+  // Fade in
+  requestAnimationFrame(() => {
+    content.style.transition = 'opacity .2s'
+    content.style.opacity = '1'
   })
 }
 
