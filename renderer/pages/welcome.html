@@ -46,6 +46,59 @@
     <div class="onboarding-tagline">Ur Study Bro helps you and your study partner stay on track — slow and steady wins the race.</div>
   </div>
 
+  <!-- ── Today Dashboard ─────────────────────────────────────── -->
+  <div id="todayDashboard" style="width:100%;max-width:680px;margin-bottom:28px;display:none;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Today</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;" id="dashStatRow">
+      <div class="stat-tile" style="padding:14px 16px;">
+        <div class="stat-value" id="dashStreak">0</div>
+        <div class="stat-label">Day Streak 🔥</div>
+      </div>
+      <div class="stat-tile" style="padding:14px 16px;">
+        <div class="stat-value" id="dashTodayMins">0</div>
+        <div class="stat-label">Mins Today</div>
+      </div>
+      <div class="stat-tile" style="padding:14px 16px;">
+        <div class="stat-value" id="dashPoints">0</div>
+        <div class="stat-label">Study Points</div>
+      </div>
+      <div class="stat-tile" style="padding:14px 16px;">
+        <div class="stat-value" id="dashSessions">0</div>
+        <div class="stat-label">All Sessions</div>
+      </div>
+    </div>
+
+    <!-- Daily goal bar -->
+    <div id="dashGoalCard" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;">Daily Goal</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);" id="dashGoalPct">0%</div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="dashGoalBar" style="width:0%;"></div></div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;" id="dashGoalLabel"></div>
+    </div>
+
+    <!-- Quick actions -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="window.navigateTo('study')" style="flex:1;justify-content:center;">▶ Start Focusing</button>
+      <button class="btn btn-ghost" onclick="window.navigateTo('plan')" style="flex:1;justify-content:center;">📋 My Study Path</button>
+      <button class="btn btn-ghost" onclick="window.navigateTo('social')" style="flex:1;justify-content:center;">👥 Social</button>
+    </div>
+
+    <!-- Upcoming events (from calendar) -->
+    <div id="dashUpcoming" style="margin-top:12px;"></div>
+
+    <!-- Streak risk warning -->
+    <div id="streakRisk" style="display:none;background:#fff7ed;border:1.5px solid #f97316;border-radius:var(--radius);padding:12px 16px;margin-top:10px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">⚠️</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#c2410c;">Streak at risk!</div>
+        <div style="font-size:12px;color:#9a3412;">You haven't studied today — your streak will reset at midnight.</div>
+      </div>
+      <button class="btn btn-primary" onclick="window.navigateTo('study')" style="margin-left:auto;white-space:nowrap;font-size:12px;">Study Now</button>
+    </div>
+  </div>
+
   <!-- Feature promo banners -->
   <div style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
 
@@ -146,7 +199,64 @@
 </div>
 
 <script>
-(function() {
+// ── Dashboard ─────────────────────────────────────────────────────
+;(function() {
+  function localDateStr() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
+  function renderDashboard() {
+    const records = csGetJSON('records', [])
+    if (!records.length && !csGet('displayName')) return // hide until setup done
+    document.getElementById('todayDashboard').style.display = 'block'
+
+    const today = localDateStr()
+    const todayRecs = records.filter(r => r.date === today)
+    const todayMins = todayRecs.reduce((a,r) => a+r.duration, 0)
+    const allSessions = records.length
+    const pts = parseInt(csGet('studyPoints')||'0')
+
+    // Streak
+    const days = [...new Set(records.map(r=>r.date))].sort()
+    let streak = 0, check = today
+    while (days.includes(check)) { streak++; const d=new Date(check); d.setDate(d.getDate()-1); check=d.toISOString().slice(0,10) }
+
+    document.getElementById('dashStreak').textContent = streak
+    document.getElementById('dashTodayMins').textContent = todayMins
+    document.getElementById('dashPoints').textContent = pts
+    document.getElementById('dashSessions').textContent = allSessions
+
+    // Daily goal
+    const goalHours = parseFloat(csGet('dailyGoalHours')||'0')
+    if (goalHours > 0) {
+      const goalMins = goalHours * 60
+      const pct = Math.min(100, Math.round(todayMins / goalMins * 100))
+      document.getElementById('dashGoalCard').style.display = 'block'
+      document.getElementById('dashGoalBar').style.width = pct + '%'
+      document.getElementById('dashGoalPct').textContent = pct + '%'
+      document.getElementById('dashGoalLabel').textContent = pct >= 100 ? '🎉 Daily goal reached!' : `${todayMins} / ${goalMins} min studied today`
+    }
+
+    // Streak risk: if no study today and streak > 0
+    const hadYesterday = days.includes((() => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10) })())
+    const streakRisk = hadYesterday && !days.includes(today) && new Date().getHours() >= 20
+    const riskEl = document.getElementById('streakRisk')
+    riskEl.style.display = streakRisk ? 'flex' : 'none'
+
+    // Upcoming events
+    const events = JSON.parse(localStorage.getItem(window.csKey ? window.csKey('calEvents') : '') || '[]')
+    const upcoming = events.filter(e => e.date >= today).slice(0,3)
+    const upEl = document.getElementById('dashUpcoming')
+    if (upcoming.length) {
+      upEl.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Upcoming</div>` +
+        upcoming.map(e => `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>
+          <div style="flex:1;font-size:13px;font-weight:600;">${e.title}</div>
+          <div style="font-size:12px;color:var(--text-secondary);">${e.date} ${e.startTime||''}</div>
+        </div>`).join('')
+    }
+  }
+  renderDashboard()
+})()
+
+;(function() {
   let subjects = csGetJSON('subjects', [])
   let selectedGoalHours = null
 

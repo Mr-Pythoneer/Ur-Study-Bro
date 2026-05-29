@@ -76,6 +76,10 @@
   .nudge-toast { position:fixed; bottom:84px; right:24px; background:#1e2228; color:#fff; border-radius:12px; padding:14px 20px; font-size:13px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,.3); z-index:20000; display:none; max-width:300px; }
   .nudge-toast.visible { display:block; animation:slideUp .3s ease; }
   @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+  /* ── Ambient sound buttons ─────────────────────────────── */
+  .ambient-btn { padding:4px 10px; border:1px solid var(--border); border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; font-family:var(--font); background:var(--bg-card); color:var(--text-secondary); transition:all .15s; }
+  .ambient-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .ambient-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 </style>
 
 <!-- Break overlay -->
@@ -154,6 +158,18 @@
 
   <div id="noPointsNote" style="font-size:11px;color:#ef4444;font-weight:600;margin-top:10px;display:none;">Under 15 min — no Study Points awarded</div>
   <div id="pomodoroHint" style="font-size:12px;color:#ef4444;font-weight:600;margin-top:14px;margin-bottom:4px;text-align:center;">Pomodoro: 25 min focus → 5 min break · Focus Guard auto-enables</div>
+
+  <!-- Ambient sounds -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <span style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;">Ambient</span>
+    <button class="ambient-btn" data-sound="off"    onclick="setAmbient('off')"    id="amb-off"    style="background:var(--accent);color:#fff;">Off</button>
+    <button class="ambient-btn" data-sound="rain"   onclick="setAmbient('rain')"   id="amb-rain">🌧 Rain</button>
+    <button class="ambient-btn" data-sound="cafe"   onclick="setAmbient('cafe')"   id="amb-cafe">☕ Café</button>
+    <button class="ambient-btn" data-sound="forest" onclick="setAmbient('forest')" id="amb-forest">🌿 Forest</button>
+    <button class="ambient-btn" data-sound="waves"  onclick="setAmbient('waves')"  id="amb-waves">🌊 Waves</button>
+    <button class="ambient-btn" data-sound="white"  onclick="setAmbient('white')"  id="amb-white">🔇 White Noise</button>
+    <input type="range" id="ambVolume" min="0" max="1" step="0.05" value="0.4" style="width:70px;" oninput="setAmbientVolume(this.value)" title="Volume"/>
+  </div>
 
   <div class="timer-controls">
     <button class="btn btn-primary" id="startBtn" style="min-width:110px;">▶ Start</button>
@@ -1137,7 +1153,141 @@
   setInterval(checkTimer, 1000)
 
   window._pageCleanup = (function(orig) {
-    return function() { hideSnail(); if (orig) orig() }
+    return function() { hideSnail(); stopAmbient(); if (orig) orig() }
   })(window._pageCleanup)
+})()
+
+// ── Ambient sounds ────────────────────────────────────────────────
+;(function() {
+  let ctx = null, source = null, gainNode = null, currentSound = null
+
+  // Web Audio noise generators (no files needed, works offline)
+  const SOUNDS = {
+    rain:   makeRain,
+    cafe:   makeCafe,
+    forest: makeForest,
+    waves:  makeWaves,
+    white:  makeWhite,
+  }
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
+    return ctx
+  }
+
+  function makeWhite(ctx) {
+    const bufSize = ctx.sampleRate * 2
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true
+    return src
+  }
+
+  function makeRain(ctx) {
+    // Rain = filtered white noise
+    const bufSize = ctx.sampleRate * 2
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.8
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'; filter.frequency.value = 1800
+    src.connect(filter)
+    return { src, extra: filter }
+  }
+
+  function makeCafe(ctx) {
+    // Café = low-freq rumble + occasional bursts
+    const bufSize = ctx.sampleRate * 4
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    let b0=0,b1=0,b2=0,b3=0,b4=0
+    for (let i = 0; i < bufSize; i++) {
+      const wn = Math.random() * 2 - 1
+      b0=0.99886*b0+wn*0.0555179; b1=0.99332*b1+wn*0.0750759
+      b2=0.96900*b2+wn*0.1538520; b3=0.86650*b3+wn*0.3104856
+      b4=0.55000*b4+wn*0.5329522
+      data[i] = (b0+b1+b2+b3+b4) * 0.11
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true
+    return src
+  }
+
+  function makeForest(ctx) {
+    // Forest = mid-range soft noise
+    const bufSize = ctx.sampleRate * 2
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.4
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.5
+    src.connect(filter)
+    return { src, extra: filter }
+  }
+
+  function makeWaves(ctx) {
+    // Waves = slow-modulated noise
+    const bufSize = ctx.sampleRate * 4
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < bufSize; i++) {
+      const wave = Math.sin(i / ctx.sampleRate * 0.25) * 0.5 + 0.5
+      data[i] = (Math.random() * 2 - 1) * wave * 0.7
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true
+    return src
+  }
+
+  function stopAmbient() {
+    if (source) {
+      try { if (source.src) source.src.stop(); else source.stop() } catch(e){}
+      source = null
+    }
+    currentSound = null
+    document.querySelectorAll('.ambient-btn').forEach(b => b.classList.remove('active'))
+    const offBtn = document.getElementById('amb-off')
+    if (offBtn) { offBtn.classList.add('active'); offBtn.style.background='var(--accent)'; offBtn.style.color='#fff' }
+  }
+
+  window.setAmbient = function(name) {
+    stopAmbient()
+    document.querySelectorAll('.ambient-btn').forEach(b => { b.classList.remove('active'); b.style.background=''; b.style.color='' })
+    const btn = document.getElementById('amb-' + name)
+    if (btn) { btn.classList.add('active'); btn.style.background='var(--accent)'; btn.style.color='#fff' }
+
+    if (name === 'off') return
+    try {
+      const c = getCtx()
+      if (c.state === 'suspended') c.resume()
+      gainNode = c.createGain()
+      gainNode.gain.value = parseFloat(document.getElementById('ambVolume')?.value || 0.4)
+      gainNode.connect(c.destination)
+
+      const result = SOUNDS[name](c)
+      if (result && result.src) {
+        // Has intermediate node
+        result.extra.connect(gainNode)
+        result.src.start()
+        source = result
+      } else {
+        result.connect(gainNode)
+        result.start()
+        source = result
+      }
+      currentSound = name
+    } catch(e) { console.warn('Ambient sound error:', e) }
+  }
+
+  window.setAmbientVolume = function(v) {
+    if (gainNode) gainNode.gain.value = parseFloat(v)
+  }
+
+  window.stopAmbient = stopAmbient
+
+  // Restore last ambient on load
+  const last = localStorage.getItem('lastAmbient')
+  if (last && last !== 'off') setTimeout(() => window.setAmbient(last), 500)
 })()
 </script>

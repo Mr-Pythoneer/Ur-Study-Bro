@@ -364,6 +364,7 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
     </div>
     <div class="user-menu" id="user-menu">
       <button class="user-menu-item" onclick="goToSettings()">Account Settings</button>
+      <button class="user-menu-item" onclick="toggleDarkMode()" id="dark-mode-btn">🌙 Dark Mode</button>
       <div class="user-menu-divider"></div>
       <button class="user-menu-item danger" onclick="doSignOut()">Sign Out</button>
     </div>
@@ -440,6 +441,43 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 </div>
 
 <script>
+// ── Dark mode ─────────────────────────────────────────────────────
+function applyDarkMode() {
+  const on = localStorage.getItem('cs_dark_mode') === 'true'
+  document.body.classList.toggle('dark-mode', on)
+  const btn = document.getElementById('dark-mode-btn')
+  if (btn) btn.textContent = on ? '☀️ Light Mode' : '🌙 Dark Mode'
+}
+function toggleDarkMode() {
+  const on = localStorage.getItem('cs_dark_mode') === 'true'
+  localStorage.setItem('cs_dark_mode', String(!on))
+  applyDarkMode()
+  document.getElementById('user-menu').style.display = 'none'
+}
+// Apply on load
+applyDarkMode()
+
+// ── Keyboard shortcuts ────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('app-shell') || document.getElementById('app-shell').style.display === 'none') return
+  const pages = ['welcome','calendar','rewards','study','meetings','study-kit','ai','social','settings']
+  // Cmd+1–9 → nav pages
+  if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
+    const idx = parseInt(e.key) - 1
+    if (pages[idx]) { e.preventDefault(); window.navigateTo(pages[idx]) }
+  }
+  // Cmd+Space → quick ask
+  if ((e.metaKey || e.ctrlKey) && e.code === 'Space') {
+    e.preventDefault()
+    const bubble = document.getElementById('ai-bubble')
+    if (bubble) bubble.click()
+  }
+  // Cmd+T → start timer (navigate to study)
+  if ((e.metaKey || e.ctrlKey) && e.key === 't') {
+    e.preventDefault(); window.navigateTo('study')
+  }
+})
+
 // ── Crypto helpers ────────────────────────────────────────────────
 async function hashPassword(password) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))

@@ -469,24 +469,95 @@
 
   /* ── Stats & Badges ────────────────────────────────────────── */
   const BADGES = [
-    { icon:'🌱', name:'First Step',    desc:'Complete your first session',     req:s => s.sessions >= 1   },
-    { icon:'🍅', name:'Pomodoro Pro',  desc:'Complete 5 Pomodoros',            req:s => s.pomodoros >= 5  },
-    { icon:'🔥', name:'On Fire',       desc:'3 sessions in a single day',      req:s => s.maxInDay >= 3   },
-    { icon:'⏱️', name:'Hour Power',    desc:'Study for 1 hour total',          req:s => s.hours >= 1      },
-    { icon:'📅', name:'Week Warrior',  desc:'5 sessions in any week',          req:s => s.sessions >= 5   },
-    { icon:'🚀', name:'Lift Off',      desc:'10 sessions completed',           req:s => s.sessions >= 10  },
-    { icon:'💡', name:'Deep Thinker',  desc:'Log 10 hours of study',           req:s => s.hours >= 10     },
-    { icon:'🎯', name:'Goal Getter',   desc:'Reach your daily goal 3 days',    req:s => s.goalDays >= 3   },
-    { icon:'🏅', name:'Consistent',    desc:'Sessions on 7 different days',    req:s => s.uniqueDays >= 7 },
-    { icon:'📚', name:'Bookworm',      desc:'Study 3 different subjects',      req:s => s.uniqueSubjects >= 3 },
-    { icon:'⭐', name:'Top Rated',     desc:'Log 5 sessions rated Excellent',  req:s => s.excellentCount >= 5 },
-    { icon:'🎓', name:'Scholar',       desc:'25 sessions completed',           req:s => s.sessions >= 25  },
-    { icon:'💰', name:'Point Hoarder', desc:'Earn 100 Study Points total',     req:s => s.totalEarned >= 100 },
-    { icon:'💎', name:'Diamond Mind',  desc:'50 hours of total study time',    req:s => s.hours >= 50     },
-    { icon:'🔥', name:'Hot Streak',    desc:'3-day study streak',              req:s => s.bestStreak >= 3  },
-    { icon:'⚡', name:'Unstoppable',   desc:'7-day study streak',              req:s => s.bestStreak >= 7  },
-    { icon:'🌊', name:'Flow State',    desc:'14-day study streak',             req:s => s.bestStreak >= 14 },
-    { icon:'🏆', name:'Legend',        desc:'30-day study streak',             req:s => s.bestStreak >= 30 },
+    // ── Sessions ──────────────────────────────────────────
+    { cat:'Sessions', icon:'🌱', name:'First Step',      desc:'Complete your first session',        req:s=>s.sessions>=1   },
+    { cat:'Sessions', icon:'🚀', name:'Lift Off',        desc:'10 sessions completed',              req:s=>s.sessions>=10  },
+    { cat:'Sessions', icon:'🎓', name:'Scholar',         desc:'25 sessions completed',              req:s=>s.sessions>=25  },
+    { cat:'Sessions', icon:'💼', name:'Dedicated',       desc:'50 sessions completed',              req:s=>s.sessions>=50  },
+    { cat:'Sessions', icon:'🏛️', name:'Academic',        desc:'100 sessions completed',             req:s=>s.sessions>=100 },
+    { cat:'Sessions', icon:'📜', name:'Veteran',         desc:'250 sessions completed',             req:s=>s.sessions>=250 },
+    { cat:'Sessions', icon:'👑', name:'Master Scholar',  desc:'500 sessions completed',             req:s=>s.sessions>=500 },
+    // ── Time ──────────────────────────────────────────────
+    { cat:'Time',     icon:'⏱️', name:'Hour Power',      desc:'Study 1 hour total',                 req:s=>s.hours>=1      },
+    { cat:'Time',     icon:'☕', name:'Coffee Fueled',   desc:'Study 5 hours total',                req:s=>s.hours>=5      },
+    { cat:'Time',     icon:'💡', name:'Deep Thinker',    desc:'Study 10 hours total',               req:s=>s.hours>=10     },
+    { cat:'Time',     icon:'🌙', name:'Night Owl',       desc:'Study 25 hours total',               req:s=>s.hours>=25     },
+    { cat:'Time',     icon:'💎', name:'Diamond Mind',    desc:'Study 50 hours total',               req:s=>s.hours>=50     },
+    { cat:'Time',     icon:'🧠', name:'Genius Hours',    desc:'Study 100 hours total',              req:s=>s.hours>=100    },
+    { cat:'Time',     icon:'🌌', name:'Universe Brain',  desc:'Study 250 hours total',              req:s=>s.hours>=250    },
+    { cat:'Time',     icon:'⏳', name:'Time Lord',       desc:'Study 500 hours total',              req:s=>s.hours>=500    },
+    // ── Pomodoro ──────────────────────────────────────────
+    { cat:'Pomodoro', icon:'🍅', name:'Pomodoro Rookie', desc:'Complete 5 Pomodoros',               req:s=>s.pomodoros>=5  },
+    { cat:'Pomodoro', icon:'🍅', name:'Pomodoro Pro',    desc:'Complete 25 Pomodoros',              req:s=>s.pomodoros>=25 },
+    { cat:'Pomodoro', icon:'🍅', name:'Tomato God',      desc:'Complete 100 Pomodoros',             req:s=>s.pomodoros>=100},
+    { cat:'Pomodoro', icon:'🍅', name:'Pomodoro Legend', desc:'Complete 500 Pomodoros',             req:s=>s.pomodoros>=500},
+    // ── Streaks ───────────────────────────────────────────
+    { cat:'Streaks',  icon:'🔥', name:'Warm Up',         desc:'3-day study streak',                 req:s=>s.bestStreak>=3  },
+    { cat:'Streaks',  icon:'⚡', name:'Unstoppable',     desc:'7-day streak — a full week',         req:s=>s.bestStreak>=7  },
+    { cat:'Streaks',  icon:'🌊', name:'Flow State',      desc:'14-day streak — two weeks',          req:s=>s.bestStreak>=14 },
+    { cat:'Streaks',  icon:'🏆', name:'Monthly Grind',   desc:'30-day streak — a full month',       req:s=>s.bestStreak>=30 },
+    { cat:'Streaks',  icon:'💫', name:'Quarter Strong',  desc:'90-day streak — a quarter year',     req:s=>s.bestStreak>=90 },
+    { cat:'Streaks',  icon:'🌟', name:'Half Year Hero',  desc:'180-day streak',                     req:s=>s.bestStreak>=180},
+    { cat:'Streaks',  icon:'🎆', name:'Year of Focus',   desc:'365-day streak — the full year',     req:s=>s.bestStreak>=365},
+    // ── Daily grind ───────────────────────────────────────
+    { cat:'Daily',    icon:'🔥', name:'On Fire',         desc:'3 sessions in one day',              req:s=>s.maxInDay>=3    },
+    { cat:'Daily',    icon:'💯', name:'All In',          desc:'5 sessions in one day',              req:s=>s.maxInDay>=5    },
+    { cat:'Daily',    icon:'🌅', name:'Early Bird',      desc:'Start a session before 8am',         req:s=>s.earlyBird      },
+    { cat:'Daily',    icon:'🦉', name:'Night Shift',     desc:'Start a session after 11pm',         req:s=>s.nightOwl       },
+    { cat:'Daily',    icon:'🌞', name:'Solar Powered',   desc:'Study every day for a week',         req:s=>s.uniqueDays>=7  },
+    { cat:'Daily',    icon:'📅', name:'Fortnight',       desc:'Study on 14 different days',         req:s=>s.uniqueDays>=14 },
+    { cat:'Daily',    icon:'🗓️', name:'Month Club',      desc:'Study on 30 different days',         req:s=>s.uniqueDays>=30 },
+    // ── Subjects ──────────────────────────────────────────
+    { cat:'Subjects', icon:'📚', name:'Bookworm',        desc:'Study 3 different subjects',         req:s=>s.uniqueSubjects>=3 },
+    { cat:'Subjects', icon:'🔬', name:'Multi-Major',     desc:'Study 5 different subjects',         req:s=>s.uniqueSubjects>=5 },
+    { cat:'Subjects', icon:'🌐', name:'Renaissance',     desc:'Study 8 different subjects',         req:s=>s.uniqueSubjects>=8 },
+    { cat:'Subjects', icon:'🎓', name:'Polymath',        desc:'Study 12 different subjects',        req:s=>s.uniqueSubjects>=12},
+    // ── Quality ───────────────────────────────────────────
+    { cat:'Quality',  icon:'⭐', name:'Top Rated',       desc:'5 sessions rated Excellent',         req:s=>s.excellentCount>=5  },
+    { cat:'Quality',  icon:'🌟', name:'Excellence',      desc:'20 sessions rated Excellent',        req:s=>s.excellentCount>=20 },
+    { cat:'Quality',  icon:'💎', name:'Perfectionist',   desc:'50 sessions rated Excellent',        req:s=>s.excellentCount>=50 },
+    // ── Points ────────────────────────────────────────────
+    { cat:'Points',   icon:'💰', name:'Point Collector', desc:'Earn 100 Study Points',              req:s=>s.totalEarned>=100   },
+    { cat:'Points',   icon:'💵', name:'Point Hoarder',   desc:'Earn 500 Study Points',              req:s=>s.totalEarned>=500   },
+    { cat:'Points',   icon:'🏦', name:'Point Millionaire',desc:'Earn 1,000 Study Points',           req:s=>s.totalEarned>=1000  },
+    { cat:'Points',   icon:'🤑', name:'Point Mogul',     desc:'Earn 5,000 Study Points',            req:s=>s.totalEarned>=5000  },
+    // ── Rewards ───────────────────────────────────────────
+    { cat:'Rewards',  icon:'🎁', name:'First Redeem',    desc:'Redeem your first reward',           req:s=>s.redeemed>=1        },
+    { cat:'Rewards',  icon:'🛍️', name:'Treat Yourself',  desc:'Redeem 5 rewards',                  req:s=>s.redeemed>=5        },
+    { cat:'Rewards',  icon:'🎪', name:'Rewards VIP',     desc:'Redeem 25 rewards',                  req:s=>s.redeemed>=25       },
+    // ── Achievements ──────────────────────────────────────
+    { cat:'Special',  icon:'🎯', name:'Goal Getter',     desc:'Hit your daily goal 3 days',         req:s=>s.goalDays>=3        },
+    { cat:'Special',  icon:'🏹', name:'Sniper',          desc:'Hit your daily goal 7 days',         req:s=>s.goalDays>=7        },
+    { cat:'Special',  icon:'🎪', name:'Showoff',         desc:'Post on the social feed',            req:s=>s.socialPosts>=1     },
+    { cat:'Special',  icon:'👥', name:'Social Butterfly', desc:'Add 3 friends',                    req:s=>s.friends>=3         },
+    { cat:'Special',  icon:'🐌', name:'Snail Life',      desc:'Click the study snail 10 times',    req:s=>s.snailClicks>=10    },
+    { cat:'Special',  icon:'🧪', name:'Lab Rat',         desc:'Complete the cognitive assessment', req:s=>s.didAssessment      },
+    { cat:'Special',  icon:'🗺️', name:'Pathfinder',      desc:'Generate your first study path',    req:s=>s.planTasks>=1       },
+    { cat:'Special',  icon:'🌄', name:'New Horizon',     desc:'Complete 10 study path tasks',       req:s=>s.planTasks>=10      },
+    { cat:'Special',  icon:'🏔️', name:'Summit Seeker',   desc:'Complete 50 study path tasks',       req:s=>s.planTasks>=50      },
+    { cat:'Special',  icon:'🤝', name:'Teammate',        desc:'Complete a group goal',              req:s=>s.groupGoals>=1      },
+    { cat:'Special',  icon:'🎙️', name:'Transcriber',     desc:'Record and transcribe a session',   req:s=>s.recordings>=1      },
+    { cat:'Special',  icon:'📧', name:'Inbox Zero',      desc:'Process an email in the app',        req:s=>s.emailsRead>=1      },
+    { cat:'Special',  icon:'🌙', name:'Midnight Grind',  desc:'Study past midnight',               req:s=>s.midnightStudy      },
+    { cat:'Special',  icon:'🏄', name:'Weekend Warrior', desc:'Study on both Sat and Sun',         req:s=>s.weekendStudy       },
+    { cat:'Special',  icon:'🔬', name:'Test Subject',    desc:'Score 80%+ on any assessment',      req:s=>s.highTestScore      },
+    { cat:'Special',  icon:'🎤', name:'Feedback Giver',  desc:'Submit feedback in settings',       req:s=>s.gaveFeedback       },
+    { cat:'Special',  icon:'☀️', name:'Perfect Day',     desc:'Hit daily goal + Excellent rating in one day', req:s=>s.perfectDays>=1 },
+    { cat:'Special',  icon:'🧘', name:'Mindful',         desc:'Complete a full 60-min deep work',  req:s=>s.deepWork>=1        },
+    { cat:'Special',  icon:'💪', name:'Iron Will',       desc:'Complete a full 90-min marathon',   req:s=>s.marathon>=1        },
+    { cat:'Special',  icon:'👻', name:'Ghost Mode',      desc:'Study 3 days with 0 apps blocked',  req:s=>s.ghostMode>=3       },
+    { cat:'Special',  icon:'🦋', name:'Transformation',  desc:'Complete the full cognitive test',  req:s=>s.fullTest           },
+    { cat:'Special',  icon:'🔔', name:'Notified',        desc:'Click a calendar notification',     req:s=>s.notifClick         },
+    { cat:'Special',  icon:'🌈', name:'Variety Pack',    desc:'Use every timer mode at least once',req:s=>s.allTimers          },
+    { cat:'Special',  icon:'📖', name:'Flashcard Fan',   desc:'Review 20 flashcards',              req:s=>s.flashcards>=20     },
+    { cat:'Special',  icon:'✍️', name:'Author',          desc:'Write 500+ words with AI Writer',   req:s=>s.wordsWritten>=500  },
+    { cat:'Special',  icon:'🔍', name:'Fact Checker',    desc:'Run the AI fact checker',           req:s=>s.factChecks>=1      },
+    { cat:'Special',  icon:'🗃️', name:'Archivist',       desc:'Sync notes to Apple Notes',         req:s=>s.notesSynced>=1     },
+    // ── Legendary ─────────────────────────────────────────
+    { cat:'Legendary',icon:'🌠', name:'All-Nighter',     desc:'Study for 4+ continuous hours',     req:s=>s.maxSingleSession>=4},
+    { cat:'Legendary',icon:'🎖️', name:'Centurion',       desc:'100 study points in one day',       req:s=>s.maxDayPoints>=100  },
+    { cat:'Legendary',icon:'🥇', name:'The GOAT',        desc:'All other badges unlocked',         req:s=>s.sessions>=100&&s.hours>=50&&s.bestStreak>=30 },
+    { cat:'Legendary',icon:'🐌', name:'Ur Study Bro',    desc:'The ultimate dedication badge',     req:s=>s.sessions>=500||s.hours>=250 },
   ]
 
   function computeStreak() {
@@ -607,7 +678,38 @@
     const subjectMins = {}
     records.forEach(r => { subjectMins[r.subject] = (subjectMins[r.subject]||0) + r.duration })
 
-    return { sessions, hours, totalMins, maxInDay, uniqueDays, goalDays, uniqueSubjects, excellentCount, dailyGoal, weekMins, subjectMins, pomodoros, totalEarned, bestStreak: computeStreak().best }
+    // Extended stats for full badge system
+    const redeemed       = (csGetJSON('redeemHistory',[])).length
+    const socialPosts    = parseInt(localStorage.getItem('social_feed_count')||'0')
+    const friends        = JSON.parse(localStorage.getItem(`social_friends_${currentUser()}`)||'[]').length
+    const snailClicks    = parseInt(csGet('snailClickCount')||'0')
+    const didAssessment  = !!csGet('assessmentDone')
+    const fullTest       = csGet('assessmentDone') === 'done'
+    const planTasks      = parseInt(csGet('planDone') ? JSON.parse(csGet('planDone')||'[]').length : 0)
+    const groupGoals     = parseInt(localStorage.getItem('social_goals_completed')||'0')
+    const recordings     = parseInt(csGet('recordingCount')||'0')
+    const emailsRead     = parseInt(csGet('emailsRead')||'0')
+    const wordsWritten   = parseInt(csGet('wordsWritten')||'0')
+    const factChecks     = parseInt(csGet('factCheckCount')||'0')
+    const notesSynced    = parseInt(csGet('notesSynced')||'0')
+    const flashcards     = parseInt(csGet('flashcardsReviewed')||'0')
+    const gaveFeedback   = !!csGet('feedbackSent')
+    const deepWork       = records.filter(r=>r.duration>=60).length
+    const marathon       = records.filter(r=>r.duration>=90).length
+    const maxSingleSession = records.length ? Math.max(...records.map(r=>r.duration/60)) : 0
+    const allTimers      = !!csGet('usedAllTimers')
+    const highTestScore  = !!csGet('highTestScore')
+    const notifClick     = !!csGet('notifClicked')
+    const midnightStudy  = !!csGet('midnightStudy')
+    const weekendStudy   = !!csGet('weekendStudy')
+    const ghostMode      = parseInt(csGet('ghostModeSessions')||'0')
+    const perfectDays    = parseInt(csGet('perfectDays')||'0')
+    const earlyBird      = !!csGet('earlyBirdStudy')
+    const nightOwl       = !!csGet('nightOwlStudy')
+    const maxDayPoints   = parseInt(csGet('maxDayPoints')||'0')
+
+    return { sessions, hours, totalMins, maxInDay, uniqueDays, goalDays, uniqueSubjects, excellentCount, dailyGoal, weekMins, subjectMins, pomodoros, totalEarned, bestStreak: computeStreak().best,
+      redeemed, socialPosts, friends, snailClicks, didAssessment, fullTest, planTasks, groupGoals, recordings, emailsRead, wordsWritten, factChecks, notesSynced, flashcards, gaveFeedback, deepWork, marathon, maxSingleSession, allTimers, highTestScore, notifClick, midnightStudy, weekendStudy, ghostMode, perfectDays, earlyBird, nightOwl, maxDayPoints }
   }
 
   function renderStats() {
@@ -655,15 +757,27 @@
           </div>`).join('')
       : '<div style="color:var(--text-secondary);font-size:13px;">No sessions logged yet.</div>'
 
-    document.getElementById('badgeGrid').innerHTML = BADGES.map(b => {
-      const earned = b.req(s)
-      return `<div class="badge ${earned?'badge-earned':'locked'}">
-        <div class="badge-icon">${b.icon}</div>
-        <div class="badge-name">${b.name}</div>
-        <div class="badge-desc">${b.desc}</div>
-        ${earned ? '<div style="font-size:11px;color:var(--accent);font-weight:700;">EARNED ✓</div>' : ''}
-      </div>`
-    }).join('')
+    // Group by category
+    const cats = [...new Set(BADGES.map(b=>b.cat))]
+    const earnedCount = BADGES.filter(b=>b.req(s)).length
+    const badgeEl = document.getElementById('badgeGrid')
+    badgeEl.style.display = 'block'
+    badgeEl.innerHTML = `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">${earnedCount} / ${BADGES.length} badges unlocked</div>` +
+      cats.map(cat => {
+        const catBadges = BADGES.filter(b=>b.cat===cat)
+        return `<div style="margin-bottom:24px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">${cat}</div>
+          <div class="badge-grid">${catBadges.map(b=>{
+            const earned = b.req(s)
+            return `<div class="badge ${earned?'badge-earned':'locked'}" title="${b.desc}">
+              <div class="badge-icon">${b.icon}</div>
+              <div class="badge-name">${b.name}</div>
+              <div class="badge-desc">${b.desc}</div>
+              ${earned?'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px;">EARNED ✓</div>':''}
+            </div>`
+          }).join('')}</div>
+        </div>`
+      }).join('')
   }
 
   /* ── Wishlist helpers ──────────────────────────────────────── */

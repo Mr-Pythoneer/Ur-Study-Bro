@@ -19,6 +19,34 @@
   --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* ── Dark mode ────────────────────────────────────────────────── */
+body.dark-mode {
+  --sidebar-bg:    #111111;
+  --sidebar-hover: rgba(255,255,255,.07);
+  --sidebar-active:rgba(255,255,255,.14);
+  --accent:        #14a090;
+  --accent-light:  #0d2e2a;
+  --text-primary:  #e8e8e6;
+  --text-secondary:#6b6b68;
+  --text-sidebar:  #8a8a87;
+  --bg-main:       #1a1a1a;
+  --bg-card:       #222222;
+  --border:        #2e2e2e;
+  --shadow-sm:     0 1px 3px rgba(0,0,0,.3);
+  --shadow-md:     0 4px 14px rgba(0,0,0,.4);
+}
+body.dark-mode .content-area { background: var(--bg-main); }
+body.dark-mode .auth-overlay { background: linear-gradient(135deg, #0d0d0d 0%, #152320 100%); }
+body.dark-mode .auth-box { background: #1e1e1e; border: 1px solid #333; }
+body.dark-mode .auth-app-name { color: #e8e8e6; }
+body.dark-mode .auth-input-group input { background: #2a2a2a; border-color: #3a3a3a; color: #e8e8e6; }
+body.dark-mode .auth-tabs { background: #2a2a2a; }
+body.dark-mode .auth-tab.active { background: #333; color: #e8e8e6; }
+body.dark-mode .topbar { background: #1e1e1e; border-bottom-color: #2e2e2e; }
+body.dark-mode .user-menu { background: #2a2a2a; border-color: #3a3a3a; }
+body.dark-mode .user-menu-item { color: #e8e8e6; }
+body.dark-mode .user-menu-item:hover { background: #333; }
+
 /* ── Reset ────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }

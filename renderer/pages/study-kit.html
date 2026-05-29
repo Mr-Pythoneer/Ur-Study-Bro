@@ -132,9 +132,41 @@
       <div class="card" id="opane-flash" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <div class="card-title" style="margin:0;">Flashcards <span style="font-size:12px;font-weight:400;color:var(--text-secondary);">— click to flip</span></div>
-          <button class="btn btn-ghost" id="exportFlashBtn" style="font-size:12px;padding:5px 12px;">Export CSV</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="studyModeBtn" style="font-size:12px;padding:5px 12px;" onclick="startFlashcardStudy()">▶ Study Mode</button>
+            <button class="btn btn-ghost" id="exportFlashBtn" style="font-size:12px;padding:5px 12px;">Export CSV</button>
+          </div>
         </div>
         <div class="flashcard-grid" id="flashcardGrid"></div>
+      </div>
+
+      <!-- ── Flashcard Study Mode overlay ── -->
+      <div id="flashStudyOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:8000;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px;">
+        <div style="color:#fff;font-size:13px;font-weight:600;opacity:.7;" id="flashProgress">Card 1 of 10</div>
+        <!-- Big flashcard -->
+        <div class="flashcard" id="studyCard" onclick="flipStudyCard()" style="width:440px;height:260px;cursor:pointer;">
+          <div class="flashcard-inner">
+            <div class="flashcard-front" style="font-size:18px;display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;border-radius:12px;" id="studyCardFront"></div>
+            <div class="flashcard-back"  style="font-size:15px;display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;border-radius:12px;" id="studyCardBack"></div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);">Click card to flip</div>
+        <!-- Rating buttons (shown after flip) -->
+        <div id="flashRating" style="display:none;gap:10px;">
+          <button onclick="rateFlash('again')" style="padding:10px 22px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Again</button>
+          <button onclick="rateFlash('hard')"  style="padding:10px 22px;background:#d97706;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Hard</button>
+          <button onclick="rateFlash('good')"  style="padding:10px 22px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Good</button>
+          <button onclick="rateFlash('easy')"  style="padding:10px 22px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Easy</button>
+        </div>
+        <button onclick="closeFlashStudy()" style="padding:8px 20px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;margin-top:8px;">Exit</button>
+        <!-- Results screen -->
+        <div id="flashResults" style="display:none;text-align:center;color:#fff;">
+          <div style="font-size:36px;margin-bottom:12px;">🎉</div>
+          <div style="font-size:22px;font-weight:800;margin-bottom:8px;">Session Complete!</div>
+          <div id="flashResultStats" style="font-size:14px;opacity:.8;margin-bottom:20px;"></div>
+          <button onclick="restartFlash()" style="padding:10px 24px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;">Study Again</button>
+          <button onclick="closeFlashStudy()" style="padding:10px 20px;background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Done</button>
+        </div>
       </div>
 
       <div class="card" id="opane-exam" style="display:none;">
@@ -622,5 +654,75 @@ Be specific to their strengths and weaknesses. Reference the cognitive profile d
       </div>`
   }
 
+})()
+
+// ── Flashcard Study Mode ──────────────────────────────────────────
+;(function() {
+  let deck = [], current = 0, flipped = false, ratings = { again:0, hard:0, good:0, easy:0 }
+
+  window.startFlashcardStudy = function() {
+    // Collect cards from the grid
+    const cards = [...document.querySelectorAll('#flashcardGrid .flashcard')]
+    if (!cards.length) return
+    deck = cards.map(c => ({
+      front: c.querySelector('.flashcard-front')?.textContent?.trim() || '',
+      back:  c.querySelector('.flashcard-back')?.textContent?.trim() || ''
+    })).filter(c => c.front)
+    if (!deck.length) return
+
+    current = 0; flipped = false; ratings = { again:0, hard:0, good:0, easy:0 }
+    const overlay = document.getElementById('flashStudyOverlay')
+    overlay.style.display = 'flex'
+    document.getElementById('flashResults').style.display = 'none'
+    document.getElementById('studyCard').style.display = 'block'
+    document.getElementById('flashProgress').style.display = 'block'
+    document.getElementById('flashRating').style.display = 'none'
+    showCard()
+
+    // Track for badge
+    const cur = parseInt(localStorage.getItem(window.csKey ? window.csKey('flashcardsReviewed') : 'fr') || '0')
+    if (window.csSet) window.csSet('flashcardsReviewed', String(cur + deck.length))
+  }
+
+  function showCard() {
+    if (current >= deck.length) { showResults(); return }
+    const c = deck[current]
+    document.getElementById('studyCardFront').textContent = c.front
+    document.getElementById('studyCardBack').textContent = c.back
+    const card = document.getElementById('studyCard')
+    card.classList.remove('flipped')
+    flipped = false
+    document.getElementById('flashRating').style.display = 'none'
+    document.getElementById('flashProgress').textContent = `Card ${current + 1} of ${deck.length}`
+  }
+
+  window.flipStudyCard = function() {
+    if (flipped) return
+    document.getElementById('studyCard').classList.add('flipped')
+    flipped = true
+    document.getElementById('flashRating').style.display = 'flex'
+  }
+
+  window.rateFlash = function(rating) {
+    ratings[rating]++
+    // Simple spaced repetition: 'again' → push card to end of deck
+    if (rating === 'again') deck.push(deck[current])
+    current++
+    showCard()
+  }
+
+  function showResults() {
+    document.getElementById('studyCard').style.display = 'none'
+    document.getElementById('flashProgress').style.display = 'none'
+    document.getElementById('flashRating').style.display = 'none'
+    const results = document.getElementById('flashResults')
+    results.style.display = 'block'
+    const total = ratings.again + ratings.hard + ratings.good + ratings.easy
+    document.getElementById('flashResultStats').innerHTML =
+      `${total} cards reviewed · <span style="color:#16a34a">${ratings.good + ratings.easy} good</span> · <span style="color:#d97706">${ratings.hard} hard</span> · <span style="color:#dc2626">${ratings.again} again</span>`
+  }
+
+  window.restartFlash = function() { window.startFlashcardStudy() }
+  window.closeFlashStudy = function() { document.getElementById('flashStudyOverlay').style.display = 'none' }
 })()
 </script>
