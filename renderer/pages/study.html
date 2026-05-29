@@ -885,4 +885,257 @@
     } catch { /* silently fail */ }
   }
 })()
+
+/* ── Crawling Snail ─────────────────────────────────────────────
+   Appears when the focus timer is running. Wanders around the
+   screen leaving a faint trail. Click it to ask a quick question.
+──────────────────────────────────────────────────────────────── */
+;(function() {
+  // ── Inject styles
+  const style = document.createElement('style')
+  style.textContent = `
+    #focus-snail {
+      position: fixed; pointer-events: auto; z-index: 8000;
+      font-size: 28px; cursor: pointer;
+      transition: none;
+      user-select: none;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,.18));
+      display: none;
+    }
+    #focus-snail:hover { transform: scale(1.25); filter: drop-shadow(0 4px 10px rgba(46,125,94,.5)); }
+
+    #snail-canvas {
+      position: fixed; inset: 0; pointer-events: none;
+      z-index: 7999; display: none;
+    }
+
+    #snail-ask {
+      position: fixed; z-index: 8001;
+      background: var(--bg-card, #fff);
+      border: 1px solid var(--border, #e5e7eb);
+      border-radius: 14px;
+      padding: 14px 16px;
+      width: 280px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.14);
+      display: none;
+      flex-direction: column; gap: 10px;
+      animation: snailAskIn .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes snailAskIn { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+    #snail-ask.open { display: flex; }
+    .snail-ask-header {
+      font-size: 13px; font-weight: 800;
+      color: var(--text-primary, #111);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .snail-ask-close {
+      margin-left: auto; background: none; border: none;
+      cursor: pointer; font-size: 16px; color: var(--text-secondary, #888);
+      line-height: 1; padding: 0;
+    }
+    .snail-ask-reply {
+      font-size: 12.5px; color: var(--text-secondary, #555);
+      line-height: 1.6; background: var(--bg-main, #f9fafb);
+      border-radius: 8px; padding: 8px 10px;
+      display: none; max-height: 140px; overflow-y: auto;
+    }
+    .snail-ask-reply.visible { display: block; }
+    #snail-ask-input {
+      width: 100%; box-sizing: border-box;
+      font-size: 13px; padding: 8px 10px;
+      border: 1.5px solid var(--border, #e5e7eb);
+      border-radius: 8px; outline: none;
+      font-family: inherit; background: var(--bg, #fff);
+      color: var(--text-primary, #111);
+    }
+    #snail-ask-input:focus { border-color: var(--accent, #2e7d5e); }
+    #snail-ask-send {
+      align-self: flex-end; padding: 7px 16px;
+      background: var(--accent, #2e7d5e); color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: 12px; font-weight: 700; font-family: inherit;
+    }
+    #snail-ask-send:disabled { opacity: .5; cursor: default; }
+  `
+  document.head.appendChild(style)
+
+  // ── DOM
+  const canvas = document.createElement('canvas')
+  canvas.id = 'snail-canvas'
+  document.body.appendChild(canvas)
+
+  const snailEl = document.createElement('div')
+  snailEl.id = 'focus-snail'
+  snailEl.textContent = '🐌'
+  snailEl.title = 'Click me to ask a question!'
+  document.body.appendChild(snailEl)
+
+  const askBox = document.createElement('div')
+  askBox.id = 'snail-ask'
+  askBox.innerHTML = `
+    <div class="snail-ask-header">
+      🐌 Ask the snail
+      <button class="snail-ask-close" id="snailAskClose">×</button>
+    </div>
+    <div class="snail-ask-reply" id="snailReply"></div>
+    <input id="snail-ask-input" placeholder="Got a question? Ask away…" autocomplete="off"/>
+    <button id="snail-ask-send">Ask →</button>
+  `
+  document.body.appendChild(askBox)
+
+  // ── Canvas setup
+  const ctx = canvas.getContext('2d')
+  let W, H
+  function resizeCanvas() {
+    W = canvas.width  = window.innerWidth
+    H = canvas.height = window.innerHeight
+  }
+  resizeCanvas()
+  window.addEventListener('resize', resizeCanvas)
+
+  // ── Snail position + movement
+  const SIDEBAR_W = 220  // avoid sidebar
+  let sx = SIDEBAR_W + 100, sy = 300
+  let vx = 0.6, vy = 0.3
+  let trail = []  // [{x,y,age}]
+  const SPEED = 0.9
+  const TRAIL_MAX = 220
+  let animId = null
+  let visible = false
+
+  function showSnail() {
+    if (visible) return
+    visible = true
+    canvas.style.display = snailEl.style.display = ''
+    sx = SIDEBAR_W + Math.random() * (window.innerWidth - SIDEBAR_W - 100) + 50
+    sy = 100 + Math.random() * (window.innerHeight - 200)
+    trail = []
+    // random direction
+    const angle = Math.random() * Math.PI * 2
+    vx = Math.cos(angle) * SPEED
+    vy = Math.sin(angle) * SPEED
+    loop()
+  }
+
+  function hideSnail() {
+    if (!visible) return
+    visible = false
+    snailEl.style.display = canvas.style.display = 'none'
+    cancelAnimationFrame(animId)
+    closeAsk()
+  }
+
+  function loop() {
+    // Move
+    sx += vx; sy += vy
+
+    // Bounce off edges (respect sidebar on left)
+    const PAD = 30
+    if (sx < SIDEBAR_W + PAD) { sx = SIDEBAR_W + PAD; vx = Math.abs(vx) * (0.8 + Math.random() * 0.4) }
+    if (sx > W - PAD)         { sx = W - PAD;         vx = -Math.abs(vx) * (0.8 + Math.random() * 0.4) }
+    if (sy < PAD)             { sy = PAD;              vy = Math.abs(vy) * (0.8 + Math.random() * 0.4) }
+    if (sy > H - PAD)         { sy = H - PAD;         vy = -Math.abs(vy) * (0.8 + Math.random() * 0.4) }
+
+    // Gently drift direction every ~3s
+    if (Math.random() < 0.008) {
+      const angle = Math.atan2(vy, vx) + (Math.random() - 0.5) * 1.2
+      vx = Math.cos(angle) * SPEED
+      vy = Math.sin(angle) * SPEED
+    }
+
+    // Trail
+    trail.push({ x: sx, y: sy, age: 0 })
+    if (trail.length > TRAIL_MAX) trail.shift()
+    trail.forEach(p => p.age++)
+
+    // Draw trail
+    ctx.clearRect(0, 0, W, H)
+    for (let i = 1; i < trail.length; i++) {
+      const p = trail[i], pp = trail[i-1]
+      const alpha = (1 - p.age / TRAIL_MAX) * 0.18
+      ctx.beginPath()
+      ctx.moveTo(pp.x, pp.y)
+      ctx.lineTo(p.x, p.y)
+      ctx.strokeStyle = `rgba(46,125,94,${alpha})`
+      ctx.lineWidth = 3
+      ctx.lineCap = 'round'
+      ctx.stroke()
+    }
+
+    // Position snail emoji
+    snailEl.style.left = (sx - 14) + 'px'
+    snailEl.style.top  = (sy - 14) + 'px'
+    // Flip horizontally when going left
+    snailEl.style.transform = vx < 0 ? 'scaleX(-1)' : ''
+
+    animId = requestAnimationFrame(loop)
+  }
+
+  // ── Ask box
+  function openAsk() {
+    askBox.classList.add('open')
+    // Position near snail but keep on screen
+    let bx = sx + 20, by = sy - 160
+    if (bx + 290 > W) bx = sx - 300
+    if (by < 10) by = sy + 30
+    askBox.style.left = Math.max(SIDEBAR_W + 10, bx) + 'px'
+    askBox.style.top  = Math.max(10, by) + 'px'
+    document.getElementById('snail-ask-input').focus()
+  }
+  function closeAsk() {
+    askBox.classList.remove('open')
+    document.getElementById('snailReply').className  = 'snail-ask-reply'
+    document.getElementById('snail-ask-input').value = ''
+    document.getElementById('snail-ask-send').disabled = false
+  }
+
+  snailEl.addEventListener('click', e => { e.stopPropagation(); openAsk() })
+  document.getElementById('snailAskClose').addEventListener('click', closeAsk)
+
+  // ── AI answer
+  document.getElementById('snail-ask-send').addEventListener('click', sendSnailAsk)
+  document.getElementById('snail-ask-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendSnailAsk() })
+
+  async function sendSnailAsk() {
+    const inp  = document.getElementById('snail-ask-input')
+    const send = document.getElementById('snail-ask-send')
+    const reply = document.getElementById('snailReply')
+    const q = inp.value.trim()
+    if (!q) { inp.focus(); return }
+
+    send.disabled = true
+    reply.className = 'snail-ask-reply visible'
+    reply.textContent = '🐌 Thinking…'
+
+    const provider = localStorage.getItem('ai_provider') || 'ollama'
+    const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
+    const model    = localStorage.getItem('ai_model_' + provider) ||
+      (provider === 'ollama' ? 'llama3.2' : provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
+
+    try {
+      if (!window.api?.askAI) throw new Error('no AI')
+      const res = await window.api.askAI({
+        provider, apiKey, model,
+        systemPrompt: 'You are a friendly, concise study helper. Answer the student\'s question in 2-4 sentences max. Be clear and helpful. No markdown formatting.',
+        messages: [{ role: 'user', content: q }]
+      })
+      reply.textContent = res.reply || '🐌 Hmm, I got confused. Try again!'
+    } catch(e) {
+      reply.textContent = '🐌 Couldn\'t reach AI — check your Ollama is running!'
+    }
+    send.disabled = false
+    inp.value = ''
+  }
+
+  // ── Watch G.running
+  function checkTimer() {
+    if (typeof G !== 'undefined' && G.running) showSnail()
+    else hideSnail()
+  }
+  setInterval(checkTimer, 1000)
+
+  window._pageCleanup = (function(orig) {
+    return function() { hideSnail(); if (orig) orig() }
+  })(window._pageCleanup)
+})()
 </script>

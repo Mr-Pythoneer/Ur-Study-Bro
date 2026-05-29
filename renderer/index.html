@@ -812,14 +812,16 @@ function fmt12Time(t) {
 <style>
   #ai-bubble {
     position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-    width: 48px; height: 48px; border-radius: 50%;
+    width: 56px; height: 56px; border-radius: 50%;
     background: var(--accent); color: #fff; border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 4px 16px rgba(15,123,108,.35);
     transition: transform .15s, box-shadow .15s;
+    font-size: 30px; line-height: 1;
   }
-  #ai-bubble:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(15,123,108,.45); }
-  #ai-bubble svg { width: 22px; height: 22px; }
+  #ai-bubble:hover { transform: scale(1.12); box-shadow: 0 6px 20px rgba(15,123,108,.45); }
+  #ai-bubble::after { content: ''; position: absolute; inset: 0; border-radius: 50%; animation: snailPulse 2.5s ease-in-out infinite; }
+  @keyframes snailPulse { 0%,100%{box-shadow:0 0 0 0 rgba(46,125,94,.35)} 50%{box-shadow:0 0 0 8px rgba(46,125,94,.0)} }
 
   #ai-panel {
     position: fixed; bottom: 84px; right: 24px; z-index: 9998;
@@ -872,11 +874,7 @@ function fmt12Time(t) {
   #ai-send:disabled { opacity: .45; cursor: default; }
 </style>
 
-<button id="ai-bubble" title="Ask anything">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-  </svg>
-</button>
+<button id="ai-bubble" title="Ask the snail anything 🐌">🐌</button>
 
 <div id="ai-panel">
   <div id="ai-panel-header">
@@ -915,9 +913,9 @@ function fmt12Time(t) {
   }
 
   function updateProviderLabel() {
-    const p = localStorage.getItem('ai_provider') || '—'
+    const p = localStorage.getItem('ai_provider') || 'ollama'
     const key = localStorage.getItem('ai_key_' + p)
-    provLbl.textContent = key ? `Using ${p}` : 'No API key set — visit AI Tutor'
+    provLbl.textContent = p === 'ollama' ? 'Local AI (Ollama)' : key ? `Using ${p}` : 'No API key — visit AI Tutor'
   }
 
   bubble.addEventListener('click', togglePanel)
