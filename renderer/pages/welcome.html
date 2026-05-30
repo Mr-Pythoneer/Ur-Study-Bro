@@ -1,55 +1,122 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
 <style>
-  .onboarding-wrap { display:flex; flex-direction:column; align-items:center; padding:16px 0 40px; }
-  .onboarding-hero { text-align:center; margin-bottom:36px; }
-  .onboarding-snail { font-size:72px; line-height:1; margin-bottom:16px; animation:bob 3s ease-in-out infinite; }
-  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-  .onboarding-headline { font-size:30px; font-weight:800; color:var(--text-primary); letter-spacing:-0.8px; margin-bottom:8px; }
-  .onboarding-tagline { font-size:15px; color:var(--text-secondary); max-width:400px; line-height:1.6; }
-  .onboarding-form { width:100%; max-width:560px; display:flex; flex-direction:column; gap:20px; }
-  .form-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-sm); }
-  .form-card-title { font-size:13px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; }
-  .subject-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; min-height:32px; }
-  .subject-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:var(--accent-light); color:var(--accent); border-radius:99px; font-size:13px; font-weight:500; }
-  .subject-chip button { background:none; border:none; cursor:pointer; color:var(--accent); font-size:14px; padding:0; line-height:1; opacity:0.7; }
-  .subject-chip button:hover { opacity:1; }
-  .subject-input-row { display:flex; gap:8px; }
-  .subject-input-row input { flex:1; }
-  .goal-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .goal-option { border:2px solid var(--border); border-radius:var(--radius-sm); padding:14px 12px; cursor:pointer; text-align:center; transition:all .15s; background:var(--bg-card); }
-  .goal-option:hover { border-color:var(--accent); background:var(--accent-light); }
-  .goal-option.selected { border-color:var(--accent); background:var(--accent-light); }
-  .goal-option .goal-hours { font-size:22px; font-weight:700; color:var(--accent); }
-  .goal-option .goal-desc { font-size:12px; color:var(--text-secondary); margin-top:2px; }
-  .custom-goal-row { display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
-  .custom-goal-row input { width:80px; text-align:center; }
-  .custom-goal-row span { font-size:14px; color:var(--text-secondary); }
-  .save-btn-wrap { text-align:center; }
-  .save-btn-wrap .btn { min-width:180px; font-size:15px; padding:12px 28px; }
-  .greeting-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 14px; background:var(--accent-light); color:var(--accent); border-radius:99px; font-size:13px; font-weight:600; margin-bottom:12px; }
+  /* ── Home page ─────────────────────────────────────────────────── */
+  .home-wrap { max-width: 720px; padding-bottom: 48px; }
 
-  /* Account settings section */
-  .settings-section { border-top:1px solid var(--border); margin-top:8px; padding-top:20px; }
-  .settings-section-title { font-size:13px; font-weight:700; color:#ef4444; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:16px; }
-  .change-pw-row { display:flex; flex-direction:column; gap:10px; }
-  .inline-success { color:var(--accent); font-size:13px; font-weight:500; margin-top:4px; display:none; }
-  .inline-success.visible { display:block; }
-  .inline-error { color:#ef4444; font-size:13px; font-weight:500; margin-top:4px; display:none; }
-  .inline-error.visible { display:block; }
+  .home-greeting { margin-bottom: 28px; }
+  .home-greeting h1 { font-size: 26px; font-weight: 800; letter-spacing: -.6px; color: var(--text-primary); margin-bottom: 4px; }
+  .home-greeting p  { font-size: 14px; color: var(--text-secondary); }
+
+  /* ── 3 big action cards ─────────────────────────────────────── */
+  .action-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 28px; }
+  .action-card {
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 22px 20px;
+    cursor: pointer; transition: box-shadow .15s, border-color .15s;
+    display: flex; flex-direction: column; gap: 10px;
+    text-align: left; font-family: var(--font);
+  }
+  .action-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); border-color: var(--accent); }
+  .action-card.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .action-card.primary .action-desc { color: rgba(255,255,255,.78); }
+  .action-icon { font-size: 30px; line-height: 1; }
+  .action-title { font-size: 15px; font-weight: 800; color: var(--text-primary); letter-spacing: -.2px; }
+  .action-card.primary .action-title { color: #fff; }
+  .action-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .action-cta { font-size: 12px; font-weight: 700; color: var(--accent); margin-top: auto; }
+  .action-card.primary .action-cta { color: rgba(255,255,255,.9); }
+
+  /* ── Stats row ──────────────────────────────────────────────── */
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+
+  /* ── Goal bar ───────────────────────────────────────────────── */
+  .goal-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: none; }
+  .goal-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+
+  /* ── Upcoming ───────────────────────────────────────────────── */
+  .section-label-sm { font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 10px; }
+
+  /* ── Setup card ─────────────────────────────────────────────── */
+  .setup-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  .setup-card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; cursor: pointer; }
+  .setup-card-header:hover { background: var(--bg-main); }
+  .setup-card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .setup-card-body { padding: 0 20px 20px; border-top: 1px solid var(--border); display: none; }
+  .setup-card-body.open { display: block; }
+
+  .form-card { background: var(--bg-card); border: none; padding: 0; margin-top: 20px; }
+  .form-card-title { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+  .subject-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 32px; }
+  .subject-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; background: var(--accent-light); color: var(--accent); border-radius: 99px; font-size: 13px; font-weight: 500; }
+  .subject-chip button { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 14px; padding: 0; line-height: 1; opacity: .7; }
+  .subject-chip button:hover { opacity: 1; }
+  .subject-input-row { display: flex; gap: 8px; }
+  .subject-input-row input { flex: 1; }
+  .goal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .goal-option { border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; text-align: center; transition: all .15s; background: var(--bg-card); }
+  .goal-option:hover { border-color: var(--accent); background: var(--accent-light); }
+  .goal-option.selected { border-color: var(--accent); background: var(--accent-light); }
+  .goal-option .goal-hours { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .goal-option .goal-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .custom-goal-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .custom-goal-row input { width: 72px; text-align: center; }
+  .greeting-badge { display: none; } /* kept for JS compat */
+  .inline-success { color: var(--accent); font-size: 13px; font-weight: 500; margin-top: 4px; display: none; }
+  .inline-success.visible { display: block; }
+  .inline-error { color: #ef4444; font-size: 13px; font-weight: 500; margin-top: 4px; display: none; }
+  .inline-error.visible { display: block; }
+  .settings-section { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; }
+  .settings-section-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+  .change-pw-row { display: flex; flex-direction: column; gap: 10px; }
+
+  /* streak risk */
+  #streakRisk { display: none; background: #fff7ed; border: 1.5px solid #f97316; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; align-items: center; gap: 10px; }
 </style>
 
-<div class="onboarding-wrap">
-  <div class="onboarding-hero">
-    <div class="onboarding-snail">🐌</div>
-    <div class="greeting-badge" id="greetingBadge">Welcome</div>
-    <div class="onboarding-headline" id="headline">Let's get you set up</div>
-    <div class="onboarding-tagline">Ur Study Bro helps you and your study partner stay on track — slow and steady wins the race.</div>
+<div class="home-wrap">
+
+  <!-- Greeting -->
+  <div class="home-greeting">
+    <h1 id="headline">Good to see you! 👋</h1>
+    <p id="homeSubtitle">Here's what's on for today.</p>
   </div>
 
-  <!-- ── Today Dashboard ─────────────────────────────────────── -->
-  <div id="todayDashboard" style="width:100%;max-width:680px;margin-bottom:28px;display:none;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Today</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;" id="dashStatRow">
+  <!-- Streak risk warning -->
+  <div id="streakRisk" style="display:none;">
+    <span style="font-size:20px;">⚠️</span>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#c2410c;">Streak at risk!</div>
+      <div style="font-size:12px;color:#9a3412;">You haven't studied today — your streak resets at midnight.</div>
+    </div>
+    <button class="btn btn-primary" onclick="window.navigateTo('study')" style="white-space:nowrap;font-size:12px;">Study Now</button>
+  </div>
+
+  <!-- 3 Action Cards -->
+  <div class="action-grid">
+    <div class="action-card primary" onclick="window.navigateTo('study')">
+      <div class="action-icon">⏱</div>
+      <div class="action-title">Start Focusing</div>
+      <div class="action-desc">Start a Pomodoro or focus timer. Points awarded when you finish.</div>
+      <div class="action-cta">▶ Start now →</div>
+    </div>
+    <div class="action-card" onclick="window.navigateTo('assessment')">
+      <div class="action-icon">🧠</div>
+      <div class="action-title">Brain Test</div>
+      <div class="action-desc">6-minute test that figures out how you learn. Unlocks your study plan.</div>
+      <div class="action-cta" style="color:var(--accent);" id="assessmentCta">Take the test →</div>
+    </div>
+    <div class="action-card" onclick="window.navigateTo('rewards')">
+      <div class="action-icon">🏆</div>
+      <div class="action-title">Rewards</div>
+      <div class="action-desc">Your streak, badges, and study points — see how far you've come.</div>
+      <div class="action-cta" style="color:var(--accent);">View rewards →</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div id="todayDashboard" style="display:none;">
+    <div class="section-label-sm">Today</div>
+    <div class="stats-row" id="dashStatRow">
       <div class="stat-tile" style="padding:14px 16px;">
         <div class="stat-value" id="dashStreak">0</div>
         <div class="stat-label">Day Streak 🔥</div>
@@ -60,142 +127,95 @@
       </div>
       <div class="stat-tile" style="padding:14px 16px;">
         <div class="stat-value" id="dashPoints">0</div>
-        <div class="stat-label">Study Points</div>
+        <div class="stat-label">Points</div>
       </div>
       <div class="stat-tile" style="padding:14px 16px;">
         <div class="stat-value" id="dashSessions">0</div>
-        <div class="stat-label">All Sessions</div>
+        <div class="stat-label">Sessions</div>
       </div>
     </div>
 
     <!-- Daily goal bar -->
-    <div id="dashGoalCard" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;display:none;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:700;">Daily Goal</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent);" id="dashGoalPct">0%</div>
+    <div class="goal-card" id="dashGoalCard">
+      <div class="goal-card-top">
+        <span>Daily Goal</span>
+        <span style="color:var(--accent);" id="dashGoalPct">0%</span>
       </div>
       <div class="progress-bar-wrap"><div class="progress-bar-fill" id="dashGoalBar" style="width:0%;"></div></div>
       <div style="font-size:12px;color:var(--text-secondary);margin-top:6px;" id="dashGoalLabel"></div>
     </div>
 
-    <!-- Quick actions -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="window.navigateTo('study')" style="flex:1;justify-content:center;">▶ Start Focusing</button>
-      <button class="btn btn-ghost" onclick="window.navigateTo('plan')" style="flex:1;justify-content:center;">📋 My Study Path</button>
-      <button class="btn btn-ghost" onclick="window.navigateTo('social')" style="flex:1;justify-content:center;">👥 Social</button>
-    </div>
+    <!-- Upcoming events -->
+    <div id="dashUpcoming"></div>
+  </div>
 
-    <!-- Upcoming events (from calendar) -->
-    <div id="dashUpcoming" style="margin-top:12px;"></div>
-
-    <!-- Streak risk warning -->
-    <div id="streakRisk" style="display:none;background:#fff7ed;border:1.5px solid #f97316;border-radius:var(--radius);padding:12px 16px;margin-top:10px;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:20px;">⚠️</span>
+  <!-- Profile & Settings (collapsed) -->
+  <div class="setup-card" style="margin-top:28px;">
+    <div class="setup-card-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.setup-chevron').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''">
       <div>
-        <div style="font-size:13px;font-weight:700;color:#c2410c;">Streak at risk!</div>
-        <div style="font-size:12px;color:#9a3412;">You haven't studied today — your streak will reset at midnight.</div>
+        <div class="setup-card-title">⚙️ Profile &amp; Settings</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Display name, subjects, daily goal, password</div>
       </div>
-      <button class="btn btn-primary" onclick="window.navigateTo('study')" style="margin-left:auto;white-space:nowrap;font-size:12px;">Study Now</button>
+      <svg class="setup-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0;transition:transform .2s;color:var(--text-secondary);"><path d="M4 6l4 4 4-4" stroke-linecap="round"/></svg>
     </div>
-  </div>
-
-  <!-- Feature promo banners -->
-  <div style="width:100%;max-width:560px;display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
-
-    <!-- AI Tutor promo -->
-    <div onclick="window.navigateTo('ai')" style="cursor:pointer;background:linear-gradient(135deg,var(--accent-light) 0%,#e0f2fe 100%);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;gap:16px;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
-      <div style="font-size:36px;line-height:1;flex-shrink:0;">🤖</div>
-      <div style="flex:1;">
-        <div style="font-size:15px;font-weight:800;color:var(--text-primary);margin-bottom:3px;">AI Study Tutor — built in</div>
-        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Ask anything. Get explanations, quizzes, essay feedback, and more — powered by AI that runs right on your device. No API key needed.</div>
-      </div>
-      <div style="font-size:18px;color:var(--accent);flex-shrink:0;">→</div>
-    </div>
-
-    <!-- 90-Day Plan promo -->
-    <div onclick="window.navigateTo('plan')" style="cursor:pointer;background:linear-gradient(135deg,#f0fdf4 0%,#fefce8 100%);border:1.5px solid #22c55e;border-radius:var(--radius);padding:18px 20px;display:flex;align-items:center;gap:16px;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow='none'">
-      <div style="font-size:36px;line-height:1;flex-shrink:0;">📅</div>
-      <div style="flex:1;">
-        <div style="font-size:15px;font-weight:800;color:var(--text-primary);margin-bottom:3px;">Your Personalized 90-Day Study Plan</div>
-        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">Take the cognitive assessment, then get a custom daily roadmap — real tasks, real deadlines, earning Study Points as you go.</div>
-      </div>
-      <div style="font-size:18px;color:#22c55e;flex-shrink:0;">→</div>
-    </div>
-
-  </div>
-
-  <div class="onboarding-form">
-
-    <!-- Name -->
-    <div class="form-card">
-      <div class="form-card-title">01 — Your Display Name</div>
-      <div class="input-group" style="margin:0;">
-        <label>What should we call you?</label>
-        <input type="text" id="displayName" placeholder="e.g. Alex" />
-      </div>
-    </div>
-
-    <!-- Subjects -->
-    <div class="form-card">
-      <div class="form-card-title">02 — Subjects &amp; Courses</div>
-      <div class="input-group" style="margin-bottom:10px;">
-        <label>Add the subjects or courses you're studying</label>
-        <div class="subject-input-row">
-          <input type="text" id="subjectInput" placeholder="e.g. Calculus, History…" />
-          <button class="btn btn-ghost" id="addSubjectBtn" style="padding:9px 14px;">+ Add</button>
+    <div class="setup-card-body">
+      <div class="form-card">
+        <div class="form-card-title">Display Name</div>
+        <div class="input-group" style="margin:0;">
+          <label>What should we call you?</label>
+          <input type="text" id="displayName" placeholder="e.g. Alex" />
         </div>
       </div>
-      <div class="subject-list" id="subjectList"></div>
-    </div>
-
-    <!-- Daily goal -->
-    <div class="form-card">
-      <div class="form-card-title">03 — Daily Study Goal</div>
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">How many hours do you want to study each day?</div>
-      <div class="goal-grid">
-        <div class="goal-option" data-hours="1" id="goal-1"><div class="goal-hours">1 hr</div><div class="goal-desc">Light maintenance</div></div>
-        <div class="goal-option" data-hours="2" id="goal-2"><div class="goal-hours">2 hrs</div><div class="goal-desc">Steady progress</div></div>
-        <div class="goal-option" data-hours="3" id="goal-3"><div class="goal-hours">3 hrs</div><div class="goal-desc">Focused effort</div></div>
-        <div class="goal-option" data-hours="4" id="goal-4"><div class="goal-hours">4+ hrs</div><div class="goal-desc">Exam crunch mode</div></div>
+      <div class="form-card">
+        <div class="form-card-title">Subjects &amp; Courses</div>
+        <div class="input-group" style="margin-bottom:10px;">
+          <label>Add the subjects or courses you're studying</label>
+          <div class="subject-input-row">
+            <input type="text" id="subjectInput" placeholder="e.g. Calculus, History…" />
+            <button class="btn btn-ghost" id="addSubjectBtn" style="padding:9px 14px;">+ Add</button>
+          </div>
+        </div>
+        <div class="subject-list" id="subjectList"></div>
       </div>
-      <div class="custom-goal-row">
-        <span>Or set a custom goal:</span>
-        <input type="number" id="customHours" placeholder="hrs" min="0.5" max="16" step="0.5" />
-        <span>hours / day</span>
+      <div class="form-card">
+        <div class="form-card-title">Daily Study Goal</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">How many hours per day?</div>
+        <div class="goal-grid">
+          <div class="goal-option" data-hours="1" id="goal-1"><div class="goal-hours">1 hr</div><div class="goal-desc">Light</div></div>
+          <div class="goal-option" data-hours="2" id="goal-2"><div class="goal-hours">2 hrs</div><div class="goal-desc">Steady</div></div>
+          <div class="goal-option" data-hours="3" id="goal-3"><div class="goal-hours">3 hrs</div><div class="goal-desc">Focused</div></div>
+          <div class="goal-option" data-hours="4" id="goal-4"><div class="goal-hours">4+ hrs</div><div class="goal-desc">Crunch</div></div>
+        </div>
+        <div class="custom-goal-row">
+          <span>Custom:</span>
+          <input type="number" id="customHours" placeholder="hrs" min="0.5" max="16" step="0.5" />
+          <span>hrs/day</span>
+        </div>
       </div>
-    </div>
-
-    <!-- Save -->
-    <div class="save-btn-wrap">
-      <button class="btn btn-primary" id="saveProfileBtn">✓ Save Profile</button>
-    </div>
-    <div id="profileSuccess" class="inline-success" style="text-align:center;">✓ Profile saved!</div>
-
-    <!-- Account settings -->
-    <div class="form-card">
-      <div class="form-card-title">Account Settings</div>
-      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Signed in as <strong id="accountUsername"></strong></div>
+      <button class="btn btn-primary" id="saveProfileBtn" style="margin-top:16px;">✓ Save Changes</button>
+      <div id="profileSuccess" class="inline-success">✓ Saved!</div>
 
       <div class="settings-section">
-        <div class="settings-section-title" style="color:var(--text-secondary);">Change Password</div>
+        <div class="settings-section-title">Account — <span id="accountUsername"></span></div>
         <div class="change-pw-row">
           <div class="input-group" style="margin:0;"><label>Current Password</label><input type="password" id="curPass" placeholder="••••••••" /></div>
           <div class="input-group" style="margin:0;"><label>New Password</label><input type="password" id="newPass" placeholder="at least 4 characters" /></div>
           <div class="input-group" style="margin:0;"><label>Confirm New Password</label><input type="password" id="newPass2" placeholder="repeat new password" /></div>
           <button class="btn btn-ghost" id="changePassBtn">Update Password</button>
-          <div id="pwSuccess" class="inline-success">✓ Password updated successfully!</div>
+          <div id="pwSuccess" class="inline-success">✓ Password updated!</div>
           <div id="pwError" class="inline-error"></div>
         </div>
       </div>
-
       <div class="settings-section">
-        <div class="settings-section-title">Danger Zone</div>
-        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">Permanently delete this account and all its study data.</p>
-        <button class="btn" style="background:#ef4444; color:#fff;" id="deleteAccountBtn">Delete My Account</button>
+        <div class="settings-section-title" style="color:#ef4444;">Danger Zone</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Permanently delete this account and all study data.</p>
+        <button class="btn" style="background:#ef4444;color:#fff;" id="deleteAccountBtn">Delete My Account</button>
       </div>
     </div>
-
   </div>
+
+  <!-- hidden compat elements -->
+  <span id="greetingBadge" class="greeting-badge"></span>
 </div>
 
 <script>
@@ -266,8 +286,13 @@
 
   document.getElementById('displayName').value = savedName || ''
   document.getElementById('accountUsername').textContent = currentUser()
-  document.getElementById('greetingBadge').textContent = `Hey, ${savedName || currentUser()}!`
-  document.getElementById('headline').textContent = savedName ? `Welcome back, ${savedName}!` : `Let's get you set up`
+  document.getElementById('headline').textContent = savedName ? `Hey, ${savedName}! 👋` : `Welcome! Let's get you set up.`
+  document.getElementById('homeSubtitle').textContent = savedName ? `Here's what's on for today.` : `Fill in your profile below to get started.`
+
+  // Assessment CTA
+  const assessDone = csGet('assessmentDone')
+  const ctaEl = document.getElementById('assessmentCta')
+  if (ctaEl && assessDone && assessDone !== 'skipped') ctaEl.textContent = 'Retake the test →'
 
   if (savedGoal) {
     const h = parseFloat(savedGoal)

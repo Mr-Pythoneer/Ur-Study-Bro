@@ -144,6 +144,46 @@
 
     /* push content below topbar */
     .content-area { padding-top: 60px; }
+
+    /* ── Main nav items (big 3) ──────────────────────────────────── */
+    .nav-item.nav-main {
+      padding: 10px 10px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      margin-bottom: 2px;
+    }
+    .nav-item.nav-main .nav-icon { width: 22px; height: 22px; }
+    .nav-item.nav-main .nav-icon svg { width: 18px; height: 18px; opacity: .75; }
+    .nav-item.nav-main.active .nav-icon svg,
+    .nav-item.nav-main:hover .nav-icon svg { opacity: 1; }
+
+    /* ── More Tools toggle button ────────────────────────────────── */
+    .nav-more-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 8px 10px; margin-top: 10px;
+      background: none; border: none; border-top: 1px solid rgba(255,255,255,.08);
+      font-family: var(--font); font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,.28); text-transform: uppercase; letter-spacing: .7px;
+      cursor: pointer; transition: color .15s;
+    }
+    .nav-more-toggle:hover { color: rgba(255,255,255,.5); }
+
+    /* ── Collapsed more tools panel ──────────────────────────────── */
+    .more-tools-panel {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .3s ease;
+    }
+    .more-tools-panel.open { max-height: 600px; }
+
+    /* ── Secondary nav items (smaller) ──────────────────────────── */
+    .nav-item.nav-secondary {
+      font-size: 12.5px;
+      padding: 5px 8px;
+      opacity: .85;
+    }
+    .nav-item.nav-secondary.active { opacity: 1; }
   </style>
 </head>
 <body>
@@ -377,60 +417,76 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
       <div class="app-name">Ur Study Bro</div>
     </div>
     <nav class="nav-menu">
-      <div class="nav-section-label">Overview</div>
-      <button class="nav-item active" data-page="welcome">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5L10 4l7 6.5"/><path d="M5 9v7h3.5v-4H11.5v4H15V9" stroke-linejoin="round"/></svg></span><span class="nav-label">Home</span>
+
+      <!-- ── Main 3 ── -->
+      <button class="nav-item nav-main active" data-page="welcome">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5L10 4l7 6.5"/><path d="M5 9v7h3.5v-4H11.5v4H15V9" stroke-linejoin="round"/></svg></span>
+        <span class="nav-label">Home</span>
       </button>
-      <button class="nav-item" data-page="calendar">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2v4M13 2v4" stroke-linecap="round"/></svg></span><span class="nav-label">Calendar</span>
+      <button class="nav-item nav-main" data-page="study">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="11" r="7"/><path d="M10 7v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 2.5h5" stroke-linecap="round"/></svg></span>
+        <span class="nav-label">Focus Mode</span>
       </button>
-      <button class="nav-item" data-page="rewards">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2l2.4 5H18l-4.4 3.2 1.7 5.3L10 12.5l-5.3 3 1.7-5.3L2 7h5.6z" stroke-linejoin="round"/></svg></span><span class="nav-label">Rewards</span>
+      <button class="nav-item nav-main" data-page="rewards">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2l2.4 5H18l-4.4 3.2 1.7 5.3L10 12.5l-5.3 3 1.7-5.3L2 7h5.6z" stroke-linejoin="round"/></svg></span>
+        <span class="nav-label">Rewards</span>
       </button>
 
-      <div class="nav-section-label">Study</div>
-      <button class="nav-item" data-page="study">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="11" r="7"/><path d="M10 7v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.5 2.5h5" stroke-linecap="round"/></svg></span><span class="nav-label">Focus Mode</span>
+      <!-- ── More Tools (collapsible) ── -->
+      <button class="nav-more-toggle" id="moreToolsToggle" onclick="toggleMoreTools()">
+        <span>More Tools</span>
+        <svg id="moreToolsChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M4 6l4 4 4-4" stroke-linecap="round"/></svg>
       </button>
-      <button class="nav-item" data-page="meetings">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 2h7l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4" stroke-linecap="round"/></svg></span><span class="nav-label">Records</span>
-      </button>
-      <button class="nav-item" data-page="study-kit">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4" stroke-linecap="round"/></svg></span><span class="nav-label">Study Kit</span>
-      </button>
-      <button class="nav-item" data-page="emails">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"/><path d="M2 5l8 6 8-6" stroke-linecap="round"/></svg></span><span class="nav-label">Inbox</span>
-      </button>
+      <div id="moreToolsPanel" class="more-tools-panel">
+        <button class="nav-item nav-secondary" data-page="assessment">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2C6.5 2 4 4.5 4 7.5c0 2 1 3.5 2.5 4.5L7 15h6l.5-3C15 11 16 9.5 16 7.5 16 4.5 13.5 2 10 2z" stroke-linejoin="round"/><path d="M8 15v1a2 2 0 0 0 4 0v-1" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Brain Test</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="calendar">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2v4M13 2v4" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Calendar</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="study-kit">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 7h6M7 10h6M7 13h4" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Flashcards &amp; Notes</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="ai">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M7 8.5c0-1.7 1.3-2.5 3-2.5s3 .9 3 2.5c0 1.4-1 2-2 2.5V13" stroke-linecap="round"/><circle cx="10" cy="15.5" r=".5" fill="currentColor"/></svg></span>
+          <span class="nav-label">Ask the AI</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="meetings">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 2h7l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M12 2v4h4M7 9h6M7 12h6M7 15h4" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Session History</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="plan" id="planNavBtn">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 3h12v14H4z" stroke-linejoin="round"/><path d="M7 7h6M7 10h6M7 13h3" stroke-linecap="round"/><circle cx="15" cy="15" r="3.5" fill="var(--accent)" stroke="none"/><path d="M14 15l.8.8L16.2 14" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">My Study Plan</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="ai-tools">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M4 10h8M4 14h5" stroke-linecap="round"/><circle cx="16" cy="13" r="3"/><path d="M16 11.5v1.5l1 1" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">AI Tools</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="ai-writer">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h12v2H4zM4 8h8M4 11h10M4 14h6" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">AI Writer</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="emails">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"/><path d="M2 5l8 6 8-6" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Inbox</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="social">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="7" r="3"/><path d="M1 17c0-3 2.5-5 6-5h6c3.5 0 6 2 6 5" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Social</span>
+        </button>
+        <button class="nav-item nav-secondary" data-page="settings">
+          <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke-linecap="round"/></svg></span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </div>
 
-      <button class="nav-item" data-page="assessment">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2C6.5 2 4 4.5 4 7.5c0 2 1 3.5 2.5 4.5L7 15h6l.5-3C15 11 16 9.5 16 7.5 16 4.5 13.5 2 10 2z" stroke-linejoin="round"/><path d="M8 15v1a2 2 0 0 0 4 0v-1" stroke-linecap="round"/></svg></span><span class="nav-label">Learning Profile</span>
-      </button>
-      <button class="nav-item" data-page="plan" id="planNavBtn">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 3h12v14H4z" stroke-linejoin="round"/><path d="M7 7h6M7 10h6M7 13h3" stroke-linecap="round"/><circle cx="15" cy="15" r="3.5" fill="var(--accent)" stroke="none"/><path d="M14 15l.8.8L16.2 14" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">My Plan</span>
-      </button>
-
-      <div class="nav-section-label">AI</div>
-      <button class="nav-item" data-page="ai">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="8"/><path d="M7 8.5c0-1.7 1.3-2.5 3-2.5s3 .9 3 2.5c0 1.4-1 2-2 2.5V13" stroke-linecap="round"/><circle cx="10" cy="15.5" r=".5" fill="currentColor"/></svg></span><span class="nav-label">AI Tutor</span>
-      </button>
-      <button class="nav-item" data-page="ai-tools">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M4 10h8M4 14h5" stroke-linecap="round"/><circle cx="16" cy="13" r="3"/><path d="M16 11.5v1.5l1 1" stroke-linecap="round"/></svg></span><span class="nav-label">AI Tools</span>
-      </button>
-      <button class="nav-item" data-page="ai-writer">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h12v2H4zM4 8h8M4 11h10M4 14h6" stroke-linecap="round"/></svg></span><span class="nav-label">AI Writer</span>
-      </button>
-      <div class="nav-section-label">Social</div>
-      <button class="nav-item" data-page="social">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="3"/><circle cx="14" cy="7" r="3"/><path d="M1 17c0-3 2.5-5 6-5h6c3.5 0 6 2 6 5" stroke-linecap="round"/></svg></span><span class="nav-label">Social</span>
-      </button>
-      <div class="nav-section-label">App</div>
-      <button class="nav-item" data-page="settings">
-        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke-linecap="round"/></svg></span><span class="nav-label">Settings</span>
-      </button>
     </nav>
     <div class="sidebar-footer">
-      <div class="version" id="appVersion">v5.0</div>
-      <div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:2px;line-height:1.3;">Copyright Mr_Pythoneer 2026©</div>
+      <div class="version" id="appVersion">v5.2</div>
     </div>
   </aside>
 
@@ -441,6 +497,24 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 </div>
 
 <script>
+// ── More Tools toggle ─────────────────────────────────────────────
+function toggleMoreTools() {
+  const panel = document.getElementById('moreToolsPanel')
+  const chevron = document.getElementById('moreToolsChevron')
+  const open = panel.classList.toggle('open')
+  chevron.style.transform = open ? 'rotate(180deg)' : ''
+  localStorage.setItem('cs_more_tools_open', open ? '1' : '0')
+}
+// Restore state on load
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('cs_more_tools_open') === '1') {
+    const panel = document.getElementById('moreToolsPanel')
+    const chevron = document.getElementById('moreToolsChevron')
+    panel.classList.add('open')
+    chevron.style.transform = 'rotate(180deg)'
+  }
+})
+
 // ── Dark mode ─────────────────────────────────────────────────────
 function applyDarkMode() {
   const on = localStorage.getItem('cs_dark_mode') === 'true'
@@ -777,6 +851,14 @@ document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
     btn.classList.add('active')
+    // If it's a secondary item, keep the panel open
+    if (btn.classList.contains('nav-secondary')) {
+      const panel = document.getElementById('moreToolsPanel')
+      const chevron = document.getElementById('moreToolsChevron')
+      panel.classList.add('open')
+      chevron.style.transform = 'rotate(180deg)'
+      localStorage.setItem('cs_more_tools_open', '1')
+    }
     loadPage(btn.dataset.page)
   })
 })
