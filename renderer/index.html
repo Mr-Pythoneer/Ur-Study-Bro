@@ -1172,25 +1172,32 @@ function fmt12Time(t) {
 
 <script>
 // ── GitHub release update checker ─────────────────────────────────
-async function checkForAppUpdate() {
-  try {
-    if (!window.api || !window.api.checkUpdate) return
-    const info = await window.api.checkUpdate()
-    if (!info || !info.hasUpdate) return
-    const banner  = document.getElementById('updateBanner')
-    const textEl  = document.getElementById('updateBannerText')
-    const installBtn = document.getElementById('updateInstallBtn')
-    textEl.textContent = `🎉 Ur Study Bro v${info.latest} is available (you have v${info.current})`
-    // Repurpose install button as a download link
-    installBtn.textContent  = 'Download →'
-    installBtn.style.display = 'inline-block'
-    installBtn.onclick = () => { if (window.api) window.api.openExternal(info.url) }
+// ── Auto-updater IPC listeners ────────────────────────────────────
+if (window.api && window.api.on) {
+  const banner     = document.getElementById('updateBanner')
+  const textEl     = document.getElementById('updateBannerText')
+  const installBtn = document.getElementById('updateInstallBtn')
+
+  window.api.on('update:available', (version) => {
+    textEl.textContent = `🎉 v${version} is available — downloading in the background…`
+    installBtn.style.display = 'none'
     banner.style.display = 'flex'
-  } catch {}
+  })
+
+  window.api.on('update:progress', (pct) => {
+    textEl.textContent = `⬇ Downloading update… ${pct}%`
+    installBtn.style.display = 'none'
+    banner.style.display = 'flex'
+  })
+
+  window.api.on('update:downloaded', () => {
+    textEl.textContent = `✅ Update ready to install — restart to apply`
+    installBtn.textContent = 'Restart & Update'
+    installBtn.style.display = 'inline-block'
+    installBtn.onclick = () => window.api.send('update:install')
+    banner.style.display = 'flex'
+  })
 }
-// Check on startup (slight delay so app is fully loaded) + every 4 hours
-setTimeout(checkForAppUpdate, 4000)
-setInterval(checkForAppUpdate, 4 * 60 * 60 * 1000)
 </script>
 
 </body>

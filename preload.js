@@ -55,4 +55,5 @@ contextBridge.exposeInMainWorld('api', {
   // ── Generic IPC ─────────────────────────────────────────────────
   send:    (channel, ...args) => ipcRenderer.send(channel, ...args),
   receive: (channel, cb)      => ipcRenderer.on(channel, (_e, ...args) => cb(...args)),
+  on:      (channel, cb)      => ipcRenderer.on(channel, (_e, ...args) => cb(...args)),
 })

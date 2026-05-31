@@ -1157,33 +1157,43 @@
   const isWindows = /Win/.test(ua)
   const isLinux   = /Linux/.test(ua) && !/Android/.test(ua)
 
-  const PLATFORMS = {
-    ios: {
-      label: 'iOS & iPadOS', sub: 'Coming Soon',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', comingSoon: true,
-      icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 18c-.83 0-1.5-.67-1.5-1.5S11.17 17 12 17s1.5.67 1.5 1.5S12.83 20 12 20zm5-4H7V4h10v12z"/></svg>`,
-    },
-    mac: {
-      label: 'Download for macOS', sub: 'Apple Silicon (M1+)',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-5.2.2-arm64.dmg',
-      icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`,
-    },
-    win: {
-      label: 'Download for Windows', sub: 'x64',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro.Setup.5.2.2.exe',
-      icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V3.25L11 2v10h9zM3 13h6v6.43l-6-1.29V13zm17 0h-9v10l9-1.75V13z"/></svg>`,
-    },
-    linux: {
-      label: 'Download for Linux', sub: 'AppImage',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-5.2.2.AppImage',
-      icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.581 19.049c-.55.366-1.78-.172-2.742-1.196-.96-1.025-1.433-2.277-.883-2.643.55-.365 1.78.172 2.742 1.197.96 1.025 1.432 2.276.883 2.642zm-18.69-2.698c-.508.364-.22 1.398.642 2.311.863.912 1.978 1.363 2.486 1 .509-.366.22-1.4-.64-2.312-.862-.912-1.978-1.364-2.488-1zm10.548-9.849c-1.364 1.283-1.843 3.094-1.06 4.12.781 1.025 2.657.93 4.077-.37 1.42-1.3 1.87-3.154 1.088-4.179-.782-1.025-2.741-.854-4.105.43zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/></svg>`,
-    },
-    github: {
-      label: 'View on GitHub', sub: 'Source code',
-      href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro',
-      icon: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>`,
-    },
+  const ICONS = {
+    ios:    `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 18c-.83 0-1.5-.67-1.5-1.5S11.17 17 12 17s1.5.67 1.5 1.5S12.83 20 12 20zm5-4H7V4h10v12z"/></svg>`,
+    mac:    `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`,
+    win:    `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M3 12V6.75l6-1.32v6.57H3zm17 0V3.25L11 2v10h9zM3 13h6v6.43l-6-1.29V13zm17 0h-9v10l9-1.75V13z"/></svg>`,
+    linux:  `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.581 19.049c-.55.366-1.78-.172-2.742-1.196-.96-1.025-1.433-2.277-.883-2.643.55-.365 1.78.172 2.742 1.197.96 1.025 1.432 2.276.883 2.642zm-18.69-2.698c-.508.364-.22 1.398.642 2.311.863.912 1.978 1.363 2.486 1 .509-.366.22-1.4-.64-2.312-.862-.912-1.978-1.364-2.488-1zm10.548-9.849c-1.364 1.283-1.843 3.094-1.06 4.12.781 1.025 2.657.93 4.077-.37 1.42-1.3 1.87-3.154 1.088-4.179-.782-1.025-2.741-.854-4.105.43zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/></svg>`,
+    github: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>`,
   }
+
+  // Build PLATFORMS dynamically from GitHub API so links never go stale
+  const FALLBACK = {
+    mac:   'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest',
+    win:   'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest',
+    linux: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest',
+  }
+  let PLATFORMS = {
+    ios:    { label: 'iOS & iPadOS', sub: 'Coming Soon', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', comingSoon: true, icon: ICONS.ios },
+    mac:    { label: 'Download for macOS', sub: 'Apple Silicon (M1+)', href: FALLBACK.mac, icon: ICONS.mac },
+    win:    { label: 'Download for Windows', sub: 'x64', href: FALLBACK.win, icon: ICONS.win },
+    linux:  { label: 'Download for Linux', sub: 'AppImage', href: FALLBACK.linux, icon: ICONS.linux },
+    github: { label: 'View on GitHub', sub: 'Source code', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', icon: ICONS.github },
+  }
+
+  // Fetch real asset URLs from GitHub API
+  fetch('https://api.github.com/repos/Mr-Pythoneer/Ur-Study-Bro/releases/latest', {headers:{'User-Agent':'USB-site'}})
+    .then(r => r.json()).then(data => {
+      const assets = data.assets || []
+      const find = (pat) => (assets.find(a => pat.test(a.name)) || {}).browser_download_url
+      const macUrl   = find(/arm64\.dmg$/)
+      const winUrl   = find(/\.exe$/)
+      const linuxUrl = find(/\.AppImage$/)
+      if (macUrl)   { PLATFORMS.mac.href   = macUrl }
+      if (winUrl)   { PLATFORMS.win.href   = winUrl }
+      if (linuxUrl) { PLATFORMS.linux.href = linuxUrl }
+      // Re-render with real URLs
+      renderDl('heroDl')
+      renderDl('ctaDl')
+    }).catch(() => {}) // silently fall back to links page
 
   const primary = isIOS ? 'ios' : isMac ? 'mac' : isWindows ? 'win' : isLinux ? 'linux' : 'mac'
   const others  = isIOS ? ['mac','win','linux'] : ['mac','win','linux'].filter(p => p !== primary)
