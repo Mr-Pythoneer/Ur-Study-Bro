@@ -714,6 +714,37 @@ ipcMain.handle('app:checkUpdate', async () => {
   }
 })
 
+// ── Auto-updater setup ────────────────────────────────────────────
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) win.webContents.send('update:available', info.version)
+  })
+
+  autoUpdater.on('download-progress', (prog) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) win.webContents.send('update:progress', Math.round(prog.percent))
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) win.webContents.send('update:downloaded')
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('AutoUpdater error:', err.message)
+  })
+
+  // Check on launch, then every 4 hours
+  setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 5000)
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000)
+}
+
+ipcMain.on('update:install', () => autoUpdater.quitAndInstall())
+
 // ── First-launch flag ─────────────────────────────────────────────
 const _firstLaunchFile = () => path.join(app.getPath('userData'), '.first-launch-done')
 
