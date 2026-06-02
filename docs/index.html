@@ -930,6 +930,13 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
+        macOS says "the app is damaged and can't be opened" — how do I fix it?
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">This happens because the app isn't signed with an Apple Developer certificate (that costs $99/year — this is a free project). It's completely safe. To fix it: open <strong>Terminal</strong>, paste <code>xattr -cr "/Applications/Ur Study Bro.app"</code> and press Enter. Then open the app normally. This removes the macOS quarantine flag that causes the error.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
         How does Focus Guard work exactly?
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
@@ -1099,6 +1106,12 @@
   <p>Download v5.2.2 — now with the psychometric cognitive assessment, Duolingo-style study path, and local AI on your device.</p>
   <div class="hero-actions" id="ctaDl"></div>
   <p class="hero-note" id="ctaNote" style="margin-top:12px;">No account required · Free forever · v5.2.2</p>
+  <div style="margin-top:16px;background:rgba(255,255,255,.08);border-radius:8px;padding:14px 20px;font-size:12.5px;color:rgba(255,255,255,.7);max-width:560px;margin-left:auto;margin-right:auto;text-align:left;line-height:1.7;">
+    <strong style="color:#fff;">⚠️ macOS: "App is damaged" error?</strong><br>
+    This app is open-source and unsigned. If macOS blocks it, open Terminal and run:<br>
+    <code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px;font-size:12px;">xattr -cr "/Applications/Ur Study Bro.app"</code><br>
+    Then open the app normally. This is safe — it just removes the macOS quarantine flag.
+  </div>
 </div>
 
 <footer>

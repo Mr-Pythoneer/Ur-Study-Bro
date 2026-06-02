@@ -7,13 +7,20 @@
 
 A free, open-source AI-powered desktop study partner built with Electron. Features a full psychoeducational cognitive battery, personalised study plans, focus timers, streaks, rewards, **built-in screen recorder**, flashcard generation, and more.
 
-## 🔴 Download v5.0.0
+## ⬇️ Download — [Latest Release](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest)
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon M1/M2/M3/M4) | [Ur.Study.Bro-5.0.0-arm64.dmg](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-5.0.0-arm64.dmg) |
-| Windows (x64) | [Ur.Study.Bro.Setup.5.0.0.exe](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro.Setup.5.0.0.exe) |
-| Linux (x64) | [Ur.Study.Bro-5.0.0.AppImage](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest/download/Ur.Study.Bro-5.0.0.AppImage) |
+| macOS (Apple Silicon M1+) | `.dmg` on the releases page |
+| Windows (x64) | `.exe` on the releases page |
+| Linux (x64) | `.AppImage` on the releases page |
+
+> **macOS: "App is damaged and can't be opened"?**
+> This is because the app isn't signed with a paid Apple certificate. It's safe — run this in Terminal to fix it:
+> ```
+> xattr -cr "/Applications/Ur Study Bro.app"
+> ```
+> Then open the app normally.
 
 ## What's New in v5.0
 
