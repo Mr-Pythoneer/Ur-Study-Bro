@@ -924,7 +924,7 @@
     if (provider !== 'ollama' && !apiKey) return
 
     const model = localStorage.getItem('ai_model_' + provider) ||
-      (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : provider === 'ollama' ? 'llama3.2' : 'gpt-4o-mini')
+      (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : provider === 'ollama' ? 'gemma3:4b' : 'gpt-4o-mini')
 
     const goals = localStorage.getItem(`cs_${localStorage.getItem('cs_currentUser')}_studyGoals`) || ''
 
@@ -1163,7 +1163,7 @@
     const provider = localStorage.getItem('ai_provider') || 'ollama'
     const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
     const model    = localStorage.getItem('ai_model_' + provider) ||
-      (provider === 'ollama' ? 'llama3.2' : provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
+      (provider === 'ollama' ? 'gemma3:4b' : provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gpt-4o-mini')
 
     try {
       if (!window.api?.askAI) throw new Error('no AI')

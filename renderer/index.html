@@ -923,7 +923,7 @@ window.aiChat = async function(payload) {
   const provider = localStorage.getItem('ai_provider') || 'gemini'
   const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
   const model    = provider === 'ollama'
-    ? (localStorage.getItem('ai_model_ollama') || 'gemma3:1b')
+    ? (localStorage.getItem('ai_model_ollama') || 'gemma3:4b')
     : (payload.model || localStorage.getItem('ai_model_' + provider) || null)
   return window.api.askAI({ ...payload, provider, apiKey, model })
 }

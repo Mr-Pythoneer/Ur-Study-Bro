@@ -278,7 +278,7 @@
   /* ── Key bar ── */
   function getApiCfg(){
     const p=localStorage.getItem('ai_provider')||'ollama'
-    return{provider:p,apiKey:localStorage.getItem('ai_key_'+p)||'',model:localStorage.getItem('ai_model_'+p)||(p==='gemini'?'gemini-2.0-flash':p==='anthropic'?'claude-haiku-4-5-20251001':p==='ollama'?'llama3.2':'gpt-4o-mini')}
+    return{provider:p,apiKey:localStorage.getItem('ai_key_'+p)||'',model:localStorage.getItem('ai_model_'+p)||(p==='gemini'?'gemini-2.0-flash':p==='anthropic'?'claude-haiku-4-5-20251001':p==='ollama'?'gemma3:4b':'gpt-4o-mini')}
   }
   function refreshKeyBar(){const{apiKey,provider}=getApiCfg();document.getElementById('keyBar').classList.toggle('hidden',provider==='ollama'||!!apiKey);document.getElementById('kbProvider').value=provider}
   refreshKeyBar()

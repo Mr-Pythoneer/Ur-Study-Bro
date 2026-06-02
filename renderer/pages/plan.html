@@ -578,7 +578,7 @@ async function generateBatch() {
     try {
       const res = await window.api.askAI({
         provider,
-        model: localStorage.getItem('ai_model_' + provider) || (provider === 'ollama' ? 'llama3.2' : 'auto'),
+        model: localStorage.getItem('ai_model_' + provider) || (provider === 'ollama' ? 'gemma3:4b' : 'auto'),
         systemPrompt: 'You are a study coach. Return ONLY valid JSON arrays, no markdown, no explanation.',
         messages: [{ role:'user', content: buildPrompt() }]
       })

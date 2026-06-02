@@ -283,7 +283,7 @@
     const provider = localStorage.getItem('ai_provider') || 'ollama'
     const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
     const model    = localStorage.getItem('ai_model_' + provider) ||
-      (provider==='gemini'?'gemini-2.0-flash':provider==='anthropic'?'claude-haiku-4-5-20251001':provider==='ollama'?'llama3.2':'gpt-4o-mini')
+      (provider==='gemini'?'gemini-2.0-flash':provider==='anthropic'?'claude-haiku-4-5-20251001':provider==='ollama'?'gemma3:4b':'gpt-4o-mini')
     return { provider, apiKey, model }
   }
   function refreshKeyBar() {

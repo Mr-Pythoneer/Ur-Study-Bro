@@ -377,7 +377,7 @@
     try {
       const p = providerSel.value
       const resolvedModel = p === 'ollama'
-        ? (localStorage.getItem('ai_model_ollama') || localStorage.getItem('ai_ollama_model') || 'gemma3:1b')
+        ? (localStorage.getItem('ai_model_ollama') || localStorage.getItem('ai_ollama_model') || 'gemma3:4b')
         : modelSel.value
       const res = await window.api.askAI({
         provider:     p,
