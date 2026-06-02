@@ -75,7 +75,16 @@
   </div>
 
   <div id="ollamaInstalled" style="display:none;">
-    <div id="ollamaActiveNote" style="font-size:13px;color:var(--accent);font-weight:600;"></div>
+    <div id="ollamaActiveNote" style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px;"></div>
+    <!-- Model picker -->
+    <div class="input-group" style="margin-bottom:10px;">
+      <label>Active Model</label>
+      <select id="ollamaModelSelect" style="width:100%;">
+        <option value="">Loading models…</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="ollamaSetModelBtn" style="font-size:13px;">Use This Model</button>
+    <div id="ollamaModelSaved" style="display:none;font-size:12px;color:var(--accent);margin-top:6px;font-weight:600;">✓ Model updated!</div>
   </div>
 </div>
 
@@ -167,20 +176,36 @@ async function checkOllama() {
       document.getElementById('ollamaNotInstalled').style.display = 'none'
       document.getElementById('ollamaInstalled').style.display = ''
 
-      // Auto-pick: use recommended if pulled, otherwise first available, otherwise nothing
-      const match = models.find(p => p === recommended || p.startsWith(recommended.split(':')[0]))
-        || models[0]
-      if (match) {
-        const currentProvider = localStorage.getItem('ai_provider')
-        if (!currentProvider || currentProvider === 'ollama') {
+      // Populate model dropdown
+      const sel = document.getElementById('ollamaModelSelect')
+      const active = localStorage.getItem('ai_model_ollama') || models[0] || ''
+      if (models.length) {
+        sel.innerHTML = models.map(m =>
+          `<option value="${m}" ${m === active ? 'selected' : ''}>${m}</option>`
+        ).join('')
+        // Auto-set if not set yet
+        if (!localStorage.getItem('ai_model_ollama')) {
           localStorage.setItem('ai_provider', 'ollama')
-          localStorage.setItem('ai_model_ollama', match)
-          localStorage.setItem('ai_ollama_model', match)
+          localStorage.setItem('ai_model_ollama', models[0])
+          localStorage.setItem('ai_ollama_model', models[0])
         }
-        const active = localStorage.getItem('ai_model_ollama') || match
-        document.getElementById('ollamaActiveNote').textContent = `✓ Using ${active} — running locally on your device`
+        document.getElementById('ollamaActiveNote').textContent = `✓ Running — active model: ${active}`
       } else {
-        document.getElementById('ollamaActiveNote').textContent = 'No models installed yet. Pull one from ollama.com or via the terminal.'
+        sel.innerHTML = '<option>No models installed</option>'
+        document.getElementById('ollamaActiveNote').textContent = 'No models found. Run: ollama pull gemma3:4b'
+      }
+
+      // Save button
+      document.getElementById('ollamaSetModelBtn').onclick = () => {
+        const chosen = sel.value
+        if (!chosen) return
+        localStorage.setItem('ai_provider', 'ollama')
+        localStorage.setItem('ai_model_ollama', chosen)
+        localStorage.setItem('ai_ollama_model', chosen)
+        document.getElementById('ollamaActiveNote').textContent = `✓ Running — active model: ${chosen}`
+        const saved = document.getElementById('ollamaModelSaved')
+        saved.style.display = 'block'
+        setTimeout(() => saved.style.display = 'none', 2000)
       }
     } else {
       badge.textContent = '○ Not running'
