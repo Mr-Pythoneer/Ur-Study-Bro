@@ -260,7 +260,7 @@ i used the token
 
 ---
 
-**USER:** here is the gemni api, intergrate it and test all the ai fetures: AIzaSyBulZjvoiBTg_O5kRY4O1538laDRmM1-8U
+**USER:** here is the gemni api, intergrate it and test all the ai fetures: [REDACTED - revoke this key in Google Cloud Console]
 
 **CLAUDE:** *(Integrated Gemini API and tested all AI features)*
 
