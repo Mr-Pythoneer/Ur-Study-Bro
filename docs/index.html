@@ -1107,11 +1107,14 @@
   <p>Download v5.2.5 — now with the psychometric cognitive assessment, Duolingo-style study path, and local AI on your device.</p>
   <div class="hero-actions" id="ctaDl"></div>
   <p class="hero-note" id="ctaNote" style="margin-top:12px;">No account required · Free forever · v5.2.5</p>
-  <div id="macWarning" style="display:none;margin-top:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:14px 20px;font-size:12.5px;color:#fff;max-width:560px;margin-left:auto;margin-right:auto;text-align:left;line-height:1.8;">
-    <strong>⚠️ macOS only: "App is damaged" fix</strong><br>
-    Open Terminal and run this once after installing:<br>
-    <code style="display:inline-block;margin-top:4px;background:rgba(0,0,0,.35);padding:4px 10px;border-radius:4px;font-size:12px;letter-spacing:.3px;">xattr -cr "/Applications/Ur Study Bro.app"</code><br>
-    Then open the app normally — removes the Gatekeeper quarantine flag.
+  <div id="macWarning" style="display:none;margin-top:20px;background:rgba(255,255,255,.10);border:1.5px solid rgba(255,255,255,.25);border-radius:10px;padding:18px 22px;max-width:580px;margin-left:auto;margin-right:auto;text-align:left;line-height:1.8;">
+    <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:10px;">⚠️ macOS says "App is damaged"? Here's the fix — takes 10 seconds.</div>
+    <div style="font-size:12.5px;color:rgba(255,255,255,.85);margin-bottom:10px;">This is normal for free unsigned apps. macOS puts a quarantine flag on everything downloaded from the internet. Run this once in Terminal to remove it:</div>
+    <div style="background:rgba(0,0,0,.4);border-radius:6px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <code id="xattrCmd" style="font-size:12.5px;color:#7effd4;letter-spacing:.2px;">xattr -cr "/Applications/Ur Study Bro.app"</code>
+      <button onclick="navigator.clipboard.writeText('xattr -cr \"/Applications/Ur Study Bro.app\"').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})" style="background:rgba(255,255,255,.15);border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap;">Copy</button>
+    </div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6);">Open <strong style="color:#fff">Terminal</strong> (Spotlight → type Terminal), paste the command, press Enter. Then open the app normally.</div>
   </div>
 </div>
 
@@ -1238,7 +1241,9 @@
   renderDl('ctaDl')
 
   // Only show the Gatekeeper fix note to macOS users
-  if (isMac) {
+  // Show macOS fix for Mac users, and also for anyone who downloaded for Mac
+  // (show always if primary platform is mac, or if on mac)
+  if (isMac || primary === 'mac') {
     const w = document.getElementById('macWarning')
     if (w) w.style.display = 'block'
   }

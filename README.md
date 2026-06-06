@@ -17,12 +17,14 @@ A free, open-source AI-powered desktop study partner built with Electron. Featur
 
 > All releases: [github.com/Mr-Pythoneer/Ur-Study-Bro/releases](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
 
-> **macOS: "App is damaged and can't be opened"?**
-> This is because the app isn't signed with a paid Apple certificate. It's safe — run this in Terminal to fix it:
+> ### ⚠️ macOS: "App is damaged and can't be opened"?
+> This happens because the app isn't code-signed (that costs $99/yr — this is a free project). It's completely safe. Fix it in 10 seconds:
+> 1. Open **Terminal** (Spotlight → search "Terminal")
+> 2. Paste this and press Enter:
 > ```
 > xattr -cr "/Applications/Ur Study Bro.app"
 > ```
-> Then open the app normally.
+> 3. Open the app normally — done.
 
 ## What's New in v5.0
 
