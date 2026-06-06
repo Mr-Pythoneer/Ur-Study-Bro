@@ -295,6 +295,35 @@
     .footer-bottom a { color: var(--text-3); text-decoration: none; }
     .footer-bottom a:hover { color: var(--text); }
 
+    /* ── Language picker ─────────────────────── */
+    .lang-picker { position: relative; }
+    .lang-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px; cursor: pointer;
+      font-size: 13px; font-weight: 500; color: var(--text-2);
+      font-family: var(--font); transition: border-color .12s, color .12s;
+    }
+    .lang-btn:hover { border-color: #bbb; color: var(--text); }
+    .lang-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .lang-dropdown {
+      display: none; position: absolute; right: 0; top: calc(100% + 6px);
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.10); min-width: 180px;
+      z-index: 200; padding: 6px;
+    }
+    .lang-picker.open .lang-dropdown { display: block; }
+    .lang-opt {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 6px; cursor: pointer;
+      font-size: 13px; color: var(--text); transition: background .1s;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: var(--font);
+    }
+    .lang-opt:hover { background: var(--green-bg); }
+    .lang-opt.active { color: var(--green); font-weight: 600; }
+    .lang-flag { font-size: 16px; line-height: 1; }
+
     @media (max-width: 680px) {
       nav { padding: 0 20px; }
       .nav-links { gap: 14px; }
@@ -318,27 +347,35 @@
     Ur Study Bro
   </a>
   <div class="nav-links">
-    <a class="nav-link" href="#features">Features</a>
-    <a class="nav-link" href="#recording">Recording</a>
+    <a class="nav-link" href="#features" data-i18n="nav.features">Features</a>
+    <a class="nav-link" href="#recording" data-i18n="nav.recording">Recording</a>
     <a class="nav-link" href="#ai">AI</a>
-    <a class="nav-link" href="#assessment">Assessment</a>
-    <a class="nav-link" href="#plan">Study Path</a>
-    <a class="nav-link" href="#rewards">Rewards</a>
-    <a class="nav-link" href="#social">Social</a>
-    <a class="nav-link" href="#compare">vs. Paid Apps</a>
+    <a class="nav-link" href="#assessment" data-i18n="nav.assessment">Assessment</a>
+    <a class="nav-link" href="#plan" data-i18n="nav.plan">Study Path</a>
+    <a class="nav-link" href="#rewards" data-i18n="nav.rewards">Rewards</a>
+    <a class="nav-link" href="#social" data-i18n="nav.social">Social</a>
+    <a class="nav-link" href="#compare" data-i18n="nav.compare">vs. Paid Apps</a>
     <a class="nav-link" href="#faq">FAQ</a>
-    <a class="nav-link" href="#support">Support ☕</a>
+    <a class="nav-link" href="#support" data-i18n="nav.support">Support ☕</a>
     <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank">GitHub</a>
-    <a class="nav-btn" href="app.html" style="background:transparent;color:var(--green);border:1.5px solid var(--green);margin-right:6px;">Try Online</a>
-    <a class="nav-btn" href="#download">Download</a>
+    <a class="nav-btn" href="app.html" style="background:transparent;color:var(--green);border:1.5px solid var(--green);margin-right:6px;" data-i18n="nav.tryOnline">Try Online</a>
+    <a class="nav-btn" href="#download" data-i18n="nav.download">Download</a>
+    <!-- Language picker -->
+    <div class="lang-picker" id="langPicker">
+      <button class="lang-btn" onclick="toggleLangMenu()" aria-label="Change language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span id="langBtnLabel">EN</span>
+      </button>
+      <div class="lang-dropdown" id="langDropdown"></div>
+    </div>
   </div>
 </nav>
 
 <!-- Hero -->
 <section class="hero">
-  <p class="hero-tag">Free &amp; open source · macOS, Windows, Linux · v5.2.5</p>
-  <h1>Study smarter.<br><em>For how you think.</em></h1>
-  <p class="hero-sub">Every other study app just tells you to "try the Pomodoro technique." This one figures out how your brain actually works first — then builds an infinite, adaptive study path just for you.</p>
+  <p class="hero-tag" data-i18n="hero.tag">Free &amp; open source · macOS, Windows, Linux · v5.2.5</p>
+  <h1 data-i18n="hero.h1">Study smarter.<br><em>For how you think.</em></h1>
+  <p class="hero-sub" data-i18n="hero.sub">Every other study app just tells you to "try the Pomodoro technique." This one figures out how your brain actually works first — then builds an infinite, adaptive study path just for you.</p>
 
   <!-- Big download CTA -->
   <div class="hero-actions" id="heroDl" style="margin-bottom:12px;"></div>
@@ -882,28 +919,28 @@
   <div class="faq-list">
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Is Ur Study Bro really free?
+        <span data-i18n="faq.q1">Is Ur Study Bro really free?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">Yes — completely free, forever. No subscription, no free trial, no premium tier. The app is MIT-licensed and open source. You can download it, modify it, and use it however you like.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Do I need an account or internet connection?
+        <span data-i18n="faq.q2">Do I need an account or internet connection?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">No account required — ever. The app works entirely offline. Your data stays on your device. An internet connection is only needed when you actively use the AI features (which require an API key you control).</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Which AI providers are supported?
+        <span data-i18n="faq.q3">Which AI providers are supported?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">By default the app uses <strong>Ollama</strong> (local, no key needed). Optionally you can switch to Google Gemini, Anthropic Claude, OpenAI GPT-4o, or Groq in Settings — all have free tiers. Your API key never leaves your device.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        What platforms does it run on?
+        <span data-i18n="faq.q4">What platforms does it run on?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">
@@ -915,28 +952,28 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Is the cognitive assessment scientifically valid?
+        <span data-i18n="faq.q5">Is the cognitive assessment scientifically valid?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">The six tests are adapted from well-established clinical instruments used in psychoeducational assessments: Digit Span (WISC/WAIS), AX-CPT, Symbol Search, Matrix Reasoning, Reading Comprehension, and Task Switching. The app is an <strong>educational tool</strong>, not a medical device — results are not a formal diagnosis. For a clinical assessment, consult a licensed psychologist.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Do I need an API key for AI features?
+        <span data-i18n="faq.q6">Do I need an API key for AI features?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">Nope. The app uses <strong>Ollama</strong> by default — a free, local AI that runs entirely on your machine. No API key, no account, no internet needed for AI. Just install Ollama, pull a model (e.g. <code>ollama pull llama3.2</code>), and every AI feature works out of the box. If you want to use a cloud provider (Gemini, Claude, GPT-4o, Groq) you can switch in Settings — but it's completely optional.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Can I contribute or report a bug?
+        <span data-i18n="faq.q7">Can I contribute or report a bug?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">Yes! The project is open source under the MIT License. You can <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank">open an issue</a> for bug reports or feature requests, or <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank">submit a pull request</a>. All contributions are welcome.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        The app won't open on my Mac — how do I fix it?
+        <span data-i18n="faq.q8">The app won't open on my Mac — how do I fix it?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">
@@ -957,7 +994,7 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        How does Focus Guard work exactly?
+        <span data-i18n="faq.q9">How does Focus Guard work exactly?</span>
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="faq-a">When you start a timer with Focus Guard on, you choose which apps are allowed (e.g. your notes app, a browser). Every 2 seconds, the system checks which app is in the foreground. If it's not on your allowed list, the app hides it at the system level and brings Ur Study Bro back to the front. On macOS, this uses AppleScript to set the app's visibility. You can only disable Focus Guard by resetting the timer — and sessions ended this way don't earn points.</div>
@@ -1178,6 +1215,370 @@
     <span>Built with Electron · No tracking · No telemetry · v5.2.5</span>
   </div>
 </footer>
+
+<script>
+  /* ── Translations ───────────────────────────────────────────── */
+  const LANGS = [
+    { code:'en', flag:'🇬🇧', name:'English' },
+    { code:'es', flag:'🇪🇸', name:'Español' },
+    { code:'fr', flag:'🇫🇷', name:'Français' },
+    { code:'de', flag:'🇩🇪', name:'Deutsch' },
+    { code:'zh', flag:'🇨🇳', name:'中文' },
+    { code:'ja', flag:'🇯🇵', name:'日本語' },
+    { code:'ko', flag:'🇰🇷', name:'한국어' },
+    { code:'pt', flag:'🇧🇷', name:'Português' },
+    { code:'ar', flag:'🇸🇦', name:'العربية' },
+    { code:'hi', flag:'🇮🇳', name:'हिन्दी' },
+  ]
+
+  const T = {
+    en: {
+      'nav.features':'Features','nav.recording':'Recording','nav.assessment':'Assessment',
+      'nav.plan':'Study Path','nav.rewards':'Rewards','nav.social':'Social',
+      'nav.compare':'vs. Paid Apps','nav.support':'Support ☕','nav.tryOnline':'Try Online','nav.download':'Download',
+      'hero.tag':'Free & open source · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'Study smarter.<br><em>For how you think.</em>',
+      'hero.sub':'Every other study app just tells you to "try the Pomodoro technique." This one figures out how your brain actually works first — then builds an infinite, adaptive study path just for you.',
+      'sec.features.label':'Features','sec.features.h2':'Everything you actually need. Nothing you don\'t.',
+      'sec.recording.label':'🔴 New in v5.2','sec.recording.h2':'Record your screen. Capture every lecture. Miss nothing.',
+      'sec.ai.label':'Artificial Intelligence','sec.ai.h2':'AI that actually helps you study.',
+      'sec.plan.label':'Study Path','sec.plan.h2':'A study path that never ends. And never stops evolving.',
+      'sec.assessment.label':'Cognitive Assessment','sec.assessment.h2':'A learning profile that\'s actually about you.',
+      'sec.rewards.label':'Rewards & Streaks','sec.rewards.h2':'Points for doing the thing you were going to do anyway.',
+      'sec.faq.label':'FAQ','sec.faq.h2':'Things people usually ask.',
+      'sec.compare.label':'Value','sec.compare.h2':'Replaces 6 apps. Costs $0.',
+      'sec.social.label':'🆕 New Feature','sec.social.h2':'Study with your squad.',
+      'sec.contact.label':'Contact','sec.contact.h2':'Get in touch.',
+      'sec.support.label':'Support the Project',
+      'cta.h2':'Free. Open source. No sign-up.',
+      'faq.q1':'Is Ur Study Bro really free?','faq.q2':'Do I need an account or internet connection?',
+      'faq.q3':'Which AI providers are supported?','faq.q4':'What platforms does it run on?',
+      'faq.q5':'Is the cognitive assessment scientifically valid?','faq.q6':'Do I need an API key for AI features?',
+      'faq.q7':'Can I contribute or report a bug?','faq.q8':'The app won\'t open on my Mac — how do I fix it?',
+      'faq.q9':'How does Focus Guard work exactly?',
+    },
+    es: {
+      'nav.features':'Funciones','nav.recording':'Grabación','nav.assessment':'Evaluación',
+      'nav.plan':'Plan de estudio','nav.rewards':'Recompensas','nav.social':'Social',
+      'nav.compare':'vs. Apps de pago','nav.support':'Apoya ☕','nav.tryOnline':'Probar online','nav.download':'Descargar',
+      'hero.tag':'Gratis y de código abierto · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'Estudia más inteligente.<br><em>A tu manera.</em>',
+      'hero.sub':'Otras apps solo te dicen "prueba el Pomodoro". Esta primero descubre cómo funciona tu cerebro y luego construye un plan de estudio infinito y adaptado a ti.',
+      'sec.features.label':'Funciones','sec.features.h2':'Todo lo que realmente necesitas. Nada más.',
+      'sec.recording.label':'🔴 Nuevo en v5.2','sec.recording.h2':'Graba tu pantalla. Captura cada clase. No te pierdas nada.',
+      'sec.ai.label':'Inteligencia Artificial','sec.ai.h2':'IA que de verdad te ayuda a estudiar.',
+      'sec.plan.label':'Plan de estudio','sec.plan.h2':'Un plan que nunca termina. Y nunca deja de evolucionar.',
+      'sec.assessment.label':'Evaluación cognitiva','sec.assessment.h2':'Un perfil de aprendizaje realmente sobre ti.',
+      'sec.rewards.label':'Recompensas y rachas','sec.rewards.h2':'Puntos por hacer lo que ibas a hacer de todas formas.',
+      'sec.faq.label':'FAQ','sec.faq.h2':'Lo que la gente suele preguntar.',
+      'sec.compare.label':'Valor','sec.compare.h2':'Reemplaza 6 apps. Cuesta $0.',
+      'sec.social.label':'🆕 Nueva función','sec.social.h2':'Estudia con tus amigos.',
+      'sec.contact.label':'Contacto','sec.contact.h2':'Ponerse en contacto.',
+      'sec.support.label':'Apoya el proyecto',
+      'cta.h2':'Gratis. Código abierto. Sin registro.',
+      'faq.q1':'¿Es Ur Study Bro realmente gratis?','faq.q2':'¿Necesito cuenta o conexión a internet?',
+      'faq.q3':'¿Qué proveedores de IA se admiten?','faq.q4':'¿En qué plataformas funciona?',
+      'faq.q5':'¿Es válida científicamente la evaluación cognitiva?','faq.q6':'¿Necesito una clave API para las funciones de IA?',
+      'faq.q7':'¿Puedo contribuir o reportar un error?','faq.q8':'La app no abre en mi Mac — ¿cómo lo soluciono?',
+      'faq.q9':'¿Cómo funciona Focus Guard exactamente?',
+    },
+    fr: {
+      'nav.features':'Fonctionnalités','nav.recording':'Enregistrement','nav.assessment':'Évaluation',
+      'nav.plan':'Plan d\'étude','nav.rewards':'Récompenses','nav.social':'Social',
+      'nav.compare':'vs. Apps payantes','nav.support':'Soutenir ☕','nav.tryOnline':'Essayer en ligne','nav.download':'Télécharger',
+      'hero.tag':'Gratuit et open source · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'Étudie plus intelligemment.<br><em>Selon ton fonctionnement.</em>',
+      'hero.sub':'Les autres applis te disent juste "essaie la technique Pomodoro". Celle-ci commence par comprendre comment ton cerveau fonctionne réellement, puis construit un plan d\'étude infini et adapté rien que pour toi.',
+      'sec.features.label':'Fonctionnalités','sec.features.h2':'Tout ce dont tu as vraiment besoin. Rien de plus.',
+      'sec.recording.label':'🔴 Nouveau dans v5.2','sec.recording.h2':'Enregistre ton écran. Capture chaque cours. Ne rate rien.',
+      'sec.ai.label':'Intelligence Artificielle','sec.ai.h2':'Une IA qui t\'aide vraiment à étudier.',
+      'sec.plan.label':'Plan d\'étude','sec.plan.h2':'Un parcours qui ne finit jamais. Et n\'arrête jamais d\'évoluer.',
+      'sec.assessment.label':'Évaluation cognitive','sec.assessment.h2':'Un profil d\'apprentissage vraiment centré sur toi.',
+      'sec.rewards.label':'Récompenses & séries','sec.rewards.h2':'Des points pour faire ce que tu allais faire de toute façon.',
+      'sec.faq.label':'FAQ','sec.faq.h2':'Les questions habituelles.',
+      'sec.compare.label':'Valeur','sec.compare.h2':'Remplace 6 applis. Coûte $0.',
+      'sec.social.label':'🆕 Nouvelle fonctionnalité','sec.social.h2':'Étudie avec tes amis.',
+      'sec.contact.label':'Contact','sec.contact.h2':'Prendre contact.',
+      'sec.support.label':'Soutenir le projet',
+      'cta.h2':'Gratuit. Open source. Sans inscription.',
+      'faq.q1':'Ur Study Bro est-il vraiment gratuit?','faq.q2':'Ai-je besoin d\'un compte ou d\'une connexion internet?',
+      'faq.q3':'Quels fournisseurs IA sont supportés?','faq.q4':'Sur quelles plateformes fonctionne-t-il?',
+      'faq.q5':'L\'évaluation cognitive est-elle scientifiquement valide?','faq.q6':'Ai-je besoin d\'une clé API pour les fonctions IA?',
+      'faq.q7':'Puis-je contribuer ou signaler un bug?','faq.q8':'L\'appli ne s\'ouvre pas sur mon Mac — comment régler ça?',
+      'faq.q9':'Comment fonctionne Focus Guard exactement?',
+    },
+    de: {
+      'nav.features':'Funktionen','nav.recording':'Aufnahme','nav.assessment':'Bewertung',
+      'nav.plan':'Lernpfad','nav.rewards':'Belohnungen','nav.social':'Soziales',
+      'nav.compare':'vs. kostenpflichtige Apps','nav.support':'Unterstützen ☕','nav.tryOnline':'Online testen','nav.download':'Herunterladen',
+      'hero.tag':'Kostenlos & open source · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'Lerne smarter.<br><em>So, wie dein Gehirn funktioniert.</em>',
+      'hero.sub':'Andere Apps sagen dir nur "probier die Pomodoro-Technik". Diese findet zuerst heraus, wie dein Gehirn wirklich funktioniert – und erstellt dann einen unendlichen, adaptiven Lernpfad genau für dich.',
+      'sec.features.label':'Funktionen','sec.features.h2':'Alles, was du wirklich brauchst. Nichts, was du nicht brauchst.',
+      'sec.recording.label':'🔴 Neu in v5.2','sec.recording.h2':'Bildschirm aufnehmen. Jede Vorlesung einfangen. Nichts verpassen.',
+      'sec.ai.label':'Künstliche Intelligenz','sec.ai.h2':'KI, die dir wirklich beim Lernen hilft.',
+      'sec.plan.label':'Lernpfad','sec.plan.h2':'Ein Lernpfad, der nie endet. Und nie aufhört sich weiterzuentwickeln.',
+      'sec.assessment.label':'Kognitive Bewertung','sec.assessment.h2':'Ein Lernprofil, das wirklich zu dir passt.',
+      'sec.rewards.label':'Belohnungen & Streaks','sec.rewards.h2':'Punkte für das, was du sowieso getan hättest.',
+      'sec.faq.label':'FAQ','sec.faq.h2':'Häufig gestellte Fragen.',
+      'sec.compare.label':'Wert','sec.compare.h2':'Ersetzt 6 Apps. Kostet $0.',
+      'sec.social.label':'🆕 Neue Funktion','sec.social.h2':'Lerne mit deinen Freunden.',
+      'sec.contact.label':'Kontakt','sec.contact.h2':'Kontakt aufnehmen.',
+      'sec.support.label':'Projekt unterstützen',
+      'cta.h2':'Kostenlos. Open source. Keine Anmeldung.',
+      'faq.q1':'Ist Ur Study Bro wirklich kostenlos?','faq.q2':'Brauche ich ein Konto oder eine Internetverbindung?',
+      'faq.q3':'Welche KI-Anbieter werden unterstützt?','faq.q4':'Auf welchen Plattformen läuft es?',
+      'faq.q5':'Ist die kognitive Bewertung wissenschaftlich valide?','faq.q6':'Brauche ich einen API-Schlüssel für KI-Funktionen?',
+      'faq.q7':'Kann ich beitragen oder einen Fehler melden?','faq.q8':'Die App öffnet sich nicht auf meinem Mac — wie behebe ich das?',
+      'faq.q9':'Wie funktioniert Focus Guard genau?',
+    },
+    zh: {
+      'nav.features':'功能','nav.recording':'录屏','nav.assessment':'测评',
+      'nav.plan':'学习路径','nav.rewards':'奖励','nav.social':'社交',
+      'nav.compare':'对比付费应用','nav.support':'支持 ☕','nav.tryOnline':'在线体验','nav.download':'下载',
+      'hero.tag':'免费开源 · macOS、Windows、Linux · v5.2.5',
+      'hero.h1':'更聪明地学习。<br><em>专为你的大脑设计。</em>',
+      'hero.sub':'其他学习应用只会说"试试番茄工作法"。这个应用会先弄清楚你的大脑是如何工作的，然后为你构建一条无限自适应的学习路径。',
+      'sec.features.label':'功能','sec.features.h2':'你真正需要的一切，没有多余。',
+      'sec.recording.label':'🔴 v5.2 新功能','sec.recording.h2':'录制屏幕，捕捉每一堂课，不错过任何内容。',
+      'sec.ai.label':'人工智能','sec.ai.h2':'真正帮助你学习的 AI。',
+      'sec.plan.label':'学习路径','sec.plan.h2':'永不止步的学习路径，持续进化。',
+      'sec.assessment.label':'认知测评','sec.assessment.h2':'真正属于你的学习档案。',
+      'sec.rewards.label':'奖励与连续签到','sec.rewards.h2':'为本来就要做的事赚取积分。',
+      'sec.faq.label':'常见问题','sec.faq.h2':'大家通常会问的问题。',
+      'sec.compare.label':'价值','sec.compare.h2':'替代 6 款应用，零成本。',
+      'sec.social.label':'🆕 新功能','sec.social.h2':'和朋友一起学习。',
+      'sec.contact.label':'联系','sec.contact.h2':'联系我们。',
+      'sec.support.label':'支持本项目',
+      'cta.h2':'免费。开源。无需注册。',
+      'faq.q1':'Ur Study Bro 真的免费吗？','faq.q2':'我需要账号或网络连接吗？',
+      'faq.q3':'支持哪些 AI 提供商？','faq.q4':'支持哪些平台？',
+      'faq.q5':'认知测评有科学依据吗？','faq.q6':'使用 AI 功能需要 API 密钥吗？',
+      'faq.q7':'我可以贡献代码或报告 Bug 吗？','faq.q8':'应用在 Mac 上无法打开——如何解决？',
+      'faq.q9':'Focus Guard 的工作原理是什么？',
+    },
+    ja: {
+      'nav.features':'機能','nav.recording':'録画','nav.assessment':'評価',
+      'nav.plan':'学習パス','nav.rewards':'報酬','nav.social':'ソーシャル',
+      'nav.compare':'有料アプリとの比較','nav.support':'サポート ☕','nav.tryOnline':'オンラインで試す','nav.download':'ダウンロード',
+      'hero.tag':'無料・オープンソース · macOS、Windows、Linux · v5.2.5',
+      'hero.h1':'もっとスマートに学ぼう。<br><em>あなたの脳に合わせて。</em>',
+      'hero.sub':'他の学習アプリは「ポモドーロ法を試して」と言うだけ。このアプリはまずあなたの脳の仕組みを理解し、あなただけの無限に適応する学習パスを作ります。',
+      'sec.features.label':'機能','sec.features.h2':'本当に必要なものだけ。余分なものは一切なし。',
+      'sec.recording.label':'🔴 v5.2 の新機能','sec.recording.h2':'画面を録画。すべての講義をキャプチャ。見逃しゼロ。',
+      'sec.ai.label':'人工知能','sec.ai.h2':'本当に学習を助けてくれる AI。',
+      'sec.plan.label':'学習パス','sec.plan.h2':'終わりのない学習パス。進化し続ける。',
+      'sec.assessment.label':'認知評価','sec.assessment.h2':'本当にあなたのための学習プロファイル。',
+      'sec.rewards.label':'報酬とストリーク','sec.rewards.h2':'どうせやることをやってポイントを稼ごう。',
+      'sec.faq.label':'よくある質問','sec.faq.h2':'よく聞かれること。',
+      'sec.compare.label':'価値','sec.compare.h2':'6 つのアプリを置き換え。費用は $0。',
+      'sec.social.label':'🆕 新機能','sec.social.h2':'仲間と一緒に勉強しよう。',
+      'sec.contact.label':'お問い合わせ','sec.contact.h2':'連絡する。',
+      'sec.support.label':'プロジェクトを支援',
+      'cta.h2':'無料。オープンソース。登録不要。',
+      'faq.q1':'Ur Study Bro は本当に無料ですか？','faq.q2':'アカウントやインターネット接続は必要ですか？',
+      'faq.q3':'どの AI プロバイダーに対応していますか？','faq.q4':'どのプラットフォームで動作しますか？',
+      'faq.q5':'認知評価は科学的に妥当ですか？','faq.q6':'AI 機能に API キーは必要ですか？',
+      'faq.q7':'貢献したりバグを報告したりできますか？','faq.q8':'Mac でアプリが開かない場合の対処法は？',
+      'faq.q9':'Focus Guard の仕組みは？',
+    },
+    ko: {
+      'nav.features':'기능','nav.recording':'녹화','nav.assessment':'평가',
+      'nav.plan':'학습 경로','nav.rewards':'보상','nav.social':'소셜',
+      'nav.compare':'유료 앱 비교','nav.support':'후원 ☕','nav.tryOnline':'온라인으로 체험','nav.download':'다운로드',
+      'hero.tag':'무료 & 오픈소스 · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'더 스마트하게 공부하세요.<br><em>내 두뇌에 맞게.</em>',
+      'hero.sub':'다른 앱들은 "포모도로를 써봐"라고만 합니다. 이 앱은 먼저 당신의 뇌가 어떻게 작동하는지 파악한 다음, 당신만을 위한 무한 맞춤 학습 경로를 만들어줍니다.',
+      'sec.features.label':'기능','sec.features.h2':'실제로 필요한 모든 것. 그 이상은 없음.',
+      'sec.recording.label':'🔴 v5.2 신기능','sec.recording.h2':'화면 녹화. 모든 강의 캡처. 놓치는 것 없이.',
+      'sec.ai.label':'인공지능','sec.ai.h2':'실제로 공부를 돕는 AI.',
+      'sec.plan.label':'학습 경로','sec.plan.h2':'끝없는 학습 경로. 그리고 계속 진화.',
+      'sec.assessment.label':'인지 평가','sec.assessment.h2':'진짜 당신을 위한 학습 프로필.',
+      'sec.rewards.label':'보상 & 스트릭','sec.rewards.h2':'어차피 할 일을 하고 포인트를 얻으세요.',
+      'sec.faq.label':'자주 묻는 질문','sec.faq.h2':'사람들이 자주 묻는 것들.',
+      'sec.compare.label':'가치','sec.compare.h2':'앱 6개를 대체. 비용은 $0.',
+      'sec.social.label':'🆕 새 기능','sec.social.h2':'친구들과 함께 공부하세요.',
+      'sec.contact.label':'연락','sec.contact.h2':'연락하기.',
+      'sec.support.label':'프로젝트 지원',
+      'cta.h2':'무료. 오픈소스. 가입 불필요.',
+      'faq.q1':'Ur Study Bro는 정말 무료인가요?','faq.q2':'계정이나 인터넷 연결이 필요한가요?',
+      'faq.q3':'어떤 AI 제공자가 지원되나요?','faq.q4':'어떤 플랫폼에서 실행되나요?',
+      'faq.q5':'인지 평가는 과학적으로 유효한가요?','faq.q6':'AI 기능에 API 키가 필요한가요?',
+      'faq.q7':'기여하거나 버그를 보고할 수 있나요?','faq.q8':'Mac에서 앱이 열리지 않으면 어떻게 하나요?',
+      'faq.q9':'Focus Guard는 정확히 어떻게 작동하나요?',
+    },
+    pt: {
+      'nav.features':'Funcionalidades','nav.recording':'Gravação','nav.assessment':'Avaliação',
+      'nav.plan':'Plano de estudo','nav.rewards':'Recompensas','nav.social':'Social',
+      'nav.compare':'vs. Apps pagos','nav.support':'Apoiar ☕','nav.tryOnline':'Experimentar online','nav.download':'Baixar',
+      'hero.tag':'Gratuito e open source · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'Estude de forma mais inteligente.<br><em>Do jeito que o seu cérebro funciona.</em>',
+      'hero.sub':'Outros apps só dizem "tente a técnica Pomodoro". Este primeiro descobre como o seu cérebro realmente funciona — e depois cria um caminho de estudo infinito e adaptado só para você.',
+      'sec.features.label':'Funcionalidades','sec.features.h2':'Tudo o que você realmente precisa. Nada mais.',
+      'sec.recording.label':'🔴 Novo na v5.2','sec.recording.h2':'Grave a tela. Capture cada aula. Não perca nada.',
+      'sec.ai.label':'Inteligência Artificial','sec.ai.h2':'IA que realmente ajuda você a estudar.',
+      'sec.plan.label':'Plano de estudo','sec.plan.h2':'Um caminho de estudo que nunca termina. E nunca para de evoluir.',
+      'sec.assessment.label':'Avaliação cognitiva','sec.assessment.h2':'Um perfil de aprendizagem realmente sobre você.',
+      'sec.rewards.label':'Recompensas & sequências','sec.rewards.h2':'Pontos por fazer o que você ia fazer de qualquer jeito.',
+      'sec.faq.label':'FAQ','sec.faq.h2':'Perguntas que as pessoas geralmente fazem.',
+      'sec.compare.label':'Valor','sec.compare.h2':'Substitui 6 apps. Custa $0.',
+      'sec.social.label':'🆕 Nova funcionalidade','sec.social.h2':'Estude com seus amigos.',
+      'sec.contact.label':'Contato','sec.contact.h2':'Entrar em contato.',
+      'sec.support.label':'Apoiar o projeto',
+      'cta.h2':'Grátis. Open source. Sem cadastro.',
+      'faq.q1':'Ur Study Bro é realmente gratuito?','faq.q2':'Preciso de uma conta ou conexão com a internet?',
+      'faq.q3':'Quais provedores de IA são suportados?','faq.q4':'Em quais plataformas funciona?',
+      'faq.q5':'A avaliação cognitiva é cientificamente válida?','faq.q6':'Preciso de uma chave de API para usar a IA?',
+      'faq.q7':'Posso contribuir ou reportar um bug?','faq.q8':'O app não abre no meu Mac — como resolver?',
+      'faq.q9':'Como o Focus Guard funciona exatamente?',
+    },
+    ar: {
+      'nav.features':'الميزات','nav.recording':'التسجيل','nav.assessment':'التقييم',
+      'nav.plan':'مسار الدراسة','nav.rewards':'المكافآت','nav.social':'الاجتماعي',
+      'nav.compare':'مقارنة بالتطبيقات المدفوعة','nav.support':'الدعم ☕','nav.tryOnline':'جرّب عبر الإنترنت','nav.download':'تنزيل',
+      'hero.tag':'مجاني ومفتوح المصدر · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'ادرس بذكاء أكبر.<br><em>بالطريقة التي يعمل بها عقلك.</em>',
+      'hero.sub':'كل التطبيقات الأخرى تقول فقط "جرّب تقنية بومودورو". هذا التطبيق يكتشف أولاً كيف يعمل عقلك حقاً، ثم يبني مسار دراسة لا نهائياً ومتكيفاً خصيصاً لك.',
+      'sec.features.label':'الميزات','sec.features.h2':'كل ما تحتاجه فعلاً. لا شيء أكثر.',
+      'sec.recording.label':'🔴 جديد في v5.2','sec.recording.h2':'سجّل شاشتك. التقط كل محاضرة. لا تفوّت شيئاً.',
+      'sec.ai.label':'الذكاء الاصطناعي','sec.ai.h2':'ذكاء اصطناعي يساعدك فعلاً على الدراسة.',
+      'sec.plan.label':'مسار الدراسة','sec.plan.h2':'مسار دراسي لا ينتهي. ولا يتوقف عن التطور.',
+      'sec.assessment.label':'التقييم المعرفي','sec.assessment.h2':'ملف تعلّم يتحدث عنك حقاً.',
+      'sec.rewards.label':'المكافآت والسلاسل','sec.rewards.h2':'نقاط على ما كنت ستفعله على أي حال.',
+      'sec.faq.label':'الأسئلة الشائعة','sec.faq.h2':'ما يسأل عنه الناس عادةً.',
+      'sec.compare.label':'القيمة','sec.compare.h2':'يحلّ محل 6 تطبيقات. تكلفته صفر.',
+      'sec.social.label':'🆕 ميزة جديدة','sec.social.h2':'ادرس مع أصدقائك.',
+      'sec.contact.label':'تواصل','sec.contact.h2':'تواصل معنا.',
+      'sec.support.label':'ادعم المشروع',
+      'cta.h2':'مجاني. مفتوح المصدر. بدون تسجيل.',
+      'faq.q1':'هل Ur Study Bro مجاني حقاً؟','faq.q2':'هل أحتاج إلى حساب أو اتصال بالإنترنت؟',
+      'faq.q3':'ما موفرو الذكاء الاصطناعي المدعومون؟','faq.q4':'على أي منصات يعمل؟',
+      'faq.q5':'هل التقييم المعرفي صالح علمياً؟','faq.q6':'هل أحتاج إلى مفتاح API لميزات الذكاء الاصطناعي؟',
+      'faq.q7':'هل يمكنني المساهمة أو الإبلاغ عن خطأ؟','faq.q8':'التطبيق لا يفتح على Mac — كيف أحل المشكلة؟',
+      'faq.q9':'كيف يعمل Focus Guard بالضبط؟',
+    },
+    hi: {
+      'nav.features':'सुविधाएँ','nav.recording':'रिकॉर्डिंग','nav.assessment':'मूल्यांकन',
+      'nav.plan':'अध्ययन पथ','nav.rewards':'पुरस्कार','nav.social':'सामाजिक',
+      'nav.compare':'पेड ऐप्स से तुलना','nav.support':'समर्थन ☕','nav.tryOnline':'ऑनलाइन आज़माएँ','nav.download':'डाउनलोड करें',
+      'hero.tag':'मुफ़्त और ओपन सोर्स · macOS, Windows, Linux · v5.2.5',
+      'hero.h1':'स्मार्ट तरीके से पढ़ें।<br><em>जैसे आपका दिमाग सोचता है।</em>',
+      'hero.sub':'बाकी सभी ऐप्स बस कहते हैं "पोमोडोरो तकनीक आज़माओ।" यह ऐप पहले यह समझता है कि आपका दिमाग वास्तव में कैसे काम करता है — फिर सिर्फ आपके लिए एक अनंत, अनुकूली अध्ययन पथ बनाता है।',
+      'sec.features.label':'सुविधाएँ','sec.features.h2':'जो आपको वास्तव में चाहिए। कुछ भी ज़्यादा नहीं।',
+      'sec.recording.label':'🔴 v5.2 में नया','sec.recording.h2':'अपनी स्क्रीन रिकॉर्ड करें। हर लेक्चर कैप्चर करें। कुछ न चूकें।',
+      'sec.ai.label':'कृत्रिम बुद्धिमत्ता','sec.ai.h2':'AI जो वाकई पढ़ाई में मदद करता है।',
+      'sec.plan.label':'अध्ययन पथ','sec.plan.h2':'एक अध्ययन पथ जो कभी खत्म नहीं होता। और विकसित होता रहता है।',
+      'sec.assessment.label':'संज्ञानात्मक मूल्यांकन','sec.assessment.h2':'एक लर्निंग प्रोफाइल जो सच में आपके बारे में है।',
+      'sec.rewards.label':'पुरस्कार और स्ट्रीक्स','sec.rewards.h2':'वही करके पॉइंट्स पाएं जो आप वैसे भी करने वाले थे।',
+      'sec.faq.label':'सामान्य प्रश्न','sec.faq.h2':'लोग आमतौर पर जो पूछते हैं।',
+      'sec.compare.label':'मूल्य','sec.compare.h2':'6 ऐप्स की जगह। लागत $0।',
+      'sec.social.label':'🆕 नई सुविधा','sec.social.h2':'दोस्तों के साथ पढ़ाई करें।',
+      'sec.contact.label':'संपर्क','sec.contact.h2':'संपर्क करें।',
+      'sec.support.label':'प्रोजेक्ट को सपोर्ट करें',
+      'cta.h2':'मुफ़्त। ओपन सोर्स। कोई साइन-अप नहीं।',
+      'faq.q1':'क्या Ur Study Bro वाकई मुफ़्त है?','faq.q2':'क्या मुझे अकाउंट या इंटरनेट कनेक्शन चाहिए?',
+      'faq.q3':'कौन से AI प्रदाता समर्थित हैं?','faq.q4':'यह किन प्लेटफ़ॉर्म पर चलता है?',
+      'faq.q5':'क्या संज्ञानात्मक मूल्यांकन वैज्ञानिक रूप से मान्य है?','faq.q6':'AI सुविधाओं के लिए API की चाबी चाहिए?',
+      'faq.q7':'क्या मैं योगदान दे सकता हूँ या बग रिपोर्ट कर सकता हूँ?','faq.q8':'Mac पर ऐप नहीं खुल रहा — कैसे ठीक करें?',
+      'faq.q9':'Focus Guard वास्तव में कैसे काम करता है?',
+    },
+  }
+
+  // Wire up data-i18n on section headings (sections use inline text, so we map them manually)
+  const SEC_KEYS = [
+    ['sec.features.label', '#features .section-label'],
+    ['sec.features.h2',    '#features h2'],
+    ['sec.recording.label','#recording .section-label'],
+    ['sec.recording.h2',   '#recording h2'],
+    ['sec.ai.label',       '#ai .section-label'],
+    ['sec.ai.h2',          '#ai h2'],
+    ['sec.plan.label',     '#plan .section-label'],
+    ['sec.plan.h2',        '#plan h2'],
+    ['sec.assessment.label','#assessment .section-label'],
+    ['sec.assessment.h2',  '#assessment h2'],
+    ['sec.rewards.label',  '#rewards .section-label'],
+    ['sec.rewards.h2',     '#rewards h2'],
+    ['sec.faq.label',      '#faq .section-label'],
+    ['sec.faq.h2',         '#faq h2'],
+    ['sec.compare.label',  '#compare .section-label'],
+    ['sec.compare.h2',     '#compare h2'],
+    ['sec.social.label',   '#social .section-label'],
+    ['sec.social.h2',      '#social h2'],
+    ['sec.contact.label',  '#contact .section-label'],
+    ['sec.contact.h2',     '#contact h2'],
+    ['sec.support.label',  '#support .section-label'],
+    ['cta.h2',             '#download h2'],
+  ]
+  let currentLang = localStorage.getItem('usb_lang') || 'en'
+
+  function applyLang(code) {
+    const tr = T[code] || T.en
+    currentLang = code
+    localStorage.setItem('usb_lang', code)
+
+    // RTL support
+    document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr'
+
+    // data-i18n elements (nav, hero)
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n
+      if (tr[key] !== undefined) el.innerHTML = tr[key]
+    })
+
+    // Section headings
+    SEC_KEYS.forEach(([key, sel]) => {
+      const el = document.querySelector(sel)
+      if (el && tr[key] !== undefined) el.innerHTML = tr[key]
+    })
+
+    // Update button label
+    const lang = LANGS.find(l => l.code === code)
+    if (lang) {
+      document.getElementById('langBtnLabel').textContent = code.toUpperCase()
+    }
+
+    // Mark active option
+    document.querySelectorAll('.lang-opt').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.code === code)
+    })
+  }
+
+  function buildLangMenu() {
+    const dd = document.getElementById('langDropdown')
+    dd.innerHTML = LANGS.map(l => `
+      <button class="lang-opt" data-code="${l.code}" onclick="selectLang('${l.code}')">
+        <span class="lang-flag">${l.flag}</span>${l.name}
+      </button>`).join('')
+  }
+
+  function toggleLangMenu() {
+    const picker = document.getElementById('langPicker')
+    picker.classList.toggle('open')
+  }
+
+  function selectLang(code) {
+    applyLang(code)
+    document.getElementById('langPicker').classList.remove('open')
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', e => {
+    const picker = document.getElementById('langPicker')
+    if (!picker.contains(e.target)) picker.classList.remove('open')
+  })
+
+  window.toggleLangMenu = toggleLangMenu
+  window.selectLang = selectLang
+
+  buildLangMenu()
+  if (currentLang !== 'en') applyLang(currentLang)
+
+  // Auto-detect browser language on first visit
+  if (!localStorage.getItem('usb_lang')) {
+    const bl = (navigator.language || 'en').slice(0,2)
+    if (T[bl]) applyLang(bl)
+  }
+</script>
 
 <script>
   // Heatmap
