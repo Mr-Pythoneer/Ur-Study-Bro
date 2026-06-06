@@ -39,9 +39,11 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "arm64"
-          ]
+          "arch": ["arm64"]
+        },
+        {
+          "target": "dmg",
+          "arch": ["x64"]
         }
       ]
     },

@@ -3,6 +3,18 @@ const {
   app, BrowserWindow, ipcMain, shell,
   Notification, desktopCapturer, session, dialog,
 } = require('electron')
+
+// ── Global crash / unhandled error handler ────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err)
+  try {
+    dialog.showErrorBox(
+      'Ur Study Bro — Unexpected Error',
+      `Something went wrong and the app couldn't continue.\n\n${err.message}\n\nPlease report this at:\ngithub.com/Mr-Pythoneer/Ur-Study-Bro/issues`
+    )
+  } catch {}
+  app.quit()
+})
 const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs   = require('fs')

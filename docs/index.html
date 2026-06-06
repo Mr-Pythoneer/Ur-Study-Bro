@@ -906,7 +906,7 @@
         What platforms does it run on?
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div class="faq-a">macOS (Apple Silicon, M1+), Windows (x64), and Linux (AppImage). A mobile version for iOS and Android is planned. The app is built with Electron so it behaves identically across platforms.</div>
+      <div class="faq-a">macOS (Apple Silicon M1+ and Intel x64), Windows (x64), and Linux (AppImage). A mobile version for iOS and Android is planned. The app is built with Electron so it behaves identically across platforms. Make sure you download the right Mac version — <strong>arm64.dmg</strong> for M1/M2/M3/M4 Macs, <strong>x64.dmg</strong> for older Intel Macs.</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
@@ -931,10 +931,24 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        macOS says "the app is damaged and can't be opened" — how do I fix it?
+        The app won't open on my Mac — how do I fix it?
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div class="faq-a">This happens because the app isn't signed with an Apple Developer certificate (that costs $99/year — this is a free project). It's completely safe. To fix it: open <strong>Terminal</strong>, paste <code>xattr -cr "/Applications/Ur Study Bro.app"</code> and press Enter. Then open the app normally. This removes the macOS quarantine flag that causes the error.</div>
+      <div class="faq-a">
+        There are a few reasons this can happen — find yours below:<br><br>
+        <strong>❶ "App is damaged and can't be opened" (most common)</strong><br>
+        macOS quarantines apps not signed with a paid Apple certificate. Fix: open Terminal and run:<br>
+        <code style="display:inline-block;background:#f3f4f6;padding:3px 8px;border-radius:4px;margin:4px 0;">xattr -cr "/Applications/Ur Study Bro.app"</code><br>
+        Then open the app normally. Alternatively: right-click the app → <strong>Open</strong> → click <strong>Open</strong> in the dialog.<br><br>
+        <strong>❷ "Ur Study Bro was blocked" in System Settings</strong><br>
+        Go to <strong>System Settings → Privacy &amp; Security</strong>, scroll down, and click <strong>Open Anyway</strong> next to the app name.<br><br>
+        <strong>❸ App bounces in the Dock and closes immediately</strong><br>
+        You may be on an Intel Mac running the wrong build. Download the <strong>x64 (Intel) version</strong> from the releases page — it's a separate DMG labelled <em>x64.dmg</em>.<br><br>
+        <strong>❹ App opens but instantly crashes / blank window</strong><br>
+        Make sure you're on <strong>macOS 11 Big Sur or later</strong>. Electron 35 doesn't support older macOS versions.<br><br>
+        <strong>❺ Nothing happens when you double-click</strong><br>
+        Make sure you dragged the app out of the DMG into your <strong>Applications</strong> folder before opening it. Running it from inside the DMG can cause silent failures.
+      </div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
@@ -1189,11 +1203,12 @@
     linux: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest',
   }
   let PLATFORMS = {
-    ios:    { label: 'iOS & iPadOS', sub: 'Coming Soon', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', comingSoon: true, icon: ICONS.ios },
-    mac:    { label: 'Download for macOS', sub: 'Apple Silicon (M1+)', href: FALLBACK.mac, icon: ICONS.mac },
-    win:    { label: 'Download for Windows', sub: 'x64', href: FALLBACK.win, icon: ICONS.win },
-    linux:  { label: 'Download for Linux', sub: 'AppImage', href: FALLBACK.linux, icon: ICONS.linux },
-    github: { label: 'View on GitHub', sub: 'Source code', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', icon: ICONS.github },
+    ios:      { label: 'iOS & iPadOS', sub: 'Coming Soon', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', comingSoon: true, icon: ICONS.ios },
+    mac:      { label: 'Download for macOS', sub: 'Apple Silicon · M1/M2/M3/M4', href: FALLBACK.mac, icon: ICONS.mac },
+    mac_x64:  { label: 'Download for macOS', sub: 'Intel Mac · 2019 and older', href: FALLBACK.mac, icon: ICONS.mac },
+    win:      { label: 'Download for Windows', sub: 'x64', href: FALLBACK.win, icon: ICONS.win },
+    linux:    { label: 'Download for Linux', sub: 'AppImage', href: FALLBACK.linux, icon: ICONS.linux },
+    github:   { label: 'View on GitHub', sub: 'Source code', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', icon: ICONS.github },
   }
 
   // Fetch real asset URLs from GitHub API
@@ -1201,19 +1216,25 @@
     .then(r => r.json()).then(data => {
       const assets = data.assets || []
       const find = (pat) => (assets.find(a => pat.test(a.name)) || {}).browser_download_url
-      const macUrl   = find(/arm64\.dmg$/)
-      const winUrl   = find(/\.exe$/)
-      const linuxUrl = find(/\.AppImage$/)
-      if (macUrl)   { PLATFORMS.mac.href   = macUrl }
-      if (winUrl)   { PLATFORMS.win.href   = winUrl }
-      if (linuxUrl) { PLATFORMS.linux.href = linuxUrl }
-      // Re-render with real URLs
+      const macArmUrl = find(/arm64\.dmg$/)
+      const macX64Url = find(/x64\.dmg$/)
+      const winUrl    = find(/\.exe$/)
+      const linuxUrl  = find(/\.AppImage$/)
+      if (macArmUrl)  { PLATFORMS.mac.href     = macArmUrl }
+      if (macX64Url)  { PLATFORMS.mac_x64.href = macX64Url }
+      if (winUrl)     { PLATFORMS.win.href      = winUrl }
+      if (linuxUrl)   { PLATFORMS.linux.href    = linuxUrl }
       renderDl('heroDl')
       renderDl('ctaDl')
-    }).catch(() => {}) // silently fall back to links page
+    }).catch(() => {})
 
+  // Detect Apple Silicon vs Intel Mac
+  const isMacArm = isMac && (() => {
+    try { return navigator.userAgentData?.platform === 'macOS' || /Mac/.test(navigator.platform) } catch { return isMac }
+  })()
+  // We can't reliably detect arm vs intel from the browser, so show both mac options on Mac
   const primary = isIOS ? 'ios' : isMac ? 'mac' : isWindows ? 'win' : isLinux ? 'linux' : 'mac'
-  const others  = isIOS ? ['mac','win','linux'] : ['mac','win','linux'].filter(p => p !== primary)
+  const others  = isIOS ? ['mac','win','linux'] : isMac ? ['mac_x64','win','linux'] : ['mac','win','linux'].filter(p => p !== primary)
 
   function primaryBtn(p) {
     const pl = PLATFORMS[p]
@@ -1225,7 +1246,7 @@
   }
   function secondaryBtn(p) {
     const pl = PLATFORMS[p]
-    return `<a class="btn btn-ghost" href="${pl.href}" ${p==='github'?'target="_blank"':''}>${pl.icon} ${pl.label}</a>`
+    return `<a class="btn btn-ghost" href="${pl.href}" ${p==='github'?'target="_blank"':''}>${pl.icon}<span style="font-size:12px;">${pl.label}<br><small style="font-weight:400;opacity:.7;">${pl.sub}</small></span></a>`
   }
 
   function renderDl(id) {

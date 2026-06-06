@@ -11,9 +11,12 @@ A free, open-source AI-powered desktop study partner built with Electron. Featur
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon M1+) | [**Ur.Study.Bro-5.2.5-arm64.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-arm64.dmg) |
+| macOS — Apple Silicon (M1/M2/M3/M4) | [**Ur.Study.Bro-5.2.5-arm64.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-arm64.dmg) |
+| macOS — Intel (2019 and older) | [**Ur.Study.Bro-5.2.5-x64.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-x64.dmg) |
 | Windows (x64) | [**Ur.Study.Bro.Setup.5.2.5.exe**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro.Setup.5.2.5.exe) |
 | Linux (x64) | [**Ur.Study.Bro-5.2.5.AppImage**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5.AppImage) |
+
+> **Not sure which Mac you have?** Click the  → About This Mac. If Chip says "Apple M1/M2/M3/M4" → download arm64. If it says "Intel Core" → download x64.
 
 > All releases: [github.com/Mr-Pythoneer/Ur-Study-Bro/releases](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
 
