@@ -1645,17 +1645,17 @@
       renderDl('ctaDl')
     }).catch(() => {})
 
-  // We can't reliably detect arm vs intel from the browser, so show both mac options on Mac
+  // Primary = detected OS; others = the 2 most common alternatives + GitHub
   const primary = isIOS ? 'ios' : isMac ? 'mac' : isWindows ? 'win' : isLinux ? 'linux' : 'mac'
   const others  = isIOS
-    ? ['mac','win','linux','github']
+    ? ['mac', 'win', 'github']
     : isMac
-      ? ['mac_x64','mac_universal','win','linux','github']
+      ? ['win', 'linux', 'github']
       : isWindows
-        ? ['mac','linux','linux_arm64','linux_arch','github']
+        ? ['mac', 'linux', 'github']
         : isLinux
-          ? ['linux_arm64','linux_arch','mac','win','github']
-          : ['mac','win','linux','github']
+          ? ['mac', 'win', 'github']
+          : ['win', 'linux', 'github']
 
   function primaryBtn(p) {
     const pl = PLATFORMS[p]
@@ -1675,7 +1675,10 @@
       `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">${primaryBtn(primary)}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">${others.map(secondaryBtn).join('')}</div>
-        <div style="margin-top:4px;font-size:13px;color:var(--text-3);">Not ready to install? <a href="app.html" style="color:var(--green);font-weight:600;">Try the web version →</a></div>
+        <div style="margin-top:6px;font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+          <span>Not ready to install? <a href="app.html" style="color:var(--green);font-weight:600;">Try the web version →</a></span>
+          <span><a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest" target="_blank" style="color:var(--text-3);">All versions (ARM, Universal, pacman…)</a></span>
+        </div>
       </div>`
   }
 
