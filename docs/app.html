@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ur Study Bro — Web App</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐌</text></svg>">
+<style>
+  :root {
+    --green:#0f7b6c; --green-bg:#e8f5f2; --green-dark:#0a5c50;
+    --text:#1a1a1a; --text-2:#444; --text-3:#888;
+    --bg:#f9f8f6; --card:#fff; --border:#e5e4e0;
+    --radius:10px; --font:'Inter',system-ui,sans-serif;
+    --sidebar:220px; --accent:#0f7b6c; --accent-light:#e8f5f2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* ── Auth ───────────────────────────────────────────────────── */
+  #authWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .auth-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+  .auth-logo{font-size:36px;text-align:center;margin-bottom:8px}
+  .auth-title{font-size:22px;font-weight:800;text-align:center;margin-bottom:4px}
+  .auth-sub{font-size:13px;color:var(--text-3);text-align:center;margin-bottom:28px}
+  .auth-tabs{display:flex;background:#f3f4f6;border-radius:8px;padding:3px;margin-bottom:24px}
+  .auth-tab{flex:1;padding:8px;border:none;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-3);transition:all .15s}
+  .auth-tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px}
+  .field input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none;transition:border-color .15s}
+  .field input:focus{border-color:var(--green)}
+  .auth-btn{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;transition:opacity .15s}
+  .auth-btn:hover{opacity:.88}
+  .auth-err{font-size:12px;color:#ef4444;text-align:center;margin-top:10px;min-height:18px}
+
+  /* ── App shell ──────────────────────────────────────────────── */
+  #appWrap{display:none;min-height:100vh}
+  .shell{display:flex;min-height:100vh}
+
+  /* Sidebar */
+  .sidebar{width:var(--sidebar);background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto}
+  .sb-logo{display:flex;align-items:center;gap:10px;padding:20px 16px 14px;font-size:15px;font-weight:800;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border)}
+  .sb-logo span{font-size:22px}
+  .sb-section{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);padding:14px 16px 4px}
+  .nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 16px;border:none;background:none;font-family:var(--font);font-size:13px;font-weight:500;color:var(--text-2);cursor:pointer;border-radius:0;text-align:left;transition:background .12s,color .12s;position:relative}
+  .nav-item:hover{background:#f5f4f1;color:var(--text)}
+  .nav-item.active{background:var(--green-bg);color:var(--green);font-weight:700}
+  .nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+  .nav-item.active svg{opacity:1}
+  .nav-lock{font-size:10px;background:#f3f4f6;color:var(--text-3);border-radius:4px;padding:1px 5px;margin-left:auto}
+  .sb-bottom{margin-top:auto;padding:14px 12px;border-top:1px solid var(--border)}
+  .user-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .12s}
+  .user-chip:hover{background:#f5f4f1}
+  .user-avatar{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+  .user-name{font-size:13px;font-weight:600;color:var(--text)}
+  .user-sign-out{font-size:11px;color:var(--text-3);cursor:pointer;text-decoration:underline;display:block;text-align:center;margin-top:6px}
+
+  /* Content */
+  .content{margin-left:var(--sidebar);flex:1;padding:28px 32px;max-width:900px}
+  .page{display:none}
+  .page.active{display:block}
+  .page-title{font-size:22px;font-weight:800;margin-bottom:4px}
+  .page-sub{font-size:13px;color:var(--text-3);margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  .card-title{font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.4px}
+
+  /* Desktop-only locked banner */
+  .locked-banner{background:#fff8f0;border:1.5px dashed #f59e0b;border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+  .locked-banner-icon{font-size:24px;flex-shrink:0}
+  .locked-banner-text h4{font-size:13px;font-weight:700;color:#92400e;margin-bottom:2px}
+  .locked-banner-text p{font-size:12px;color:#b45309;line-height:1.5}
+  .locked-banner a{font-size:12px;font-weight:700;color:var(--green);text-decoration:none;white-space:nowrap;margin-left:auto;flex-shrink:0;padding:6px 14px;background:var(--green-bg);border-radius:6px}
+
+  /* ── Timer ──────────────────────────────────────────────────── */
+  .timer-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+  .ttab{padding:7px 16px;border:1.5px solid var(--border);border-radius:99px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-3);transition:all .15s}
+  .ttab.active{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+  .timer-ring-wrap{display:flex;flex-direction:column;align-items:center;margin:8px 0 20px}
+  .timer-ring{position:relative;width:220px;height:220px}
+  .timer-ring svg{transform:rotate(-90deg);width:220px;height:220px;display:block}
+  .ring-bg{fill:none;stroke:#e5e7eb;stroke-width:10}
+  .ring-fill{fill:none;stroke:var(--green);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .9s linear}
+  .ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-time{font-size:46px;font-weight:800;letter-spacing:-2px;color:var(--text);font-variant-numeric:tabular-nums}
+  .ring-status{font-size:12px;font-weight:600;color:var(--text-3);margin-top:2px}
+  .timer-controls{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+  .btn{padding:10px 22px;border-radius:8px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text);transition:all .15s}
+  .btn-primary{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn-primary:hover{background:var(--green-dark);border-color:var(--green-dark)}
+  .btn:hover{background:#f5f4f1}
+  .session-done{display:none;background:var(--green-bg);border:1.5px solid var(--green);border-radius:var(--radius);padding:20px;text-align:center;margin-top:16px;animation:pop .3s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+  .done-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px}
+  .done-stats{display:flex;justify-content:center;gap:24px;margin:14px 0}
+  .done-stat{text-align:center}
+  .done-val{font-size:26px;font-weight:800;color:var(--green)}
+  .done-lbl{font-size:11px;color:var(--text-3);text-transform:uppercase;font-weight:600}
+
+  /* ── Rewards ────────────────────────────────────────────────── */
+  .rewards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}
+  .stat-card .val{font-size:30px;font-weight:800;color:var(--green)}
+  .stat-card .lbl{font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;margin-top:2px}
+  .xp-bar-wrap{margin-bottom:20px}
+  .xp-bar-labels{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:6px}
+  .xp-bar-track{height:10px;background:var(--border);border-radius:99px;overflow:hidden}
+  .xp-bar-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#f97316);border-radius:99px;transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+  .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+  .badge{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);text-align:center}
+  .badge.earned{border-color:var(--green);background:var(--green-bg)}
+  .badge.locked-b{opacity:.38;filter:grayscale(1)}
+  .badge-icon{font-size:30px}
+  .badge-name{font-size:12px;font-weight:700;color:var(--text)}
+  .badge.earned .badge-name{color:var(--green)}
+  .badge-desc{font-size:10px;color:var(--text-3);line-height:1.4}
+  .heatmap-wrap{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px}
+  .heat-day{width:14px;height:14px;border-radius:2px;background:#e9e9e7}
+  .heat-day.h1{background:#a7d7cf}.heat-day.h2{background:#5db8aa}.heat-day.h3{background:#2e9484}.heat-day.h4{background:var(--green)}
+
+  /* ── AI ─────────────────────────────────────────────────────── */
+  .chat-history{display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:380px;overflow-y:auto;padding:4px 0;margin-bottom:14px}
+  .msg{display:flex;gap:10px;align-items:flex-start}
+  .msg.user{flex-direction:row-reverse}
+  .msg-av{width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .msg.user .msg-av{background:var(--text)}
+  .msg-bub{padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.6;max-width:80%}
+  .msg.ai .msg-bub{background:var(--card);border:1px solid var(--border)}
+  .msg.user .msg-bub{background:var(--green);color:#fff;border-bottom-right-radius:3px}
+  .chat-input-row{display:flex;gap:8px}
+  .chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none;resize:none;transition:border-color .15s}
+  .chat-input:focus{border-color:var(--green)}
+  .ai-provider-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .ai-provider-row select,.ai-provider-row input{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;outline:none}
+  .ai-provider-row input{flex:1;min-width:160px}
+  .stream-cursor{display:inline-block;color:var(--green);animation:blink .7s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ── Assessment ─────────────────────────────────────────────── */
+  .phase{display:none}.phase.active{display:block;animation:fadeIn .3s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .prog-strip{display:flex;gap:4px;margin-bottom:20px}
+  .prog-step{flex:1;height:4px;border-radius:2px;background:var(--border)}
+  .prog-step.done{background:var(--green)}.prog-step.cur{background:var(--green);opacity:.5}
+  .phase-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:var(--green-bg);color:var(--green);padding:3px 12px;border-radius:99px;margin-bottom:8px}
+  .phase-title{font-size:20px;font-weight:800;margin-bottom:6px}
+  .phase-desc{font-size:13px;color:var(--text-2);line-height:1.6;max-width:520px;margin-bottom:20px}
+  .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .choice{padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:500;transition:all .15s;background:var(--card)}
+  .choice:hover{border-color:var(--green);background:var(--green-bg)}
+  .choice.selected{border-color:var(--green);background:var(--green-bg);font-weight:700;color:var(--green)}
+  .arena{width:100%;height:200px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:15px;font-weight:600;color:var(--text-2);transition:background .15s}
+  .arena:hover{background:#efefed}
+  .arena.clicked{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+
+  /* ── Plan ───────────────────────────────────────────────────── */
+  .plan-task{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:opacity .2s}
+  .plan-task.done-task{opacity:.5}
+  .plan-task input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+  .plan-task-text{flex:1;font-size:13px}
+  .plan-task-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+  .plan-task-pts{font-size:11px;font-weight:700;color:var(--green);white-space:nowrap}
+  .progress-bar-wrap{margin-bottom:20px}
+  .progress-bar-track{height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:6px}
+  .progress-bar-fill{height:100%;background:var(--green);border-radius:99px;transition:width .5s}
+
+  /* ── Responsive ─────────────────────────────────────────────── */
+  @media(max-width:680px){
+    .sidebar{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--border)}
+    .shell{flex-direction:column}
+    .content{margin-left:0;padding:20px 16px}
+    .choice-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Auth ──────────────────────────────────────────────────────── -->
+<div id="authWrap">
+  <div class="auth-box">
+    <div class="auth-logo">🐌</div>
+    <div class="auth-title">Ur Study Bro</div>
+    <div class="auth-sub">Sign in to access your study dashboard</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('signin')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('create')">Create Account</button>
+    </div>
+    <div class="field"><label>Username</label><input id="authUser" type="text" placeholder="your username" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="authPass" type="password" placeholder="password" autocomplete="current-password"></div>
+    <button class="auth-btn" id="authSubmit" onclick="doAuth()">Sign In →</button>
+    <div class="auth-err" id="authErr"></div>
+    <p style="font-size:11px;color:var(--text-3);text-align:center;margin-top:14px;line-height:1.6;">
+      Same account as the desktop app — sign in with the same username.<br>
+      <a href="index.html" style="color:var(--green)">← Back to website</a>
+    </p>
+  </div>
+</div>
+
+<!-- ── App ───────────────────────────────────────────────────────── -->
+<div id="appWrap">
+  <div class="shell">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <a class="sb-logo" href="index.html">
+        <span>🐌</span> Ur Study Bro
+      </a>
+      <div class="sb-section">Overview</div>
+      <button class="nav-item active" data-page="home" onclick="nav('home',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+        Home
+      </button>
+      <button class="nav-item" data-page="rewards" onclick="nav('rewards',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2l2.5 5.5H18l-4.5 3.5 1.5 5.5L10 13.5 5 16.5l1.5-5.5L2 7.5h5.5z"/></svg>
+        Rewards
+      </button>
+
+      <div class="sb-section">Study</div>
+      <button class="nav-item" data-page="timer" onclick="nav('timer',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 7v3l2 2"/></svg>
+        Focus Timer
+      </button>
+      <button class="nav-item" data-page="plan" onclick="nav('plan',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="14" height="13" rx="1.5"/><path d="M7 8h6M7 11h4"/></svg>
+        Study Plan
+      </button>
+      <button class="nav-item" data-page="assessment" onclick="nav('assessment',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="9" r="5"/><path d="M3.5 17.5c0-3 3-5 6.5-5s6.5 2 6.5 5"/></svg>
+        Brain Test
+      </button>
+
+      <div class="sb-section">AI</div>
+      <button class="nav-item" data-page="ai" onclick="nav('ai',this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M7 10h6M10 7v6"/></svg>
+        AI Tutor
+      </button>
+
+      <div class="sb-section">Desktop Only</div>
+      <button class="nav-item" style="opacity:.45;cursor:default;">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="16" height="11" rx="1.5"/><circle cx="6" cy="8" r="1.5"/><path d="M2 11l4-3 3 2.5 3-4 6 5.5"/></svg>
+        Screen Recorder
+        <span class="nav-lock">desktop</span>
+      </button>
+      <button class="nav-item" style="opacity:.45;cursor:default;">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h12v8H4zM8 12v3M12 12v3M6 15h8"/></svg>
+        Focus Guard
+        <span class="nav-lock">desktop</span>
+      </button>
+      <button class="nav-item" style="opacity:.45;cursor:default;">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="14" height="12" rx="1.5"/><path d="M13 3v4M7 3v4M3 10h14"/></svg>
+        Email Inbox
+        <span class="nav-lock">desktop</span>
+      </button>
+
+      <div class="sb-bottom">
+        <div class="user-chip" onclick="showUserMenu()">
+          <div class="user-avatar" id="sbAvatar">U</div>
+          <div>
+            <div class="user-name" id="sbName">User</div>
+            <div style="font-size:11px;color:var(--text-3)">Web account</div>
+          </div>
+        </div>
+        <span class="user-sign-out" onclick="signOut()">Sign out</span>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- HOME -->
+      <div class="page active" id="page-home">
+        <div class="page-title" id="homeGreeting">Good morning 👋</div>
+        <div class="page-sub">Here's where things stand today.</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+          <div class="stat-card"><div class="val" id="hStatXP">0</div><div class="lbl">Study XP</div></div>
+          <div class="stat-card"><div class="val" id="hStatStreak">0</div><div class="lbl">Day Streak</div></div>
+          <div class="stat-card"><div class="val" id="hStatSessions">0</div><div class="lbl">Sessions Today</div></div>
+          <div class="stat-card"><div class="val" id="hStatTasks">0</div><div class="lbl">Tasks Done</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Quick Actions</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="nav('timer',document.querySelector('[data-page=timer]'))">▶ Start Focus Timer</button>
+            <button class="btn" onclick="nav('assessment',document.querySelector('[data-page=assessment]'))">🧠 Take Brain Test</button>
+            <button class="btn" onclick="nav('plan',document.querySelector('[data-page=plan]'))">📋 View Study Plan</button>
+            <button class="btn" onclick="nav('ai',document.querySelector('[data-page=ai]'))">💬 Ask AI Tutor</button>
+          </div>
+        </div>
+
+        <div class="locked-banner">
+          <div class="locked-banner-icon">🖥️</div>
+          <div class="locked-banner-text">
+            <h4>Get more with the desktop app</h4>
+            <p>Screen recorder, Focus Guard, local AI (no API key), email inbox, Apple Notes sync, audio transcription — all in the download.</p>
+          </div>
+          <a href="index.html#download">Download free →</a>
+        </div>
+      </div>
+
+      <!-- TIMER -->
+      <div class="page" id="page-timer">
+        <div class="page-title">Focus Timer</div>
+        <div class="page-sub">Study Points awarded for sessions 15 min+</div>
+
+        <div class="card">
+          <div class="timer-tabs" id="timerTabs">
+            <button class="ttab active" data-secs="1500" onclick="setMode(this)">Pomodoro 25</button>
+            <button class="ttab" data-secs="2700" onclick="setMode(this)">Focus 45</button>
+            <button class="ttab" data-secs="3600" onclick="setMode(this)">Deep Work 60</button>
+            <button class="ttab" data-secs="5400" onclick="setMode(this)">Marathon 90</button>
+          </div>
+          <div class="timer-ring-wrap">
+            <div class="timer-ring">
+              <svg viewBox="0 0 220 220" width="220" height="220">
+                <circle class="ring-bg" cx="110" cy="110" r="96"/>
+                <circle class="ring-fill" id="ringFill" cx="110" cy="110" r="96" stroke-dasharray="603" stroke-dashoffset="0"/>
+              </svg>
+              <div class="ring-label">
+                <div class="ring-time" id="timerDisplay">25:00</div>
+                <div class="ring-status" id="timerStatus">Ready</div>
+              </div>
+            </div>
+          </div>
+          <div class="timer-controls">
+            <button class="btn btn-primary" id="startBtn" onclick="startTimer()">▶ Start</button>
+            <button class="btn" onclick="resetTimer()">Reset</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px">Subject</label>
+              <input id="timerSubject" type="text" placeholder="e.g. Calculus" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;outline:none">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:5px">Notes</label>
+              <input id="timerNotes" type="text" placeholder="What are you working on?" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;outline:none">
+            </div>
+          </div>
+        </div>
+
+        <div class="session-done" id="sessionDone">
+          <div class="done-title">🎉 Session Complete!</div>
+          <div class="done-stats">
+            <div class="done-stat"><div class="done-val" id="doneMins">0</div><div class="done-lbl">Minutes</div></div>
+            <div class="done-stat"><div class="done-val" id="doneXP">0</div><div class="done-lbl">XP Earned</div></div>
+            <div class="done-stat"><div class="done-val" id="doneStreak">0</div><div class="done-lbl">Day Streak</div></div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('sessionDone').style.display='none'">Keep Studying</button>
+        </div>
+
+        <div class="locked-banner" style="margin-top:16px">
+          <div class="locked-banner-icon">🛡️</div>
+          <div class="locked-banner-text">
+            <h4>Focus Guard — desktop only</h4>
+            <p>Detects when you switch to a distraction app and snaps you back. Can't be done in a browser.</p>
+          </div>
+          <a href="index.html#download">Get it →</a>
+        </div>
+      </div>
+
+      <!-- REWARDS -->
+      <div class="page" id="page-rewards">
+        <div class="page-title">Rewards</div>
+        <div class="page-sub">Your streak, XP, and badges.</div>
+
+        <div class="rewards-grid" id="rewardsStats"></div>
+
+        <div class="card">
+          <div class="card-title">XP Progress</div>
+          <div class="xp-bar-wrap">
+            <div class="xp-bar-labels"><span id="xpLevelLabel">Level 1</span><span id="xpNextLabel">0 / 100 XP</span></div>
+            <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">30-Day Activity</div>
+          <div class="heatmap-wrap" id="heatmap"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Badges</div>
+          <div class="badge-grid" id="badgeGrid"></div>
+        </div>
+      </div>
+
+      <!-- BRAIN TEST -->
+      <div class="page" id="page-assessment">
+        <div class="page-title">Brain Test</div>
+        <div class="page-sub">6 tasks · ~10 min · builds your personalised study profile</div>
+        <div id="assessmentContent"></div>
+      </div>
+
+      <!-- STUDY PLAN -->
+      <div class="page" id="page-plan">
+        <div class="page-title">Study Plan</div>
+        <div class="page-sub">Your personalised task path. Check off tasks as you complete them.</div>
+        <div id="planContent"></div>
+      </div>
+
+      <!-- AI TUTOR -->
+      <div class="page" id="page-ai">
+        <div class="page-title">AI Tutor</div>
+        <div class="page-sub">Ask anything. Cloud AI only in the browser — no API key needed for Gemini Flash.</div>
+
+        <div class="locked-banner" style="margin-bottom:16px">
+          <div class="locked-banner-icon">🖥️</div>
+          <div class="locked-banner-text">
+            <h4>Local AI (Ollama) — desktop only</h4>
+            <p>100% private, no API key, runs on your Mac. Browser can't access localhost:11434.</p>
+          </div>
+          <a href="index.html#download">Get it →</a>
+        </div>
+
+        <div class="card">
+          <div class="ai-provider-row">
+            <select id="aiProvider" onchange="onProviderChange()">
+              <option value="gemini">Gemini (Google)</option>
+              <option value="openai">GPT-4o (OpenAI)</option>
+              <option value="anthropic">Claude (Anthropic)</option>
+            </select>
+            <input id="aiKey" type="password" placeholder="API key (saved locally)" oninput="saveAIKey()">
+            <button class="btn" onclick="document.getElementById('aiKey').type = document.getElementById('aiKey').type==='password'?'text':'password'">👁</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" id="aiKeyHint">
+            Get a free Gemini key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--green)">aistudio.google.com</a>
+          </div>
+          <div class="chat-history" id="chatHistory"></div>
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="aiInput" rows="1" placeholder="Ask your AI tutor anything…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+            <button class="btn btn-primary" id="aiSendBtn" onclick="sendAI()">Send</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /shell -->
+</div><!-- /appWrap -->
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DATA HELPERS — same key format as desktop app
+   cs_${user}_${key}  →  fully compatible with desktop localStorage
+═══════════════════════════════════════════════════════════════ */
+let CU = '' // current user
+const csKey = k => `cs_${CU}_${k}`
+const csGet = k => localStorage.getItem(csKey(k))
+const csSet = (k,v) => localStorage.setItem(csKey(k),v)
+const csGetJSON = (k,d=[]) => { try{return JSON.parse(csGet(k))||d}catch{return d} }
+const csSetJSON = (k,v) => csSet(k,JSON.stringify(v))
+
+/* ── Auth ─────────────────────────────────────────────────────── */
+let authMode = 'signin'
+function switchTab(mode) {
+  authMode = mode
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)====(mode==='signin')))
+  document.getElementById('authSubmit').textContent = mode==='signin' ? 'Sign In →' : 'Create Account →'
+  document.getElementById('authErr').textContent = ''
+}
+
+function hash(s){ // very simple hash — not for security, just basic obfuscation
+  let h=0; for(let c of s){h=(h<<5)-h+c.charCodeAt(0);h|=0} return String(h)
+}
+
+function doAuth(){
+  const user = document.getElementById('authUser').value.trim().toLowerCase()
+  const pass = document.getElementById('authPass').value
+  const err  = document.getElementById('authErr')
+  if (!user||!pass){err.textContent='Enter username and password.';return}
+
+  const stored = localStorage.getItem(`cs_${user}_pwh`)
+  if (authMode==='create'){
+    if (stored){err.textContent='Username already taken.';return}
+    localStorage.setItem(`cs_${user}_pwh`, hash(pass))
+    localStorage.setItem('cs_currentUser', user)
+  } else {
+    if (!stored){err.textContent="No account found. Create one first.";return}
+    if (stored!==hash(pass)){err.textContent='Wrong password.';return}
+    localStorage.setItem('cs_currentUser', user)
+  }
+  CU = user
+  bootApp()
+}
+
+function signOut(){
+  if(!confirm('Sign out?')) return
+  localStorage.removeItem('cs_currentUser')
+  location.reload()
+}
+
+/* ── Boot ─────────────────────────────────────────────────────── */
+function bootApp(){
+  document.getElementById('authWrap').style.display='none'
+  document.getElementById('appWrap').style.display='block'
+  document.getElementById('sbName').textContent = CU
+  document.getElementById('sbAvatar').textContent = CU[0].toUpperCase()
+  setGreeting()
+  refreshHome()
+  initTimer()
+  renderPlan()
+  renderRewards()
+  renderAssessment()
+  loadAISettings()
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const u = localStorage.getItem('cs_currentUser')
+  if(u){ CU=u; bootApp() }
+})
+
+function setGreeting(){
+  const h = new Date().getHours()
+  const g = h<12?'Good morning':'h<17'?'Good afternoon':'Good evening'
+  const greet = h<12?'Good morning ☀️':h<17?'Good afternoon 👋':'Good evening 🌙'
+  document.getElementById('homeGreeting').textContent = `${greet}, ${CU}!`
+}
+
+/* ── Navigation ───────────────────────────────────────────────── */
+function nav(pageId, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  document.getElementById('page-'+pageId).classList.add('active')
+  if(btn) btn.classList.add('active')
+  if(pageId==='rewards') renderRewards()
+  if(pageId==='home') refreshHome()
+  if(pageId==='plan') renderPlan()
+}
+
+/* ── Home stats ───────────────────────────────────────────────── */
+function refreshHome(){
+  const xp = parseInt(csGet('studyPoints')||'0')
+  document.getElementById('hStatXP').textContent = xp
+  document.getElementById('hStatStreak').textContent = calcStreak()
+  const records = csGetJSON('records',[])
+  const today = new Date().toISOString().slice(0,10)
+  document.getElementById('hStatSessions').textContent = records.filter(r=>r.date===today).length
+  const tasks = csGetJSON('planTasks',[])
+  document.getElementById('hStatTasks').textContent = tasks.filter(t=>t.done).length
+}
+
+function calcStreak(){
+  const records = csGetJSON('records',[])
+  const daySet = new Set(records.map(r=>r.date))
+  let streak=0, d=new Date()
+  while(true){
+    const k = d.toISOString().slice(0,10)
+    if(!daySet.has(k)) break
+    streak++; d.setDate(d.getDate()-1)
+  }
+  return streak
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TIMER
+═══════════════════════════════════════════════════════════════ */
+let T = { secs:1500, total:1500, running:false, interval:null }
+const CIRC = 2*Math.PI*96
+
+function setMode(btn){
+  if(T.running) return
+  document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'))
+  btn.classList.add('active')
+  T.secs = T.total = parseInt(btn.dataset.secs)
+  updateTimerDisplay()
+  document.getElementById('sessionDone').style.display='none'
+}
+
+function initTimer(){ updateTimerDisplay() }
+
+function updateTimerDisplay(){
+  const m=Math.floor(T.secs/60), s=T.secs%60
+  document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+  const fill = document.getElementById('ringFill')
+  const pct = T.secs/T.total
+  fill.style.strokeDashoffset = CIRC*(1-pct)
+}
+
+function startTimer(){
+  if(T.running){ // pause
+    clearInterval(T.interval); T.running=false
+    document.getElementById('startBtn').textContent='▶ Resume'
+    document.getElementById('timerStatus').textContent='Paused'
+    return
+  }
+  T.running=true
+  document.getElementById('startBtn').textContent='⏸ Pause'
+  document.getElementById('timerStatus').textContent='Running'
+  T.interval = setInterval(()=>{
+    T.secs--
+    updateTimerDisplay()
+    if(T.secs<=0){ clearInterval(T.interval); T.running=false; completeSession() }
+  },1000)
+}
+
+function resetTimer(){
+  clearInterval(T.interval); T.running=false
+  T.secs = T.total
+  updateTimerDisplay()
+  document.getElementById('startBtn').textContent='▶ Start'
+  document.getElementById('timerStatus').textContent='Ready'
+  document.getElementById('sessionDone').style.display='none'
+}
+
+function completeSession(){
+  document.getElementById('startBtn').textContent='▶ Start'
+  document.getElementById('timerStatus').textContent='Done!'
+  const mins = Math.round(T.total/60)
+  const today = new Date().toISOString().slice(0,10)
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+  const subject = document.getElementById('timerSubject').value||'General Study'
+  const notes = document.getElementById('timerNotes').value
+  const records = csGetJSON('records',[])
+  records.push({id:Date.now().toString(),date:today,time,subject,duration:mins,notes,source:'web-timer'})
+  csSetJSON('records',records)
+  let earned=0
+  if(T.total>=900){
+    earned = Math.max(1,Math.round(mins/2.5))
+    const prev = parseInt(csGet('studyPoints')||'0')
+    csSet('studyPoints',String(prev+earned))
+  }
+  document.getElementById('doneMins').textContent = mins
+  document.getElementById('doneXP').textContent = earned||'—'
+  document.getElementById('doneStreak').textContent = calcStreak()
+  document.getElementById('sessionDone').style.display='block'
+  document.getElementById('sessionDone').scrollIntoView({behavior:'smooth',block:'nearest'})
+  // Try web notification
+  if(Notification.permission==='granted') new Notification('Session complete!',{body:`${mins} min logged. +${earned} XP`})
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REWARDS
+═══════════════════════════════════════════════════════════════ */
+const BADGES = [
+  {id:'first',    icon:'🌱', name:'First Session',  desc:'Complete your first focus session',    check:r=>r.length>=1},
+  {id:'five',     icon:'🔥', name:'5 Sessions',     desc:'Complete 5 focus sessions',             check:r=>r.length>=5},
+  {id:'ten',      icon:'⚡', name:'10 Sessions',    desc:'Complete 10 sessions',                  check:r=>r.length>=10},
+  {id:'twenty',   icon:'🎓', name:'20 Sessions',    desc:'Complete 20 sessions',                  check:r=>r.length>=20},
+  {id:'streak3',  icon:'📅', name:'3-Day Streak',   desc:'Study 3 days in a row',                 check:(_,s)=>s>=3},
+  {id:'streak7',  icon:'🏆', name:'7-Day Streak',   desc:'Study 7 days in a row',                 check:(_,s)=>s>=7},
+  {id:'streak30', icon:'👑', name:'30-Day Streak',  desc:'Study every day for a month',           check:(_,s)=>s>=30},
+  {id:'brain',    icon:'🧠', name:'Brain Tested',   desc:'Complete the cognitive assessment',      check:()=>csGet('assessmentDone')==='done'},
+  {id:'planner',  icon:'🗺️', name:'Planner',        desc:'Have an active study plan',              check:()=>csGetJSON('planTasks',[]).length>0},
+  {id:'hundred',  icon:'💯', name:'100 XP',         desc:'Earn 100 Study XP',                     check:()=>parseInt(csGet('studyPoints')||'0')>=100},
+]
+
+function renderRewards(){
+  const records = csGetJSON('records',[])
+  const xp = parseInt(csGet('studyPoints')||'0')
+  const streak = calcStreak()
+  const today = new Date().toISOString().slice(0,10)
+  const todaySessions = records.filter(r=>r.date===today).length
+
+  // Stat cards
+  document.getElementById('rewardsStats').innerHTML = [
+    {v:xp,l:'Study XP'},{v:streak,l:'Day Streak'},{v:records.length,l:'Total Sessions'},{v:todaySessions,l:'Today'}
+  ].map(s=>`<div class="stat-card"><div class="val">${s.v}</div><div class="lbl">${s.l}</div></div>`).join('')
+
+  // XP bar
+  const lvl = Math.floor(xp/100)+1
+  const pct = (xp%100)
+  document.getElementById('xpLevelLabel').textContent = `Level ${lvl}`
+  document.getElementById('xpNextLabel').textContent = `${xp%100} / 100 XP`
+  document.getElementById('xpBarFill').style.width = pct+'%'
+
+  // Heatmap (30 days)
+  const hm = document.getElementById('heatmap')
+  hm.innerHTML=''
+  for(let i=29;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i)
+    const k=d.toISOString().slice(0,10)
+    const count=records.filter(r=>r.date===k).length
+    const cls = count===0?'':count===1?'h1':count===2?'h2':count===3?'h3':'h4'
+    const el=document.createElement('div')
+    el.className='heat-day '+cls
+    el.title=`${k}: ${count} session${count!==1?'s':''}`
+    hm.appendChild(el)
+  }
+
+  // Badges
+  document.getElementById('badgeGrid').innerHTML = BADGES.map(b=>{
+    const earned = b.check(records, streak)
+    return `<div class="badge ${earned?'earned':'locked-b'}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${b.name}</div>
+      <div class="badge-desc">${b.desc}</div>
+    </div>`
+  }).join('')
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STUDY PLAN
+═══════════════════════════════════════════════════════════════ */
+function renderPlan(){
+  const container = document.getElementById('planContent')
+  const tasks = csGetJSON('planTasks',[])
+
+  if(!tasks.length){
+    container.innerHTML = `
+      <div class="card" style="text-align:center;padding:40px">
+        <div style="font-size:36px;margin-bottom:12px">🗺️</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:8px">No study plan yet</div>
+        <div style="font-size:13px;color:var(--text-3);margin-bottom:20px">Complete the Brain Test to generate your personalised 40-task study path.</div>
+        <button class="btn btn-primary" onclick="nav('assessment',document.querySelector('[data-page=assessment]'))">Take Brain Test →</button>
+      </div>`
+    return
+  }
+
+  const done = tasks.filter(t=>t.done).length
+  const pct = Math.round(done/tasks.length*100)
+  container.innerHTML = `
+    <div class="progress-bar-wrap card">
+      <div class="card-title">Progress — ${done} / ${tasks.length} tasks (${pct}%)</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div id="taskList"></div>`
+
+  const list = document.getElementById('taskList')
+  tasks.forEach((t,i)=>{
+    const div = document.createElement('div')
+    div.className = 'plan-task'+(t.done?' done-task':'')
+    div.innerHTML = `
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${i})">
+      <div class="plan-task-text">
+        <div>${t.title}</div>
+        <div class="plan-task-sub">${t.subject||''} · ${t.type||'Task'}</div>
+      </div>
+      <div class="plan-task-pts">+${t.pts||10} XP</div>`
+    list.appendChild(div)
+  })
+}
+
+function toggleTask(idx){
+  const tasks = csGetJSON('planTasks',[])
+  tasks[idx].done = !tasks[idx].done
+  if(tasks[idx].done){
+    const prev = parseInt(csGet('studyPoints')||'0')
+    csSet('studyPoints',String(prev+(tasks[idx].pts||10)))
+  } else {
+    const prev = parseInt(csGet('studyPoints')||'0')
+    csSet('studyPoints',String(Math.max(0,prev-(tasks[idx].pts||10))))
+  }
+  csSetJSON('planTasks',tasks)
+  renderPlan()
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BRAIN TEST (6 phases, streamlined for web)
+═══════════════════════════════════════════════════════════════ */
+const PHASES = [
+  {
+    id:'learning', badge:'Phase 1 of 6', title:'How do you best learn?',
+    desc:'Pick the option that feels most true when you study new material.',
+    type:'choice',
+    opts:['I understand it better when I see diagrams or visual layouts',
+          'I prefer listening to explanations or discussing ideas aloud',
+          'I need to read and take written notes to absorb it',
+          'I learn by doing — practice problems, labs, hands-on tasks']
+  },
+  {
+    id:'memory', badge:'Phase 2 of 6', title:'Memory & recall',
+    desc:'Which of these describes how you most easily remember things?',
+    type:'choice',
+    opts:['Spatial — I remember where things were on a page or diagram',
+          'Verbal — I remember things I heard or said out loud',
+          'Sequential — I remember steps and ordered lists easily',
+          'Contextual — I remember things better when they connect to real examples']
+  },
+  {
+    id:'attention', badge:'Phase 3 of 6', title:'Attention & focus',
+    desc:"When you're studying, what usually happens?",
+    type:'choice',
+    opts:['I focus deeply for long stretches without needing breaks',
+          'I need short breaks often — 25-min blocks work best for me',
+          'I lose focus after about 45 min even with breaks',
+          'My focus varies a lot depending on my mood and energy']
+  },
+  {
+    id:'reaction', badge:'Phase 4 of 6', title:'Reaction speed',
+    desc:'Click the box as fast as you can when it turns green. You have 5 clicks.',
+    type:'reaction'
+  },
+  {
+    id:'pattern', badge:'Phase 5 of 6', title:'Pattern recognition',
+    desc:'Select which option does NOT belong with the others.',
+    type:'choice',
+    opts:['Piano','Guitar','Violin','Clarinet — wait — which is the odd one out?'],
+    oddOut: true,
+    sets:[
+      {items:['Piano','Guitar','Violin','Hammer'],answer:3},
+      {items:['Red','Blue','Circle','Green'],answer:2},
+      {items:['Dog','Cat','Fish','Apple'],answer:3},
+    ]
+  },
+  {
+    id:'goals', badge:'Phase 6 of 6', title:'Your study goals',
+    desc:'What are you currently studying or want to improve most? (used to personalise your plan)',
+    type:'goals'
+  }
+]
+
+let phaseIdx=0, answers={}, reactionTimes=[], reactionState='waiting', reactionStart=0, reactionCount=0
+let patternSet=0
+
+function renderAssessment(){
+  const done = csGet('assessmentDone')==='done'
+  const container = document.getElementById('assessmentContent')
+  if(done){
+    container.innerHTML = `
+      <div class="card" style="text-align:center;padding:32px">
+        <div style="font-size:32px;margin-bottom:10px">✅</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:6px">Brain Test complete!</div>
+        <div style="font-size:13px;color:var(--text-3);margin-bottom:20px">Your cognitive profile is saved. Your study plan has been generated.</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="nav('plan',document.querySelector('[data-page=plan]'))">View Study Plan →</button>
+          <button class="btn" onclick="retakeAssessment()">Retake Test</button>
+        </div>
+      </div>`
+    return
+  }
+  phaseIdx=0; answers={}; reactionTimes=[]; reactionCount=0; patternSet=0
+  renderPhase(container)
+}
+
+function retakeAssessment(){
+  csSet('assessmentDone','')
+  renderAssessment()
+}
+
+function renderPhase(container){
+  const p = PHASES[phaseIdx]
+  const progHtml = PHASES.map((_,i)=>`<div class="prog-step ${i<phaseIdx?'done':i===phaseIdx?'cur':''}"></div>`).join('')
+
+  let bodyHtml = ''
+  if(p.type==='choice'){
+    const items = p.oddOut ? p.sets[patternSet].items : p.opts
+    bodyHtml = `<div class="choice-grid">${items.map((o,i)=>`<div class="choice" onclick="selectChoice(this,${i})">${o}</div>`).join('')}</div>
+    <button class="btn btn-primary" id="nextBtn" onclick="nextPhase()" disabled style="opacity:.4">Continue →</button>`
+  } else if(p.type==='reaction'){
+    bodyHtml = `
+      <div class="arena" id="reactionArena" onclick="reactionClick()">Click here to begin</div>
+      <div id="reactionMsg" style="font-size:13px;color:var(--text-3);margin-top:10px;text-align:center"></div>`
+  } else if(p.type==='goals'){
+    bodyHtml = `
+      <textarea id="goalsInput" placeholder="e.g. Calculus, Biology, French, Coding…" rows="3" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none;resize:vertical;margin-bottom:14px"></textarea>
+      <button class="btn btn-primary" onclick="finishAssessment()">Generate My Study Plan →</button>`
+  }
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="prog-strip">${progHtml}</div>
+      <div class="phase-badge">${p.badge}</div>
+      <div class="phase-title">${p.title}</div>
+      <div class="phase-desc">${p.desc}</div>
+      ${bodyHtml}
+    </div>`
+
+  if(p.type==='reaction') setupReaction()
+}
+
+function selectChoice(el,idx){
+  el.closest('.choice-grid').querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'))
+  el.classList.add('selected')
+  answers[PHASES[phaseIdx].id] = idx
+  const btn = document.getElementById('nextBtn')
+  if(btn){btn.disabled=false;btn.style.opacity='1'}
+}
+
+function nextPhase(){
+  const p = PHASES[phaseIdx]
+  if(p.oddOut){
+    answers['pattern_'+(patternSet)] = answers[p.id]
+    patternSet++
+    if(patternSet<p.sets.length){
+      document.getElementById('assessmentContent').querySelector('.choice-grid').innerHTML =
+        p.sets[patternSet].items.map((o,i)=>`<div class="choice" onclick="selectChoice(this,${i})">${o}</div>`).join('')
+      document.getElementById('nextBtn').disabled=true
+      document.getElementById('nextBtn').style.opacity='.4'
+      return
+    }
+  }
+  phaseIdx++
+  if(phaseIdx>=PHASES.length) return
+  renderPhase(document.getElementById('assessmentContent'))
+}
+
+function setupReaction(){
+  reactionState='waiting'; reactionTimes=[]; reactionCount=0
+}
+
+function reactionClick(){
+  const arena = document.getElementById('reactionArena')
+  const msg   = document.getElementById('reactionMsg')
+  if(reactionState==='waiting'){
+    arena.textContent='Wait for green…'
+    reactionState='pending'
+    const delay = 1000+Math.random()*2000
+    setTimeout(()=>{
+      if(reactionState!=='pending') return
+      arena.style.background='#d1fae5'; arena.style.borderColor='#10b981'; arena.style.color='#065f46'
+      arena.textContent='NOW! Click!'
+      reactionState='go'; reactionStart=Date.now()
+    },delay)
+  } else if(reactionState==='go'){
+    const rt = Date.now()-reactionStart
+    reactionTimes.push(rt); reactionCount++
+    msg.textContent = `Click ${reactionCount}/5 — ${rt}ms`
+    arena.style.background=''; arena.style.borderColor=''; arena.style.color=''
+    if(reactionCount>=5){
+      const avg = Math.round(reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length)
+      answers.reactionAvg = avg
+      msg.textContent = `Average: ${avg}ms — `
+      arena.textContent='Done! 🎉'
+      arena.style.background='var(--green-bg)'; arena.style.borderColor='var(--green)'
+      setTimeout(()=>{ phaseIdx++; renderPhase(document.getElementById('assessmentContent')) },1200)
+      return
+    }
+    reactionState='waiting'
+    arena.textContent='Click again when ready'
+  } else if(reactionState==='pending'){
+    // Clicked too early
+    arena.style.background='#fef2f2'; arena.style.borderColor='#ef4444'; arena.style.color='#ef4444'
+    arena.textContent='Too early! Click to try again.'
+    msg.textContent='Don\'t click until it turns green!'
+    reactionState='waiting'
+  }
+}
+
+function finishAssessment(){
+  const goals = document.getElementById('goalsInput').value.trim()
+  if(goals) csSet('studyGoals', goals)
+  answers.goals = goals
+
+  // Generate a basic study plan from answers
+  generatePlan(answers, goals)
+  csSet('assessmentDone','done')
+  csSet('assessmentAnswers', JSON.stringify(answers))
+
+  const container = document.getElementById('assessmentContent')
+  container.innerHTML = `
+    <div class="card" style="text-align:center;padding:32px">
+      <div style="font-size:32px;margin-bottom:10px">🎉</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:6px">Profile saved!</div>
+      <div style="font-size:13px;color:var(--text-3);margin-bottom:20px">Your 40-task study path has been generated based on your results.</div>
+      <button class="btn btn-primary" onclick="nav('plan',document.querySelector('[data-page=plan]'))">View Study Plan →</button>
+    </div>`
+}
+
+function generatePlan(answers, goalsRaw){
+  const subjects = goalsRaw ? goalsRaw.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean) : ['General Study']
+  const focus = answers.attention===0?60:answers.attention===1?25:45
+  const style = ['visual','auditory','reading','hands-on'][answers.learning||0]
+
+  const TASK_TYPES = {
+    visual:   ['Make a mind map','Draw a diagram','Watch a video','Create flashcard images','Sketch a flowchart'],
+    auditory: ['Record yourself explaining it','Join a study group','Listen to a lecture','Read aloud','Discuss with a friend'],
+    reading:  ['Write a summary','Take detailed notes','Read a chapter','Annotate your notes','Write Q&A from text'],
+    'hands-on':['Solve practice problems','Build something with it','Teach it to someone','Apply it to a real scenario','Do a past-paper question'],
+  }
+  const types = TASK_TYPES[style] || TASK_TYPES.reading
+
+  const tasks = []
+  let taskIdx=0
+  for(let i=0;i<40;i++){
+    const subject = subjects[i%subjects.length]
+    const type = types[i%types.length]
+    tasks.push({
+      id:String(i),
+      title:`${type} — ${subject}`,
+      subject,
+      type,
+      pts: 10+Math.floor(i/10)*5, // tasks get worth more as plan progresses
+      done:false,
+      timerMins: focus,
+    })
+    taskIdx++
+  }
+  csSetJSON('planTasks', tasks)
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AI TUTOR (cloud only — fetch directly from browser)
+═══════════════════════════════════════════════════════════════ */
+let aiMessages = []
+
+function loadAISettings(){
+  const p = localStorage.getItem('ai_provider')||'gemini'
+  document.getElementById('aiProvider').value = p
+  document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
+  onProviderChange()
+}
+
+function onProviderChange(){
+  const p = document.getElementById('aiProvider').value
+  localStorage.setItem('ai_provider',p)
+  document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
+  const hints = {
+    gemini:'Get a free Gemini key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--green)">aistudio.google.com</a>',
+    openai:'Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--green)">platform.openai.com</a>',
+    anthropic:'Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--green)">console.anthropic.com</a>',
+  }
+  document.getElementById('aiKeyHint').innerHTML = hints[p]||''
+}
+
+function saveAIKey(){
+  const p = document.getElementById('aiProvider').value
+  localStorage.setItem('ai_key_'+p, document.getElementById('aiKey').value.trim())
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function addChatMsg(role, content, id){
+  const hist = document.getElementById('chatHistory')
+  const div = document.createElement('div')
+  div.className = 'msg '+(role==='user'?'user':'ai')
+  const initials = role==='user' ? (CU[0]||'U').toUpperCase() : 'AI'
+  div.innerHTML = `<div class="msg-av">${initials}</div><div class="msg-bub" ${id?`id="${id}"`:''}>${escHtml(content)}</div>`
+  hist.appendChild(div)
+  hist.scrollTop=hist.scrollHeight
+  return div
+}
+
+async function sendAI(){
+  const input = document.getElementById('aiInput')
+  const text = input.value.trim(); if(!text) return
+  const btn = document.getElementById('aiSendBtn')
+  const provider = document.getElementById('aiProvider').value
+  const key = document.getElementById('aiKey').value.trim()
+  if(!key){alert('Enter your API key first.'); return}
+
+  input.value=''; btn.disabled=true
+  aiMessages.push({role:'user',content:text})
+  addChatMsg('user',text)
+
+  const bubbleId='ai-'+Date.now()
+  addChatMsg('assistant','▍',bubbleId)
+  const bubble = document.getElementById(bubbleId)
+
+  try {
+    const systemPrompt = `You are a friendly AI study tutor for Ur Study Bro. The user is ${CU}. Their study goals: ${csGet('studyGoals')||'general studying'}. Be concise, helpful, and encouraging.`
+    let reply = ''
+
+    if(provider==='gemini'){
+      const model = 'gemini-2.0-flash'
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${key}`
+      const contents = aiMessages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
+      const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        system_instruction:{parts:[{text:systemPrompt}]},
+        contents,
+        generationConfig:{maxOutputTokens:1024}
+      })})
+      const reader = res.body.getReader(); const dec = new TextDecoder(); let buf=''
+      while(true){
+        const {done,value}=await reader.read(); if(done) break
+        buf+=dec.decode(value,{stream:true})
+        const lines=buf.split('\n'); buf=lines.pop()
+        for(const line of lines){
+          if(!line.startsWith('data:')) continue
+          const raw=line.slice(5).trim(); if(raw==='[DONE]') continue
+          try{const obj=JSON.parse(raw); const tok=obj.candidates?.[0]?.content?.parts?.[0]?.text||''; reply+=tok; bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'; document.getElementById('chatHistory').scrollTop=9999}catch{}
+        }
+      }
+
+    } else if(provider==='openai'){
+      const res = await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({
+        model:'gpt-4o-mini', stream:true,
+        messages:[{role:'system',content:systemPrompt},...aiMessages],
+        max_tokens:1024
+      })})
+      const reader=res.body.getReader(); const dec=new TextDecoder(); let buf=''
+      while(true){
+        const {done,value}=await reader.read(); if(done) break
+        buf+=dec.decode(value,{stream:true})
+        const lines=buf.split('\n'); buf=lines.pop()
+        for(const line of lines){
+          if(!line.startsWith('data:')) continue
+          const raw=line.slice(5).trim(); if(raw==='[DONE]') continue
+          try{const obj=JSON.parse(raw); const tok=obj.choices?.[0]?.delta?.content||''; reply+=tok; bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'; document.getElementById('chatHistory').scrollTop=9999}catch{}
+        }
+      }
+
+    } else { // anthropic — no streaming from browser due to CORS on beta headers, use non-stream
+      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001', max_tokens:1024,
+        system:systemPrompt, messages:aiMessages
+      })})
+      const data=await res.json()
+      reply = data.content?.[0]?.text || data.error?.message || 'Error'
+    }
+
+    bubble.innerHTML = escHtml(reply)
+    aiMessages.push({role:'assistant',content:reply})
+  } catch(e){
+    bubble.innerHTML = '⚠️ Error: '+escHtml(e.message)
+  }
+  btn.disabled=false
+}
+
+/* ── Notification permission ──────────────────────────────────── */
+if('Notification' in window && Notification.permission==='default'){
+  // Ask quietly after a moment
+  setTimeout(()=>Notification.requestPermission(),3000)
+}
+</script>
+</body>
+</html>
