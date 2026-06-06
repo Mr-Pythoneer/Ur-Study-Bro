@@ -906,7 +906,12 @@
         What platforms does it run on?
         <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <div class="faq-a">macOS (Apple Silicon M1+ and Intel x64), Windows (x64), and Linux (AppImage). A mobile version for iOS and Android is planned. The app is built with Electron so it behaves identically across platforms. Make sure you download the right Mac version — <strong>arm64.dmg</strong> for M1/M2/M3/M4 Macs, <strong>x64.dmg</strong> for older Intel Macs.</div>
+      <div class="faq-a">
+        <strong>macOS:</strong> Apple Silicon (arm64 DMG), Intel / 2019 and older (x64 DMG), and a Universal build that runs on both.<br>
+        <strong>Windows:</strong> One installer that auto-detects your CPU — works on 64-bit (x64), 32-bit (ia32), and ARM64 devices.<br>
+        <strong>Linux:</strong> AppImage for x64 (works on Ubuntu, Debian, Fedora, Deepin, UOS, Kylin, and most other distros) · AppImage for ARM64 · pacman package for Arch / Manjaro / EndeavourOS.<br><br>
+        A mobile version for iOS and Android is planned. Not sure which Mac you have? Apple menu → About This Mac. "Apple M1/M2/M3/M4" = arm64. "Intel Core" = x64. If you're unsure, grab the Universal DMG — it works on everything.
+      </div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
@@ -1203,12 +1208,15 @@
     linux: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest',
   }
   let PLATFORMS = {
-    ios:      { label: 'iOS & iPadOS', sub: 'Coming Soon', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', comingSoon: true, icon: ICONS.ios },
-    mac:      { label: 'Download for macOS', sub: 'Apple Silicon · M1/M2/M3/M4', href: FALLBACK.mac, icon: ICONS.mac },
-    mac_x64:  { label: 'Download for macOS', sub: 'Intel Mac · 2019 and older', href: FALLBACK.mac, icon: ICONS.mac },
-    win:      { label: 'Download for Windows', sub: 'x64', href: FALLBACK.win, icon: ICONS.win },
-    linux:    { label: 'Download for Linux', sub: 'AppImage', href: FALLBACK.linux, icon: ICONS.linux },
-    github:   { label: 'View on GitHub', sub: 'Source code', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', icon: ICONS.github },
+    ios:          { label: 'iOS & iPadOS', sub: 'Coming Soon', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', comingSoon: true, icon: ICONS.ios },
+    mac:          { label: 'Download for macOS', sub: 'Apple Silicon · M1/M2/M3/M4', href: FALLBACK.mac, icon: ICONS.mac },
+    mac_x64:      { label: 'Download for macOS', sub: 'Intel Mac · 2019 and older', href: FALLBACK.mac, icon: ICONS.mac },
+    mac_universal:{ label: 'Download for macOS', sub: 'Universal · works on any Mac', href: FALLBACK.mac, icon: ICONS.mac },
+    win:          { label: 'Download for Windows', sub: 'x64 · 32-bit · ARM64 (auto-detects)', href: FALLBACK.win, icon: ICONS.win },
+    linux:        { label: 'Download for Linux', sub: 'AppImage · x64 (Ubuntu, Debian, Fedora…)', href: FALLBACK.linux, icon: ICONS.linux },
+    linux_arm64:  { label: 'Download for Linux', sub: 'AppImage · ARM64 (Raspberry Pi, ARM laptops)', href: FALLBACK.linux, icon: ICONS.linux },
+    linux_arch:   { label: 'Download for Linux', sub: 'pacman · Arch / Manjaro / EndeavourOS (x64)', href: FALLBACK.linux, icon: ICONS.linux },
+    github:       { label: 'View on GitHub', sub: 'Source code & all releases', href: 'https://github.com/Mr-Pythoneer/Ur-Study-Bro', icon: ICONS.github },
   }
 
   // Fetch real asset URLs from GitHub API
@@ -1216,25 +1224,37 @@
     .then(r => r.json()).then(data => {
       const assets = data.assets || []
       const find = (pat) => (assets.find(a => pat.test(a.name)) || {}).browser_download_url
-      const macArmUrl = find(/arm64\.dmg$/)
-      const macX64Url = find(/x64\.dmg$/)
-      const winUrl    = find(/\.exe$/)
-      const linuxUrl  = find(/\.AppImage$/)
-      if (macArmUrl)  { PLATFORMS.mac.href     = macArmUrl }
-      if (macX64Url)  { PLATFORMS.mac_x64.href = macX64Url }
-      if (winUrl)     { PLATFORMS.win.href      = winUrl }
-      if (linuxUrl)   { PLATFORMS.linux.href    = linuxUrl }
+      const macArmUrl  = find(/arm64\.dmg$/)
+      // Intel DMG has no arch suffix — match .dmg that isn't arm64 or universal
+      const macX64Url  = find(/(?<!arm64|universal)\.dmg$/)
+      const macUniUrl  = find(/universal\.dmg$/)
+      const winUrl     = find(/\.exe$/)
+      // x64 AppImage: no arch suffix
+      const linuxUrl   = find(/(?<!arm64)\.AppImage$/)
+      const linuxArmUrl= find(/arm64\.AppImage$/)
+      const archUrl    = find(/(?<!aarch64)\.pacman$/)
+      if (macArmUrl)   { PLATFORMS.mac.href           = macArmUrl }
+      if (macX64Url)   { PLATFORMS.mac_x64.href       = macX64Url }
+      if (macUniUrl)   { PLATFORMS.mac_universal.href = macUniUrl }
+      if (winUrl)      { PLATFORMS.win.href            = winUrl }
+      if (linuxUrl)    { PLATFORMS.linux.href          = linuxUrl }
+      if (linuxArmUrl) { PLATFORMS.linux_arm64.href   = linuxArmUrl }
+      if (archUrl)     { PLATFORMS.linux_arch.href    = archUrl }
       renderDl('heroDl')
       renderDl('ctaDl')
     }).catch(() => {})
 
-  // Detect Apple Silicon vs Intel Mac
-  const isMacArm = isMac && (() => {
-    try { return navigator.userAgentData?.platform === 'macOS' || /Mac/.test(navigator.platform) } catch { return isMac }
-  })()
   // We can't reliably detect arm vs intel from the browser, so show both mac options on Mac
   const primary = isIOS ? 'ios' : isMac ? 'mac' : isWindows ? 'win' : isLinux ? 'linux' : 'mac'
-  const others  = isIOS ? ['mac','win','linux'] : isMac ? ['mac_x64','win','linux'] : ['mac','win','linux'].filter(p => p !== primary)
+  const others  = isIOS
+    ? ['mac','win','linux','github']
+    : isMac
+      ? ['mac_x64','mac_universal','win','linux','github']
+      : isWindows
+        ? ['mac','linux','linux_arm64','linux_arch','github']
+        : isLinux
+          ? ['linux_arm64','linux_arch','mac','win','github']
+          : ['mac','win','linux','github']
 
   function primaryBtn(p) {
     const pl = PLATFORMS[p]
@@ -1253,7 +1273,7 @@
     document.getElementById(id).innerHTML =
       `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">${primaryBtn(primary)}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">${others.map(secondaryBtn).join('')}${secondaryBtn('github')}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">${others.map(secondaryBtn).join('')}</div>
         <div style="margin-top:4px;font-size:13px;color:var(--text-3);">Not ready to install? <a href="app.html" style="color:var(--green);font-weight:600;">Try the web version →</a></div>
       </div>`
   }
