@@ -17,8 +17,24 @@
   .timer-ring-fill { fill:none; stroke:var(--accent); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .9s linear; }
   .timer-ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
   .timer-controls { display:flex; justify-content:center; gap:12px; margin-top:20px; }
-  .session-complete-banner { background:var(--accent-light); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:14px 18px; text-align:center; display:none; margin-top:16px; }
+  .session-complete-banner { display:none; margin-top:20px; }
   .session-complete-banner.visible { display:block; }
+  /* ── Inline Rewards Card ──────────────────────────────────── */
+  .reward-card { background:var(--bg-card); border:1.5px solid var(--accent); border-radius:var(--radius); padding:24px; text-align:center; animation:rewardPop .4s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes rewardPop { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:scale(1)} }
+  .reward-title { font-size:20px; font-weight:800; color:var(--text-primary); margin-bottom:4px; }
+  .reward-subtitle { font-size:13px; color:var(--text-secondary); margin-bottom:20px; }
+  .reward-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+  .reward-stat { background:var(--bg-main); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 8px; }
+  .reward-stat-val { font-size:26px; font-weight:800; color:var(--accent); line-height:1; }
+  .reward-stat-lbl { font-size:11px; color:var(--text-secondary); font-weight:600; margin-top:4px; text-transform:uppercase; letter-spacing:.4px; }
+  .reward-xp-row { display:flex; align-items:center; gap:10px; background:var(--accent-light); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px; }
+  .reward-xp-badge { font-size:22px; font-weight:800; color:var(--accent); white-space:nowrap; }
+  .reward-xp-bar-track { flex:1; height:8px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .reward-xp-bar-fill { height:100%; background:linear-gradient(90deg,#f59e0b,#f97316); border-radius:99px; transition:width .8s cubic-bezier(.34,1.56,.64,1); }
+  .reward-badge-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:20px; }
+  .reward-badge-chip { display:flex; align-items:center; gap:6px; background:var(--accent-light); border:1px solid var(--accent); border-radius:99px; padding:6px 14px; font-size:12px; font-weight:700; color:var(--accent); }
+  .reward-actions { display:flex; gap:10px; justify-content:center; }
 
   /* ── Custom timer form ────────────────────────────────────── */
   .custom-timer-form {
@@ -187,8 +203,26 @@
   </div>
 
   <div class="session-complete-banner" id="completeBanner">
-    Session complete! Great work — it's been saved to your records.
-    <br><button class="btn btn-primary" style="margin-top:10px;" id="viewRecordsBtn">View Records →</button>
+    <div class="reward-card" id="rewardCard">
+      <div style="font-size:36px;margin-bottom:8px;">🎉</div>
+      <div class="reward-title">Session Complete!</div>
+      <div class="reward-subtitle" id="rewardSubtitle">Great work — saved to your records.</div>
+      <div class="reward-stats">
+        <div class="reward-stat"><div class="reward-stat-val" id="rStatMins">0</div><div class="reward-stat-lbl">Minutes</div></div>
+        <div class="reward-stat"><div class="reward-stat-val" id="rStatSessions">0</div><div class="reward-stat-lbl">Sessions Today</div></div>
+        <div class="reward-stat"><div class="reward-stat-val" id="rStatStreak">0</div><div class="reward-stat-lbl">Day Streak</div></div>
+      </div>
+      <div class="reward-xp-row" id="rewardXpRow" style="display:none;">
+        <div class="reward-xp-badge" id="rewardXpBadge">+0 XP</div>
+        <div class="reward-xp-bar-track"><div class="reward-xp-bar-fill" id="rewardXpFill" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--accent);font-weight:700;" id="rewardXpTotal">0 XP total</div>
+      </div>
+      <div class="reward-badge-row" id="rewardBadgeRow"></div>
+      <div class="reward-actions">
+        <button class="btn btn-primary" id="viewRecordsBtn">View Records →</button>
+        <button class="btn btn-ghost" id="rewardDismissBtn">Keep Studying</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -629,8 +663,9 @@
     const today=getToday(); today.sessions++; today.mins+=mins
 
     // Award Study Points only for timers >= 15 minutes
+    let earned = 0
     if (G.totalSecs >= 15 * 60) {
-      const earned = Math.max(1, Math.round(mins / 2.5))
+      earned = Math.max(1, Math.round(mins / 2.5))
       const prevPts = parseInt(csGet('studyPoints') || '0')
       csSet('studyPoints', String(prevPts + earned))
       showNudge(`+${earned} Study Points earned!`)
@@ -649,11 +684,74 @@
     if (G.isPomodoro) {
       startBreak()
     } else {
+      showRewardCard(mins, earned)
       banner.classList.add('visible')
     }
   }
 
+  function showRewardCard(mins, earned) {
+    // Populate stats
+    document.getElementById('rStatMins').textContent = mins
+    const today = getToday()
+    document.getElementById('rStatSessions').textContent = today.sessions || 0
+
+    // Streak (days studied in a row)
+    const records = csGetJSON('records', [])
+    let streak = 0
+    const daySet = new Set(records.map(r => r.date))
+    const d = new Date()
+    while (true) {
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      if (!daySet.has(key)) break
+      streak++
+      d.setDate(d.getDate() - 1)
+    }
+    document.getElementById('rStatStreak').textContent = streak
+
+    // XP row
+    if (earned) {
+      const totalXP = parseInt(csGet('studyPoints') || '0')
+      const xpRow = document.getElementById('rewardXpRow')
+      xpRow.style.display = 'flex'
+      document.getElementById('rewardXpBadge').textContent = `+${earned} XP`
+      document.getElementById('rewardXpTotal').textContent = `${totalXP} XP total`
+      // Fill bar: level = every 100 XP
+      const pct = (totalXP % 100)
+      setTimeout(() => { document.getElementById('rewardXpFill').style.width = pct + '%' }, 100)
+    }
+
+    // Badge check — first session, 5 sessions, 10 sessions
+    const totalSessions = records.length
+    const badgeRow = document.getElementById('rewardBadgeRow')
+    badgeRow.innerHTML = ''
+    const newBadges = []
+    if (totalSessions === 1) newBadges.push({ icon: '🌱', label: 'First Session!' })
+    if (totalSessions === 5) newBadges.push({ icon: '🔥', label: '5 Sessions' })
+    if (totalSessions === 10) newBadges.push({ icon: '⚡', label: '10 Sessions' })
+    if (streak === 3) newBadges.push({ icon: '📅', label: '3-Day Streak' })
+    if (streak === 7) newBadges.push({ icon: '🏆', label: '7-Day Streak' })
+    if (newBadges.length) {
+      document.getElementById('rewardSubtitle').textContent = 'You unlocked something new!'
+      newBadges.forEach(b => {
+        const chip = document.createElement('div')
+        chip.className = 'reward-badge-chip'
+        chip.textContent = `${b.icon} ${b.label}`
+        badgeRow.appendChild(chip)
+      })
+    }
+
+    // Scroll card into view
+    setTimeout(() => banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100)
+  }
+
   document.getElementById('viewRecordsBtn').addEventListener('click', ()=>window.navigateTo('meetings'))
+  document.getElementById('rewardDismissBtn').addEventListener('click', () => {
+    banner.classList.remove('visible')
+    document.getElementById('rewardXpFill').style.width = '0%'
+    document.getElementById('rewardXpRow').style.display = 'none'
+    document.getElementById('rewardBadgeRow').innerHTML = ''
+    document.getElementById('rewardSubtitle').textContent = 'Great work — saved to your records.'
+  })
 
   /* ─────────────────────────────────────────────────────────── */
   /* ── BREAK PHASE ─────────────────────────────────────────── */

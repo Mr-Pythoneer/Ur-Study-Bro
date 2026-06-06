@@ -440,11 +440,53 @@ function buildResults(){
   <div class="plan-cta">
     <div style="font-size:28px;margin-bottom:8px;">🐌</div>
     <div style="font-size:20px;font-weight:800;margin-bottom:8px;">Turn This Into Action</div>
-    <div style="font-size:14px;opacity:.9;margin-bottom:20px;line-height:1.6;">Your cognitive profile is now saved. Hit the button below to generate a personalized daily study plan — built around your brain, your subjects, and your goals.</div>
-    <button onclick="window.navigateTo&&window.navigateTo('plan')" style="background:#fff;color:var(--accent);border:none;border-radius:var(--radius-sm);padding:14px 32px;font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);">Make My Study Plan →</button>
-  </div>`
+    <div style="font-size:14px;opacity:.9;margin-bottom:20px;line-height:1.6;">Your cognitive profile is now saved. Click below to generate your personalised study plan — right here, no page change.</div>
+    <button id="inlinePlanBtn" onclick="loadPlanInline()" style="background:#fff;color:var(--accent);border:none;border-radius:var(--radius-sm);padding:14px 32px;font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);">Make My Study Plan →</button>
+  </div>
+  <div id="inlinePlanContainer" style="margin-top:24px;"></div>`
 }
 
 updateProg()
 })()
+
+async function loadPlanInline() {
+  const btn = document.getElementById('inlinePlanBtn')
+  const container = document.getElementById('inlinePlanContainer')
+  btn.disabled = true
+  btn.textContent = 'Loading your plan...'
+  try {
+    const res = await fetch('plan.html')
+    const html = await res.text()
+
+    // Extract <style> tags
+    const styleMatches = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+    styleMatches.forEach(m => {
+      const el = document.createElement('style')
+      el.textContent = m[1]
+      document.head.appendChild(el)
+    })
+
+    // Extract body HTML (everything outside style/script)
+    const bodyDiv = document.createElement('div')
+    bodyDiv.innerHTML = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    container.appendChild(bodyDiv)
+
+    // Run scripts
+    const scriptMatches = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)]
+    scriptMatches.forEach(m => {
+      try { new Function(m[1])() } catch(e) { /* ignore init errors */ }
+    })
+
+    btn.textContent = '✓ Plan loaded below'
+    btn.style.background = '#d1fae5'
+    btn.style.color = '#065f46'
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } catch(e) {
+    btn.disabled = false
+    btn.textContent = 'Make My Study Plan →'
+    console.error('inline plan failed:', e)
+  }
+}
 </script>
