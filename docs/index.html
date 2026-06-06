@@ -1163,14 +1163,14 @@
   <p>Download v5.2.5 — now with the psychometric cognitive assessment, Duolingo-style study path, and local AI on your device.</p>
   <div class="hero-actions" id="ctaDl"></div>
   <p class="hero-note" id="ctaNote" style="margin-top:12px;">No account required · Free forever · v5.2.5</p>
-  <div id="macWarning" style="display:none;margin-top:20px;background:rgba(255,255,255,.10);border:1.5px solid rgba(255,255,255,.25);border-radius:10px;padding:18px 22px;max-width:580px;margin-left:auto;margin-right:auto;text-align:left;line-height:1.8;">
-    <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:10px;">⚠️ macOS says "App is damaged"? Here's the fix — takes 10 seconds.</div>
-    <div style="font-size:12.5px;color:rgba(255,255,255,.85);margin-bottom:10px;">This is normal for free unsigned apps. macOS puts a quarantine flag on everything downloaded from the internet. Run this once in Terminal to remove it:</div>
-    <div style="background:rgba(0,0,0,.4);border-radius:6px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <code id="xattrCmd" style="font-size:12.5px;color:#7effd4;letter-spacing:.2px;">xattr -cr "/Applications/Ur Study Bro.app"</code>
-      <button onclick="navigator.clipboard.writeText('xattr -cr \"/Applications/Ur Study Bro.app\"').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})" style="background:rgba(255,255,255,.15);border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap;">Copy</button>
+  <div id="macWarning" style="display:none;margin-top:28px;background:#fff8e6;border:1.5px solid #f0c040;border-radius:10px;padding:18px 22px;max-width:580px;margin-left:auto;margin-right:auto;text-align:left;line-height:1.8;">
+    <div style="font-size:14px;font-weight:700;color:#7a4f00;margin-bottom:8px;">⚠️ macOS says "App is damaged"? Here's the fix — takes 10 seconds.</div>
+    <div style="font-size:12.5px;color:#5a3c00;margin-bottom:10px;">This is normal for free unsigned apps. macOS puts a quarantine flag on everything downloaded from the internet. Run this once in Terminal to remove it:</div>
+    <div style="background:#1e1e1e;border-radius:6px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <code style="font-size:12.5px;color:#7effd4;letter-spacing:.2px;">xattr -cr "/Applications/Ur Study Bro.app"</code>
+      <button id="xattrCopyBtn" onclick="copyXattrCmd()" style="background:#3a3a3a;border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Copy</button>
     </div>
-    <div style="font-size:12px;color:rgba(255,255,255,.6);">Open <strong style="color:#fff">Terminal</strong> (Spotlight → type Terminal), paste the command, press Enter. Then open the app normally.</div>
+    <div style="font-size:12px;color:#7a5200;">Open <strong>Terminal</strong> (Spotlight → type Terminal), paste the command, press Enter. Then open the app normally.</div>
   </div>
 </div>
 
@@ -1692,6 +1692,16 @@
 
   const osName = isIOS ? 'iOS / iPadOS' : isMac ? 'macOS' : isWindows ? 'Windows' : isLinux ? 'Linux' : 'your platform'
   document.getElementById('heroNote').textContent = `Detected ${osName} · No account required · Free forever`
+
+  // macOS copy button
+  function copyXattrCmd() {
+    navigator.clipboard.writeText('xattr -cr "/Applications/Ur Study Bro.app"').then(() => {
+      const btn = document.getElementById('xattrCopyBtn')
+      btn.textContent = 'Copied!'
+      setTimeout(() => btn.textContent = 'Copy', 1500)
+    })
+  }
+  window.copyXattrCmd = copyXattrCmd
 
   // FAQ accordion
   function toggleFaq(btn) {
