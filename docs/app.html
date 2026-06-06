@@ -129,9 +129,19 @@
   .chat-input-row{display:flex;gap:8px}
   .chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none;resize:none;transition:border-color .15s}
   .chat-input:focus{border-color:var(--green)}
-  .ai-provider-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-  .ai-provider-row select,.ai-provider-row input{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;outline:none}
-  .ai-provider-row input{flex:1;min-width:160px}
+  /* ── AI Settings modal ──────────────────────────────────────── */
+  .ai-settings-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
+  .ai-settings-modal.open{display:flex}
+  .ai-settings-box{background:var(--card);border-radius:14px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,.15)}
+  .ai-settings-box h3{font-size:16px;font-weight:800;margin-bottom:4px}
+  .ai-settings-box p{font-size:12px;color:var(--text-3);margin-bottom:18px;line-height:1.5}
+  .ai-chat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .ai-chat-header h4{font-size:13px;font-weight:700;color:var(--text-2)}
+  .gear-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text-3);transition:background .12s}
+  .gear-btn:hover{background:#f5f4f1;color:var(--text)}
+  .ai-status{font-size:11px;padding:6px 10px;border-radius:6px;margin-bottom:10px;display:none}
+  .ai-status.ollama-ok{background:#e8f5f2;color:#0a5c50;display:block}
+  .ai-status.ollama-fail{background:#fff8f0;color:#92400e;display:block}
   .stream-cursor{display:inline-block;color:var(--green);animation:blink .7s step-end infinite}
   @keyframes blink{50%{opacity:0}}
 
@@ -401,34 +411,62 @@
       <!-- AI TUTOR -->
       <div class="page" id="page-ai">
         <div class="page-title">AI Tutor</div>
-        <div class="page-sub">Ask anything. Cloud AI only in the browser — no API key needed for Gemini Flash.</div>
-
-        <div class="locked-banner" style="margin-bottom:16px">
-          <div class="locked-banner-icon">🖥️</div>
-          <div class="locked-banner-text">
-            <h4>Local AI (Ollama) — desktop only</h4>
-            <p>100% private, no API key, runs on your Mac. Browser can't access localhost:11434.</p>
-          </div>
-          <a href="index.html#download">Get it →</a>
-        </div>
+        <div class="page-sub">Powered by Ollama (local). Uses the desktop app's AI — no API key needed.</div>
 
         <div class="card">
-          <div class="ai-provider-row">
-            <select id="aiProvider" onchange="onProviderChange()">
-              <option value="gemini">Gemini (Google)</option>
-              <option value="openai">GPT-4o (OpenAI)</option>
-              <option value="anthropic">Claude (Anthropic)</option>
-            </select>
-            <input id="aiKey" type="password" placeholder="API key (saved locally)" oninput="saveAIKey()">
-            <button class="btn" onclick="document.getElementById('aiKey').type = document.getElementById('aiKey').type==='password'?'text':'password'">👁</button>
+          <div class="ai-chat-header">
+            <h4 id="aiModelLabel">🖥️ Ollama · gemma3:4b</h4>
+            <button class="gear-btn" onclick="openAISettings()" title="AI Settings">⚙️ Settings</button>
           </div>
-          <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;" id="aiKeyHint">
-            Get a free Gemini key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--green)">aistudio.google.com</a>
-          </div>
+          <div class="ai-status" id="aiStatus"></div>
           <div class="chat-history" id="chatHistory"></div>
           <div class="chat-input-row">
             <textarea class="chat-input" id="aiInput" rows="1" placeholder="Ask your AI tutor anything…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
             <button class="btn btn-primary" id="aiSendBtn" onclick="sendAI()">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Settings modal -->
+      <div class="ai-settings-modal" id="aiSettingsModal" onclick="if(event.target===this)closeAISettings()">
+        <div class="ai-settings-box">
+          <h3>⚙️ AI Settings</h3>
+          <p>By default the AI uses Ollama running on your machine (same as the desktop app — no API key needed). Switch to a cloud provider below for more power.</p>
+
+          <div class="field">
+            <label>Provider</label>
+            <select id="aiProvider" onchange="onProviderChange()" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none">
+              <option value="ollama">Ollama (local, no key needed)</option>
+              <option value="gemini">Gemini 2.0 Flash (Google)</option>
+              <option value="openai">GPT-4o mini (OpenAI)</option>
+              <option value="anthropic">Claude Haiku (Anthropic)</option>
+            </select>
+          </div>
+
+          <div id="aiKeySection" style="display:none">
+            <div class="field">
+              <label>API Key <span style="font-weight:400;color:var(--text-3)">(saved in your browser only)</span></label>
+              <div style="display:flex;gap:6px">
+                <input id="aiKey" type="password" placeholder="Paste your API key" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none" oninput="saveAIKey()">
+                <button class="btn" onclick="toggleKeyVis()" style="flex-shrink:0">👁</button>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-bottom:14px" id="aiKeyHint"></div>
+          </div>
+
+          <div id="ollamaSection">
+            <div class="field">
+              <label>Ollama Model</label>
+              <input id="ollamaModel" type="text" value="gemma3:4b" placeholder="gemma3:4b" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;outline:none" oninput="saveOllamaModel()">
+            </div>
+            <div style="font-size:11px;color:var(--text-3);background:#f9f8f6;border-radius:6px;padding:10px;line-height:1.6">
+              Ollama must be running on your machine. The desktop app keeps it running automatically. If Ollama isn't reachable from the browser (HTTPS blocks HTTP), use a cloud provider above instead.
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:18px">
+            <button class="btn btn-primary" onclick="closeAISettings()">Save & Close</button>
+            <button class="btn" onclick="closeAISettings()">Cancel</button>
           </div>
         </div>
       </div>
@@ -978,32 +1016,84 @@ function generatePlan(answers, goalsRaw){
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   AI TUTOR (cloud only — fetch directly from browser)
+   AI TUTOR
+   Default: Ollama at localhost:11434 (same as desktop app, no key)
+   Fallback: cloud providers via Settings ⚙️
 ═══════════════════════════════════════════════════════════════ */
 let aiMessages = []
 
 function loadAISettings(){
-  const p = localStorage.getItem('ai_provider')||'gemini'
+  const p = localStorage.getItem('ai_provider')||'ollama'
   document.getElementById('aiProvider').value = p
-  document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
+  document.getElementById('ollamaModel').value = localStorage.getItem('ai_model_ollama')||'gemma3:4b'
+  if(p!=='ollama') document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
+  updateAIHeader()
   onProviderChange()
+  // Probe Ollama status silently on load
+  if(p==='ollama') probeOllama()
+}
+
+function openAISettings(){ document.getElementById('aiSettingsModal').classList.add('open') }
+function closeAISettings(){
+  document.getElementById('aiSettingsModal').classList.remove('open')
+  localStorage.setItem('ai_provider', document.getElementById('aiProvider').value)
+  updateAIHeader()
 }
 
 function onProviderChange(){
   const p = document.getElementById('aiProvider').value
-  localStorage.setItem('ai_provider',p)
-  document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
-  const hints = {
-    gemini:'Get a free Gemini key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--green)">aistudio.google.com</a>',
-    openai:'Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--green)">platform.openai.com</a>',
-    anthropic:'Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--green)">console.anthropic.com</a>',
+  const isOllama = p==='ollama'
+  document.getElementById('ollamaSection').style.display = isOllama?'block':'none'
+  document.getElementById('aiKeySection').style.display  = isOllama?'none':'block'
+  if(!isOllama){
+    document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
+    const hints = {
+      gemini:'Free key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--green)">aistudio.google.com</a>',
+      openai:'Key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--green)">platform.openai.com</a>',
+      anthropic:'Key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--green)">console.anthropic.com</a>',
+    }
+    document.getElementById('aiKeyHint').innerHTML = hints[p]||''
   }
-  document.getElementById('aiKeyHint').innerHTML = hints[p]||''
 }
 
 function saveAIKey(){
   const p = document.getElementById('aiProvider').value
   localStorage.setItem('ai_key_'+p, document.getElementById('aiKey').value.trim())
+}
+
+function saveOllamaModel(){
+  localStorage.setItem('ai_model_ollama', document.getElementById('ollamaModel').value.trim())
+  updateAIHeader()
+}
+
+function toggleKeyVis(){
+  const el = document.getElementById('aiKey')
+  el.type = el.type==='password'?'text':'password'
+}
+
+function updateAIHeader(){
+  const p = localStorage.getItem('ai_provider')||'ollama'
+  const labels = {
+    ollama:`🖥️ Ollama · ${localStorage.getItem('ai_model_ollama')||'gemma3:4b'}`,
+    gemini:'☁️ Gemini 2.0 Flash',
+    openai:'☁️ GPT-4o mini',
+    anthropic:'☁️ Claude Haiku',
+  }
+  document.getElementById('aiModelLabel').textContent = labels[p]||'AI'
+}
+
+async function probeOllama(){
+  const status = document.getElementById('aiStatus')
+  try {
+    const res = await fetch('http://localhost:11434/api/tags',{signal:AbortSignal.timeout(2000)})
+    if(res.ok){
+      status.className='ai-status ollama-ok'
+      status.textContent='✓ Ollama is running — AI is ready.'
+    } else { throw new Error('not ok') }
+  } catch {
+    status.className='ai-status ollama-fail'
+    status.innerHTML='⚠️ Ollama not reachable. Make sure the desktop app is open, or <button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">switch to a cloud provider ⚙️</button>'
+  }
 }
 
 function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
@@ -1016,16 +1106,20 @@ function addChatMsg(role, content, id){
   div.innerHTML = `<div class="msg-av">${initials}</div><div class="msg-bub" ${id?`id="${id}"`:''}>${escHtml(content)}</div>`
   hist.appendChild(div)
   hist.scrollTop=hist.scrollHeight
-  return div
 }
 
 async function sendAI(){
   const input = document.getElementById('aiInput')
   const text = input.value.trim(); if(!text) return
   const btn = document.getElementById('aiSendBtn')
-  const provider = document.getElementById('aiProvider').value
-  const key = document.getElementById('aiKey').value.trim()
-  if(!key){alert('Enter your API key first.'); return}
+  const provider = localStorage.getItem('ai_provider')||'ollama'
+  const key = localStorage.getItem('ai_key_'+provider)||''
+
+  if(provider!=='ollama' && !key){
+    openAISettings()
+    document.getElementById('aiKey').focus()
+    return
+  }
 
   input.value=''; btn.disabled=true
   aiMessages.push({role:'user',content:text})
@@ -1034,37 +1128,51 @@ async function sendAI(){
   const bubbleId='ai-'+Date.now()
   addChatMsg('assistant','▍',bubbleId)
   const bubble = document.getElementById(bubbleId)
+  const hist = document.getElementById('chatHistory')
+
+  const systemPrompt = `You are a friendly AI study tutor for Ur Study Bro. The user is ${CU}. Their study goals: ${csGet('studyGoals')||'general studying'}. Be concise, helpful, and encouraging.`
+  let reply = ''
 
   try {
-    const systemPrompt = `You are a friendly AI study tutor for Ur Study Bro. The user is ${CU}. Their study goals: ${csGet('studyGoals')||'general studying'}. Be concise, helpful, and encouraging.`
-    let reply = ''
-
-    if(provider==='gemini'){
-      const model = 'gemini-2.0-flash'
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${key}`
-      const contents = aiMessages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
-      const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        system_instruction:{parts:[{text:systemPrompt}]},
-        contents,
-        generationConfig:{maxOutputTokens:1024}
-      })})
-      const reader = res.body.getReader(); const dec = new TextDecoder(); let buf=''
+    if(provider==='ollama'){
+      // Stream from Ollama /api/chat
+      const model = localStorage.getItem('ai_model_ollama')||'gemma3:4b'
+      const res = await fetch('http://localhost:11434/api/chat',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model, stream:true,
+          messages:[...(systemPrompt?[{role:'system',content:systemPrompt}]:[]),...aiMessages]
+        })
+      })
+      if(!res.ok) throw new Error(`Ollama error ${res.status}`)
+      const reader=res.body.getReader(); const dec=new TextDecoder(); let buf=''
       while(true){
         const {done,value}=await reader.read(); if(done) break
         buf+=dec.decode(value,{stream:true})
         const lines=buf.split('\n'); buf=lines.pop()
         for(const line of lines){
-          if(!line.startsWith('data:')) continue
-          const raw=line.slice(5).trim(); if(raw==='[DONE]') continue
-          try{const obj=JSON.parse(raw); const tok=obj.candidates?.[0]?.content?.parts?.[0]?.text||''; reply+=tok; bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'; document.getElementById('chatHistory').scrollTop=9999}catch{}
+          if(!line.trim()) continue
+          try{
+            const obj=JSON.parse(line)
+            const tok=obj.message?.content||''
+            reply+=tok
+            bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'
+            hist.scrollTop=hist.scrollHeight
+          }catch{}
         }
       }
+      // Update status to green on success
+      const status=document.getElementById('aiStatus')
+      status.className='ai-status ollama-ok'
+      status.textContent='✓ Ollama is running.'
 
-    } else if(provider==='openai'){
-      const res = await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({
-        model:'gpt-4o-mini', stream:true,
-        messages:[{role:'system',content:systemPrompt},...aiMessages],
-        max_tokens:1024
+    } else if(provider==='gemini'){
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${key}`
+      const contents=aiMessages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        system_instruction:{parts:[{text:systemPrompt}]},
+        contents, generationConfig:{maxOutputTokens:1024}
       })})
       const reader=res.body.getReader(); const dec=new TextDecoder(); let buf=''
       while(true){
@@ -1074,23 +1182,48 @@ async function sendAI(){
         for(const line of lines){
           if(!line.startsWith('data:')) continue
           const raw=line.slice(5).trim(); if(raw==='[DONE]') continue
-          try{const obj=JSON.parse(raw); const tok=obj.choices?.[0]?.delta?.content||''; reply+=tok; bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'; document.getElementById('chatHistory').scrollTop=9999}catch{}
+          try{const obj=JSON.parse(raw); const tok=obj.candidates?.[0]?.content?.parts?.[0]?.text||''; reply+=tok; bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'; hist.scrollTop=hist.scrollHeight}catch{}
         }
       }
 
-    } else { // anthropic — no streaming from browser due to CORS on beta headers, use non-stream
-      const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({
+    } else if(provider==='openai'){
+      const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({
+        model:'gpt-4o-mini', stream:true,
+        messages:[{role:'system',content:systemPrompt},...aiMessages], max_tokens:1024
+      })})
+      const reader=res.body.getReader(); const dec=new TextDecoder(); let buf=''
+      while(true){
+        const {done,value}=await reader.read(); if(done) break
+        buf+=dec.decode(value,{stream:true})
+        const lines=buf.split('\n'); buf=lines.pop()
+        for(const line of lines){
+          if(!line.startsWith('data:')) continue
+          const raw=line.slice(5).trim(); if(raw==='[DONE]') continue
+          try{const obj=JSON.parse(raw); const tok=obj.choices?.[0]?.delta?.content||''; reply+=tok; bubble.innerHTML=escHtml(reply)+'<span class="stream-cursor">▍</span>'; hist.scrollTop=hist.scrollHeight}catch{}
+        }
+      }
+
+    } else { // anthropic
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({
         model:'claude-haiku-4-5-20251001', max_tokens:1024,
         system:systemPrompt, messages:aiMessages
       })})
       const data=await res.json()
-      reply = data.content?.[0]?.text || data.error?.message || 'Error'
+      reply=data.content?.[0]?.text||data.error?.message||'Error'
     }
 
     bubble.innerHTML = escHtml(reply)
     aiMessages.push({role:'assistant',content:reply})
+
   } catch(e){
-    bubble.innerHTML = '⚠️ Error: '+escHtml(e.message)
+    if(provider==='ollama'){
+      bubble.innerHTML = `⚠️ Ollama not reachable. <button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">Switch to cloud AI ⚙️</button><br><small style="color:var(--text-3)">Make sure the Ur Study Bro desktop app is open (it keeps Ollama running), or use a cloud provider in Settings.</small>`
+      const status=document.getElementById('aiStatus')
+      status.className='ai-status ollama-fail'
+      status.innerHTML='⚠️ Ollama not reachable — <button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">switch to cloud ⚙️</button>'
+    } else {
+      bubble.innerHTML = '⚠️ Error: '+escHtml(e.message)
+    }
   }
   btn.disabled=false
 }
