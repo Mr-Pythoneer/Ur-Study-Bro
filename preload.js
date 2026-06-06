@@ -46,6 +46,17 @@ contextBridge.exposeInMainWorld('api', {
   onOllamaPullProgress:  (cb) => ipcRenderer.on('ollama:pull-progress', (_e, d) => cb(d)),
   offOllamaPullProgress: ()   => ipcRenderer.removeAllListeners('ollama:pull-progress'),
 
+  // Streaming chat (Ollama only — tokens arrive in real time)
+  ollamaStream:     (payload) => ipcRenderer.send('ollama:stream', payload),
+  onOllamaToken:    (cb) => ipcRenderer.on('ollama:stream-token', (_e, t) => cb(t)),
+  onOllamaDone:     (cb) => ipcRenderer.on('ollama:stream-done',  (_e)    => cb()),
+  onOllamaError:    (cb) => ipcRenderer.on('ollama:stream-error', (_e, e) => cb(e)),
+  offOllamaStream:  ()   => {
+    ipcRenderer.removeAllListeners('ollama:stream-token')
+    ipcRenderer.removeAllListeners('ollama:stream-done')
+    ipcRenderer.removeAllListeners('ollama:stream-error')
+  },
+
   // ── First launch + permissions + update ─────────────────────────
   firstLaunchCheck: ()    => ipcRenderer.invoke('app:firstLaunchCheck'),
   firstLaunchDone:  ()    => ipcRenderer.send('app:firstLaunchDone'),

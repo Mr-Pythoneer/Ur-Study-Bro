@@ -55,6 +55,8 @@
   .typing-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); opacity:.4; animation:tdot 1.2s infinite; }
   .typing-dot:nth-child(2) { animation-delay:.2s; }
   .typing-dot:nth-child(3) { animation-delay:.4s; }
+  .stream-cursor { display:inline-block; color:var(--accent); animation:blink .7s step-end infinite; }
+  @keyframes blink { 50% { opacity:0 } }
   @keyframes tdot { 0%,100%{opacity:.4;transform:translateY(0)} 50%{opacity:1;transform:translateY(-4px)} }
 
   .chat-input-row { display:flex; gap:10px; align-items:flex-end; }
@@ -315,8 +317,13 @@
   /* ── Chat history ── */
   let messages = []  // {role, content}
 
-  function addMessage(role, content, replay = false) {
-    if (!replay) { messages.push({ role, content }); persistCurrentConv() }
+  // bubbleId: if set, gives the inner bubble div that id (used for streaming updates)
+  function addMessage(role, content, bubbleId = false) {
+    const isReplay = bubbleId === true // backward-compat: old callers pass true for replay
+    if (!isReplay && bubbleId !== true) {
+      // Only push to messages array for real user/assistant messages, not streaming placeholders
+      if (typeof bubbleId !== 'string') { messages.push({ role, content }); persistCurrentConv() }
+    }
     const history = document.getElementById('chatHistory')
 
     const wrapper = document.createElement('div')
@@ -327,17 +334,21 @@
       : 'AI'
 
     const formatted = role === 'assistant' ? formatAI(content) : esc(content)
+    const idAttr = (typeof bubbleId === 'string') ? ` id="${bubbleId}"` : ''
 
     wrapper.innerHTML = `
       <div class="msg-avatar">${initials}</div>
       <div>
-        <div class="msg-bubble">${formatted}</div>
+        <div class="msg-bubble"${idAttr}>${formatted}</div>
         <div class="msg-time">${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</div>
       </div>`
     history.appendChild(wrapper)
     history.scrollTop = history.scrollHeight
     return wrapper
   }
+
+  const renderMarkdown = formatAI // alias for streaming path
+  const saveChatHistory = () => persistCurrentConv()
 
   function showTyping() {
     const history = document.getElementById('chatHistory')
@@ -372,13 +383,55 @@
     sendBtn.disabled = true
 
     addMessage('user', text)
-    showTyping()
 
+    const p = providerSel.value
+    const resolvedModel = p === 'ollama'
+      ? (localStorage.getItem('ai_model_ollama') || localStorage.getItem('ai_ollama_model') || 'gemma3:4b')
+      : modelSel.value
+
+    // ── Ollama: streaming path ──────────────────────────────────
+    if (p === 'ollama') {
+      // Create a placeholder message bubble that we'll fill token-by-token
+      const msgId = 'stream-' + Date.now()
+      addMessage('assistant', '', msgId)
+      const bubble = document.getElementById(msgId)
+
+      let full = ''
+      window.api.offOllamaStream() // clear any leftover listeners
+
+      window.api.onOllamaToken(token => {
+        full += token
+        if (bubble) bubble.innerHTML = renderMarkdown(full) + '<span class="stream-cursor">▍</span>'
+        // Auto-scroll
+        const chat = document.getElementById('chatMessages')
+        if (chat) chat.scrollTop = chat.scrollHeight
+      })
+
+      window.api.onOllamaDone(() => {
+        window.api.offOllamaStream()
+        if (bubble) bubble.innerHTML = renderMarkdown(full)
+        messages.push({ role: 'assistant', content: full })
+        sendBtn.disabled = false
+        saveChatHistory()
+      })
+
+      window.api.onOllamaError(err => {
+        window.api.offOllamaStream()
+        if (bubble) bubble.innerHTML = '⚠️ Ollama error: ' + esc(err)
+        sendBtn.disabled = false
+      })
+
+      window.api.ollamaStream({
+        model:        resolvedModel,
+        systemPrompt: systemPrompt.value,
+        messages:     messages.map(m => ({ role: m.role, content: m.content })),
+      })
+      return
+    }
+
+    // ── Other providers: existing non-streaming path ────────────
+    showTyping()
     try {
-      const p = providerSel.value
-      const resolvedModel = p === 'ollama'
-        ? (localStorage.getItem('ai_model_ollama') || localStorage.getItem('ai_ollama_model') || 'gemma3:4b')
-        : modelSel.value
       const res = await window.api.askAI({
         provider:     p,
         apiKey:       apiKeyInput.value.trim(),

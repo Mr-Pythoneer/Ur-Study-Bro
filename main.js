@@ -215,7 +215,7 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
 
     } else if (provider === 'ollama') {
       // Local Ollama — OpenAI-compatible endpoint at localhost:11434
-      const ollamaModel = model || 'gemma3:1b'
+      const ollamaModel = model || 'gemma3:4b'
       url = 'http://localhost:11434/v1/chat/completions'
       headers = { 'Content-Type': 'application/json' }
       body = JSON.stringify({
@@ -248,6 +248,56 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
     return { reply: extractReply(data) || '' }
   } catch (e) {
     return { error: e.message }
+  }
+})
+
+// ── Ollama streaming chat ────────────────────────────────────────
+// Uses /api/chat with stream:true and pushes tokens to the renderer
+// as they arrive so the user sees words appearing in real time.
+ipcMain.on('ollama:stream', async (event, { model, messages, systemPrompt }) => {
+  const { net } = require('electron')
+  const ollamaModel = model || 'gemma3:4b'
+  const send = (ch, data) => { try { event.sender.send(ch, data) } catch {} }
+  try {
+    const res = await net.fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: ollamaModel,
+        stream: true,
+        messages: [
+          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+          ...messages,
+        ],
+      }),
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      send('ollama:stream-error', txt)
+      return
+    }
+    const reader = res.body.getReader()
+    const dec = new TextDecoder()
+    let buf = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += dec.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() // keep incomplete last line
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try {
+          const obj = JSON.parse(line)
+          const token = obj.message?.content
+          if (token) send('ollama:stream-token', token)
+          if (obj.done) send('ollama:stream-done', {})
+        } catch {}
+      }
+    }
+    send('ollama:stream-done', {})
+  } catch (e) {
+    send('ollama:stream-error', e.message)
   }
 })
 
