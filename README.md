@@ -1,19 +1,21 @@
 # Ur Study Bro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
+[![Version](https://img.shields.io/badge/version-5.2.5-blue.svg)](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
 
 **Website: https://mr-pythoneer.github.io/Ur-Study-Bro/**
 
 A free, open-source AI-powered desktop study partner built with Electron. Features a full psychoeducational cognitive battery, personalised study plans, focus timers, streaks, rewards, **built-in screen recorder**, flashcard generation, and more.
 
-## ⬇️ Download — [Latest Release](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/latest)
+## ⬇️ Download — v5.2.5
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon M1+) | `.dmg` on the releases page |
-| Windows (x64) | `.exe` on the releases page |
-| Linux (x64) | `.AppImage` on the releases page |
+| macOS (Apple Silicon M1+) | [**Ur.Study.Bro-5.2.5-arm64.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-arm64.dmg) |
+| Windows (x64) | [**Ur.Study.Bro.Setup.5.2.5.exe**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro.Setup.5.2.5.exe) |
+| Linux (x64) | [**Ur.Study.Bro-5.2.5.AppImage**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5.AppImage) |
+
+> All releases: [github.com/Mr-Pythoneer/Ur-Study-Bro/releases](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
 
 > **macOS: "App is damaged and can't be opened"?**
 > This is because the app isn't signed with a paid Apple certificate. It's safe — run this in Terminal to fix it:
@@ -55,7 +57,7 @@ npm start
 ## Build
 
 ```bash
-npm run build   # produces dist/Ur Study Bro-5.0.0-arm64.dmg (Apple Silicon)
+npm run build   # produces dist/Ur Study Bro-5.2.5-arm64.dmg (Apple Silicon)
 ```
 
 ## Tech Stack
