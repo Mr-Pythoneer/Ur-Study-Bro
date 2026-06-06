@@ -12,9 +12,13 @@ A free, open-source AI-powered desktop study partner built with Electron. Featur
 | Platform | Download |
 |----------|----------|
 | macOS — Apple Silicon (M1/M2/M3/M4) | [**Ur.Study.Bro-5.2.5-arm64.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-arm64.dmg) |
-| macOS — Intel (2019 and older) | [**Ur.Study.Bro-5.2.5-x64.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-x64.dmg) |
-| Windows (x64) | [**Ur.Study.Bro.Setup.5.2.5.exe**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro.Setup.5.2.5.exe) |
-| Linux (x64) | [**Ur.Study.Bro-5.2.5.AppImage**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5.AppImage) |
+| macOS — Intel (2019 and older) | [**Ur.Study.Bro-5.2.5.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5.dmg) |
+| macOS — Universal (works on both) | [**Ur.Study.Bro-5.2.5-universal.dmg**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-universal.dmg) |
+| Windows — x64, x86 (32-bit) & ARM64 | [**Ur.Study.Bro.Setup.5.2.5.exe**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro.Setup.5.2.5.exe) |
+| Linux — x64 (Ubuntu, Debian, Fedora, Deepin…) | [**Ur.Study.Bro-5.2.5.AppImage**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5.AppImage) |
+| Linux — ARM64 (Raspberry Pi, ARM laptops) | [**Ur.Study.Bro-5.2.5-arm64.AppImage**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/Ur.Study.Bro-5.2.5-arm64.AppImage) |
+| Linux — Arch / Manjaro / EndeavourOS (x64) | [**clever-snail-5.2.5.pacman**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/clever-snail-5.2.5.pacman) |
+| Linux — Arch / Manjaro (ARM64) | [**clever-snail-5.2.5-aarch64.pacman**](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases/download/v5.2.5/clever-snail-5.2.5-aarch64.pacman) |
 
 > **Not sure which Mac you have?** Click the  → About This Mac. If Chip says "Apple M1/M2/M3/M4" → download arm64. If it says "Intel Core" → download x64.
 
