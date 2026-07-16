@@ -1,0 +1,185 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Screen Recorder — Ur Study Bro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐌</text></svg>"/>
+  <meta name="description" content="Record your screen or any window, capture and transcribe lectures, all saved locally on your device."/>
+  <link rel="stylesheet" href="assets/site.css"/>
+</head>
+<body data-page="recording">
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🐌</div>
+    Ur Study Bro
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="features.html"  data-page="features"  data-i18n="nav.features">Features</a>
+    <a class="nav-link" href="recording.html" data-page="recording" data-i18n="nav.recording">Recording</a>
+    <a class="nav-link" href="ai.html"        data-page="ai"        data-i18n="nav.ai">AI</a>
+    <a class="nav-link" href="faq.html"       data-page="faq"       data-i18n="nav.faq">FAQ</a>
+    <a class="nav-link" href="index.html#support" data-i18n="nav.support">Support ☕</a>
+    <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" data-i18n="nav.github">GitHub</a>
+    <a class="nav-btn" href="app.html" style="background:transparent;color:var(--green);border:1.5px solid var(--green);margin-inline-end:6px;" data-i18n="nav.tryOnline">Try Online</a>
+    <a class="nav-btn" href="download.html" data-page="download" data-i18n="nav.download">Download</a>
+    <div class="lang-picker" id="langPicker">
+      <button class="lang-btn" onclick="toggleLangMenu()" aria-label="Change language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span id="langBtnLabel">EN</span>
+      </button>
+      <div class="lang-dropdown" id="langDropdown"></div>
+    </div>
+  </div>
+</nav>
+<section class="section" id="recording">
+  <div class="section-label" data-i18n="sec.recording.label">🔴 New in v5.2</div>
+  <h2 data-i18n="sec.recording.h2">Record your screen. Capture every lecture. Miss nothing.</h2>
+  <p class="section-sub" data-i18n="sec.recording.sub">Built-in screen recorder right inside the app — no third-party software, no export hassle. Hit record, study, stop. Your session is saved locally and linked directly to your notes.</p>
+
+  <!-- Big recording showcase -->
+  <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:40px;background:#fafafa;">
+    <!-- fake window chrome -->
+    <div style="background:#f4f4f4;border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:6px;">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <span style="font-size:11px;color:#999;margin-left:8px;font-weight:500;" data-i18n="rec.mock.title">Ur Study Bro — Meeting Records</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;padding:3px 10px;border-radius:99px;">
+        <span data-i18n="rec.mock.badge">● REC 00:04:12</span>
+      </span>
+    </div>
+    <div style="padding:28px 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <!-- left: controls -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="font-size:16px;font-weight:800;letter-spacing:-.3px;" data-i18n="rec.mock.h">Screen Recorder</div>
+        <div style="font-size:13px;color:#555;line-height:1.6;" data-i18n="rec.mock.desc">Record any window or your full display. Pick your source, hit record — everything saves as a video file you can rewatch anytime.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#999;" data-i18n="rec.mock.sourceLabel">Source</div>
+          <div style="border:1.5px solid var(--green);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);background:#f0f7f5;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" width="14" height="14"><rect x="2" y="3" width="16" height="11" rx="1.5"/><path d="M7 17h6M10 14v3"/></svg>
+            <span data-i18n="rec.mock.source1">Entire Screen (Display 1) ✓</span>
+          </div>
+          <div style="border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:#555;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" width="14" height="14"><rect x="3" y="4" width="14" height="12" rx="1.5"/><path d="M7 8h6M7 11h4"/></svg>
+            <span data-i18n="rec.mock.source2">Notion — Lecture Notes</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <div style="background:#dc2626;color:#fff;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <span data-i18n="rec.mock.stop">■ Stop Recording</span>
+          </div>
+          <div style="border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;color:#555;" data-i18n="rec.mock.discard">
+            Discard
+          </div>
+        </div>
+      </div>
+      <!-- right: saved recordings list -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#999;" data-i18n="rec.mock.savedLabel">Saved Recordings</div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;">
+            <div>
+              <div style="font-size:13px;font-weight:600;" data-i18n="rec.mock.v1.name">Calc Lecture — Week 9</div>
+              <div style="font-size:11px;color:#999;" data-i18n="rec.mock.v1.meta">Today · 52 min · 1.2 GB</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <div style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:6px;" data-i18n="rec.mock.play">▶ Play</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;">
+            <div>
+              <div style="font-size:13px;font-weight:600;" data-i18n="rec.mock.v2.name">Bio Lab Demo</div>
+              <div style="font-size:11px;color:#999;" data-i18n="rec.mock.v2.meta">Yesterday · 28 min · 650 MB</div>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:6px;" data-i18n="rec.mock.play">▶ Play</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;">
+            <div>
+              <div style="font-size:13px;font-weight:600;" data-i18n="rec.mock.v3.name">History Seminar Notes</div>
+              <div style="font-size:11px;color:#999;" data-i18n="rec.mock.v3.meta">Mon · 41 min · 890 MB</div>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:6px;" data-i18n="rec.mock.play">▶ Play</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="grid-card" style="border-top:3px solid #dc2626;">
+      <div class="grid-icon" style="background:#fee2e2;"><svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="#dc2626"/></svg></div>
+      <h3 data-i18n="rec.oneclick.title">One-click recording</h3>
+      <p data-i18n="rec.oneclick.body">Select your screen or any open window as the source. Press record — that's it. No setup, no extra software. The video is saved locally the moment you stop.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid var(--green);">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <h3 data-i18n="rec.local.title">Stored on your device</h3>
+      <p data-i18n="rec.local.body">Every recording stays on your machine — never uploaded, never shared. Browse, play back, or delete from inside the app at any time.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #7c3aed;">
+      <div class="grid-icon" style="background:#ede9fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"/></svg></div>
+      <h3 data-i18n="rec.transcribe.title">Audio transcription</h3>
+      <p data-i18n="rec.transcribe.body">Record your mic during a lecture and transcribe it using Whisper or Groq. The full transcript drops straight into your session notes — searchable, copyable, shareable.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #d97706;">
+      <div class="grid-icon" style="background:#fef3c7;"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <h3 data-i18n="rec.linked.title">Linked to your notes</h3>
+      <p data-i18n="rec.linked.body">Recordings appear right inside Meeting Records alongside your written notes, ratings, and session metadata — everything for a class in one place.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #0ea5e9;">
+      <div class="grid-icon" style="background:#e0f2fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
+      <h3 data-i18n="rec.anywindow.title">Any window, any app</h3>
+      <p data-i18n="rec.anywindow.body">Capture your entire display or just one specific window — your slides, browser, Zoom call, whatever you're studying from. Switch sources between sessions.</p>
+    </div>
+    <div class="grid-card" style="border-top:3px solid #16a34a;">
+      <div class="grid-icon" style="background:#d1fae5;"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <h3 data-i18n="rec.private.title">Private by default</h3>
+      <p data-i18n="rec.private.body">Screen Recording permission is requested once on first launch. The app never runs the recorder in the background and never transmits any video data off your device.</p>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a class="nav-logo" href="index.html" style="text-decoration:none;">
+        <div class="nav-logo-icon">
+    🐌
+        </div>
+        Ur Study Bro
+      </a>
+      <p data-i18n="footer.tagline">A free, open-source study app that starts by understanding how you learn — then builds everything around it.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.product">Product</h4>
+      <a href="features.html" data-i18n="footer.link.features">Features</a>
+      <a href="ai.html" data-i18n="footer.link.ai">AI Tools</a>
+      <a href="features.html#assessment" data-i18n="footer.link.assessment">Assessment</a>
+      <a href="features.html#plan" data-i18n="footer.link.plan">Study Path</a>
+      <a href="features.html#rewards" data-i18n="footer.link.rewards">Rewards</a>
+      <a href="download.html" data-i18n="footer.link.download">Download</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.resources">Resources</h4>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" data-i18n="footer.link.repo">GitHub Repo</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases" target="_blank" data-i18n="footer.link.releases">Releases</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank" data-i18n="footer.link.bugs">Bug Reports</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank" data-i18n="footer.link.contribute">Contribute</a>
+      <a href="faq.html" data-i18n="footer.link.faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.contact">Contact</h4>
+      <a href="https://github.com/Mr-Pythoneer" target="_blank">@Mr-Pythoneer</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new" target="_blank" data-i18n="footer.link.reportBug">Report a Bug</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new?labels=enhancement" target="_blank" data-i18n="footer.link.requestFeature">Request a Feature</a>
+      <a href="features.html#contact" data-i18n="footer.link.getInTouch">Get in Touch</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span data-i18n="footer.copyright">Copyright Mr_Pythoneer 2026© · Released under the <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/blob/main/LICENSE" target="_blank">MIT License</a></span>
+    <span data-i18n="footer.built">Built with Electron · No tracking · No telemetry · v5.2.5</span>
+  </div>
+</footer>
+<script src="assets/i18n.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

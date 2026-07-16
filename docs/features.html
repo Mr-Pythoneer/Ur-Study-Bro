@@ -1,0 +1,436 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Features — Ur Study Bro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐌</text></svg>"/>
+  <meta name="description" content="Cognitive assessment, an adaptive study path, rewards and streaks, social study, and more — everything Ur Study Bro does."/>
+  <link rel="stylesheet" href="assets/site.css"/>
+</head>
+<body data-page="features">
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🐌</div>
+    Ur Study Bro
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="features.html"  data-page="features"  data-i18n="nav.features">Features</a>
+    <a class="nav-link" href="recording.html" data-page="recording" data-i18n="nav.recording">Recording</a>
+    <a class="nav-link" href="ai.html"        data-page="ai"        data-i18n="nav.ai">AI</a>
+    <a class="nav-link" href="faq.html"       data-page="faq"       data-i18n="nav.faq">FAQ</a>
+    <a class="nav-link" href="index.html#support" data-i18n="nav.support">Support ☕</a>
+    <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" data-i18n="nav.github">GitHub</a>
+    <a class="nav-btn" href="app.html" style="background:transparent;color:var(--green);border:1.5px solid var(--green);margin-inline-end:6px;" data-i18n="nav.tryOnline">Try Online</a>
+    <a class="nav-btn" href="download.html" data-page="download" data-i18n="nav.download">Download</a>
+    <div class="lang-picker" id="langPicker">
+      <button class="lang-btn" onclick="toggleLangMenu()" aria-label="Change language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span id="langBtnLabel">EN</span>
+      </button>
+      <div class="lang-dropdown" id="langDropdown"></div>
+    </div>
+  </div>
+</nav>
+<section class="section" id="features">
+  <div class="section-label" data-i18n="sec.features.label">Features</div>
+  <h2 data-i18n="sec.features.h2">Everything you actually need. Nothing you don't.</h2>
+  <p class="section-sub" data-i18n="sec.features.sub">No subscription. No sign-up. No nonsense. I just wanted a study app that worked, so I built one.</p>
+
+  <div class="grid grid-4">
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></div>
+      <h3 data-i18n="feat.timers.title">Focus Timers</h3>
+      <p data-i18n="feat.timers.body">Pomodoro 25, Focus 45, Deep Work 60, Marathon 90. Animated ring, automatic breaks, custom timers, and Study Points on completion.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <h3 data-i18n="feat.guard.title">Focus Guard</h3>
+      <p data-i18n="feat.guard.body">Choose which apps are allowed during a session. Open anything else and the app hides it and brings you back — automatically.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></div>
+      <h3 data-i18n="feat.calendar.title">Calendar</h3>
+      <p data-i18n="feat.calendar.body">Month, week, and list views. Add sessions and meetings with video links. 5-minute native notifications. Meeting invites auto-import from email.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <h3 data-i18n="feat.records.title">Session Records</h3>
+      <p data-i18n="feat.records.body">Log sessions with subject, rating, and notes. Built-in screen recorder and lecture audio transcription. Everything stored locally.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg></div>
+      <h3 data-i18n="feat.email.title">Email Inbox</h3>
+      <p data-i18n="feat.email.body">Connect Gmail, iCloud, or any IMAP account. Class and meeting invites are detected and added to your Calendar in one click.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+      <h3 data-i18n="feat.analytics.title">Study Analytics</h3>
+      <p data-i18n="feat.analytics.body">Weekly hours, daily streaks, subject breakdown, and peak focus times — calculated automatically from your real session history.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg></div>
+      <h3 data-i18n="feat.kit.title">Study Kit</h3>
+      <p data-i18n="feat.kit.body">Paste notes and get a summary, flashcards, and practice questions instantly. Export to Anki. Or generate a full personalised study guide from your cognitive profile.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <h3 data-i18n="feat.offline.title">100% Offline &amp; Private</h3>
+      <p data-i18n="feat.offline.body">No cloud, no telemetry, no sign-up. Everything lives on your device. Works on a plane, in a library, anywhere — no internet needed.</p>
+    </div>
+  </div>
+</section>
+<hr/>
+<section class="section" id="assessment">
+  <div class="section-label" data-i18n="sec.assessment.label">Cognitive Assessment</div>
+  <h2 data-i18n="sec.assessment.h2">A learning profile that's actually about you.</h2>
+  <p class="section-sub" data-i18n="sec.assessment.sub">Most apps give you the same generic tips. This one runs six mini-tests first and builds your study plan from the results.</p>
+
+  <div class="assess-box">
+    <h3 data-i18n="assess.box.title">Six mini-tests → one honest look at how you study.</h3>
+    <p data-i18n="assess.box.body">Based on the same methods used in real psychology research, but designed to be quick and (genuinely) kind of fun. Takes about 15 minutes. You get a full report at the end — what your attention looks like, how your memory works, how you learn best, and a personalised study blueprint you can actually use.</p>
+    <div class="pill-row">
+      <div class="pill" data-i18n="assess.pill.attention">Sustained Attention</div>
+      <div class="pill" data-i18n="assess.pill.impulsivity">Impulsivity</div>
+      <div class="pill" data-i18n="assess.pill.memory">Working Memory</div>
+      <div class="pill" data-i18n="assess.pill.style">Learning Style</div>
+      <div class="pill" data-i18n="assess.pill.flex">Cognitive Flexibility</div>
+      <div class="pill" data-i18n="assess.pill.load">Mental Load</div>
+    </div>
+  </div>
+
+  <div class="grid grid-3" style="margin-bottom:40px;">
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#fee2e2;"><svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div>
+      <h3 data-i18n="assess.tap.title">Tap the Target — Focus &amp; Impulse Control</h3>
+      <p data-i18n="assess.tap.body">A reaction game: tap when you see the green circle, hold back when you see red. 120 rounds, about 3 minutes. Measures how well you can focus and stop yourself from making mistakes.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#fef3c7;"><svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <h3 data-i18n="assess.quiz.title">Attention Quiz</h3>
+      <p data-i18n="assess.quiz.body">6 quick questions about how you normally focus — things like "how often do you lose track of what you're doing?" Totally anonymous, no right answers.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#ede9fe;"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"><path d="M12 2C8 2 5 5 5 9c0 2.5 1.2 4.5 3 6l.5 4h7l.5-4c1.8-1.5 3-3.5 3-6 0-4-3-7-7-7z"/></svg></div>
+      <h3 data-i18n="assess.number.title">Number Memory</h3>
+      <p data-i18n="assess.number.body">Numbers flash on screen one at a time — type them back in order. Gets longer as you go. Then you do it in reverse order (heard aloud). Surprisingly tricky and kind of addictive.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#d1fae5;"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <h3 data-i18n="assess.learn.title">How You Learn</h3>
+      <p data-i18n="assess.learn.body">3 everyday scenarios — pick whichever answer feels most like you. Figures out whether you learn best by seeing, listening, reading, or doing. Your study path is built around your result.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#fce7f3;"><svg viewBox="0 0 24 24" fill="none" stroke="#db2777" stroke-width="2" stroke-linecap="round"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg></div>
+      <h3 data-i18n="assess.switch.title">Brain Switcher</h3>
+      <p data-i18n="assess.switch.body">Sort coloured shapes by a rule that changes every 5 rounds — without warning. Tests how fast your brain can switch gears. Most people find this one harder than it looks.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon" style="background:#dbeafe;"><svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM12 6v6l4 2"/></svg></div>
+      <h3 data-i18n="assess.stress.title">Stress Check</h3>
+      <p data-i18n="assess.stress.body">Three sliders — brain effort, time pressure, frustration. Takes 30 seconds. The app uses your answers to figure out ideal session length (higher stress = shorter, more frequent sessions).</p>
+    </div>
+  </div>
+
+  <p style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:20px;" data-i18n="assess.results.label">What you actually get when you finish</p>
+  <div class="results-grid">
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">🧠</div><strong data-i18n="assess.res.adhd.title">ADHD Risk Score</strong></div>
+      <span data-i18n="assess.res.adhd.body">A composite score (0–100) blending commission errors, omission errors, and ASRS responses — with a plain-English explanation of what it means for your studying.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">⚡</div><strong data-i18n="assess.res.attention.title">Attention &amp; Executive Function Narrative</strong></div>
+      <span data-i18n="assess.res.attention.body">A detailed paragraph interpreting your CPT results — reaction time, false alarms, and missed targets — in the context of real-world focus and impulse control.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">💾</div><strong data-i18n="assess.res.memory.title">Working Memory Profile</strong></div>
+      <span data-i18n="assess.res.memory.body">Forward and backward span scores with an explanation of the gap between them and what it means for how you should structure your revision.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">🎨</div><strong data-i18n="assess.res.style.title">Learning Style Analysis</strong></div>
+      <span data-i18n="assess.res.style.body">Your VARK breakdown with specific study techniques recommended for your dominant modality — not generic advice, but methods matched to how you actually process information.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">🔀</div><strong data-i18n="assess.res.flex.title">Cognitive Flexibility Score</strong></div>
+      <span data-i18n="assess.res.flex.body">Your switching cost in milliseconds — how much your brain slows down when a rule changes — plus whether that means you should use single-subject or mixed-subject sessions.</span>
+    </div>
+    <div class="result-row">
+      <div class="result-row-head"><div class="result-dot">📋</div><strong data-i18n="assess.res.blueprint.title">Optimal Study Blueprint</strong></div>
+      <span data-i18n="assess.res.blueprint.body">Five personalised cards: ideal session length, environment setup, task sequencing strategy, review method, and one specific warning sign to watch for during study.</span>
+    </div>
+    <div class="result-row" style="grid-column:1/-1;flex-direction:row;align-items:center;gap:20px;background:linear-gradient(135deg,#e8f5f3,#f0faf8);border-color:#b2ddd7;">
+      <div class="result-dot" style="width:40px;height:40px;font-size:20px;background:#fff;flex-shrink:0;">🗺️</div>
+      <div><strong style="font-size:14px;" data-i18n="assess.res.plan.title">"Make My Study Plan" button</strong><br><span style="padding:0;" data-i18n="assess.res.plan.body">One click turns your full cognitive profile into a 40-task Duolingo-style path, personalised to your scores. XP, streaks, and daily goals keep you on track.</span></div>
+    </div>
+  </div>
+</section>
+<hr/>
+<section class="section" id="plan">
+  <div class="section-label" data-i18n="sec.plan.label">Study Path</div>
+  <h2 data-i18n="sec.plan.h2">A study path that never ends. And never stops evolving.</h2>
+  <p class="section-sub" data-i18n="sec.plan.sub">Add your subjects. The app builds a personalised task path around them — and keeps generating more forever. No cap, no finish line. It gets harder as you improve and shifts focus toward your weakest areas automatically.</p>
+
+  <!-- Path mockup -->
+  <div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:40px;background:#fafafa;">
+    <!-- Stats bar -->
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <div style="background:#fafafa;border:1px solid #e8e8e8;border-radius:99px;padding:6px 14px;font-size:13px;font-weight:800;">🔥 7 <span style="font-size:11px;font-weight:600;color:#999;" data-i18n="plan.mock.streakLbl">day streak</span></div>
+      <div style="flex:1;min-width:120px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-bottom:4px;"><span data-i18n="plan.mock.xp">⚡ 470 XP · Scholar</span><span data-i18n="plan.mock.next">30 to next</span></div>
+        <div style="height:8px;background:#e8e8e8;border-radius:99px;"><div style="width:82%;height:100%;background:linear-gradient(90deg,#f59e0b,#f97316);border-radius:99px;"></div></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#fbbf24,#f97316);border-radius:99px;padding:6px 14px;font-size:13px;font-weight:800;color:#fff;" data-i18n="plan.mock.lvl">Lv 5</div>
+    </div>
+    <!-- Path nodes -->
+    <div style="padding:28px 24px;display:flex;flex-direction:column;gap:8px;max-width:340px;margin:0 auto;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#999;text-align:center;margin-bottom:4px;" data-i18n="plan.mock.phase">🌱 Getting Started</div>
+      <div style="display:flex;justify-content:flex-end;padding-right:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#22c55e;box-shadow:0 4px 12px rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;">✓</div>
+          <div style="font-size:11px;color:#999;font-weight:700;text-align:center;max-width:80px;" data-i18n="plan.mock.t1">Set Your Space</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-start;padding-left:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#22c55e;box-shadow:0 4px 12px rgba(34,197,94,.3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;">✓</div>
+          <div style="font-size:11px;color:#999;font-weight:700;text-align:center;max-width:80px;" data-i18n="plan.mock.t2">Write Today's Goal</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;padding-right:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="width:62px;height:62px;border-radius:50%;background:var(--green);box-shadow:0 0 0 8px rgba(15,123,108,.15),0 4px 16px rgba(15,123,108,.4);display:flex;align-items:center;justify-content:center;font-size:26px;">📖</div>
+          <div style="font-size:11px;color:var(--green);font-weight:700;text-align:center;max-width:80px;" data-i18n="plan.mock.t3">Deep Read Session</div>
+          <div style="background:var(--green);color:#fff;border:none;border-radius:10px;padding:7px 18px;font-size:12px;font-weight:800;" data-i18n="plan.mock.start">START ▶</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-start;padding-left:40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.45;">
+          <div style="width:62px;height:62px;border-radius:50%;background:#fff;border:2.5px solid #e8e8e8;display:flex;align-items:center;justify-content:center;font-size:26px;">🧠</div>
+          <div style="font-size:11px;color:#999;font-weight:700;text-align:center;max-width:80px;" data-i18n="plan.mock.t4">Brain Dump</div>
+        </div>
+      </div>
+    </div>
+    <!-- Daily ring -->
+    <div style="padding:14px 20px;background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px;">
+      <svg width="48" height="48" viewBox="0 0 52 52" style="flex-shrink:0;transform:rotate(-90deg)">
+        <circle cx="26" cy="26" r="21" fill="none" stroke="#e8e8e8" stroke-width="5"/>
+        <circle cx="26" cy="26" r="21" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="52.8"/>
+      </svg>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#111;" data-i18n="plan.mock.goal">Daily goal: 3 / 5 tasks</div>
+        <div style="font-size:12px;color:#999;" data-i18n="plan.mock.goalSub">2 more tasks to keep your streak alive 🔥</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
+      <h3 data-i18n="plan.infinite.title">Infinite &amp; subject-specific</h3>
+      <p data-i18n="plan.infinite.body">Add your actual subjects (e.g. "AP Calculus", "History Essay"). Every task references your real material — not generic study tips. New batches generate automatically as you complete tasks.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <h3 data-i18n="plan.adapts.title">Adapts to your weaknesses</h3>
+      <p data-i18n="plan.adapts.body">The app tracks which task types you complete most and least. Each new batch skews toward your gaps — more memory drills if you avoid them, harder challenges if you breeze through easy tasks.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12V6H4v16h8"/><path d="M16 19l2 2 4-4"/></svg></div>
+      <h3 data-i18n="plan.growth.title">Growth tab + auto Focus Mode</h3>
+      <p data-i18n="plan.growth.body">See your progress: tasks done, XP earned, days active, type breakdown, milestones. Session tasks automatically open Focus Mode — complete the task and your timer starts instantly.</p>
+    </div>
+  </div>
+</section>
+<hr/>
+<section class="section" id="rewards">
+  <div class="section-label" data-i18n="sec.rewards.label">Rewards &amp; Streaks</div>
+  <h2 data-i18n="sec.rewards.h2">Points for doing the thing you were going to do anyway.</h2>
+  <p class="section-sub" data-i18n="sec.rewards.sub">Every study session earns points. Set your own rewards, keep your streak alive, unlock badges. Turns out gamification actually works.</p>
+
+  <div class="streak-row">
+    <div>
+      <div class="streak-num">🔥 14</div>
+      <div class="streak-lbl" data-i18n="rew.streak.lbl">day streak</div>
+    </div>
+    <div class="streak-ms">
+      <div class="ms-row"><div class="ms-check done"></div><span class="ms-name" data-i18n="rew.ms1.name">3-day streak</span><span class="ms-pts" data-i18n="rew.ms1.pts">+25 pts — claimed</span></div>
+      <div class="ms-row"><div class="ms-check done"></div><span class="ms-name" data-i18n="rew.ms2.name">7-day streak</span><span class="ms-pts" data-i18n="rew.ms2.pts">+50 pts — claimed</span></div>
+      <div class="ms-row"><div class="ms-check done"></div><span class="ms-name" data-i18n="rew.ms3.name">14-day streak</span><span class="ms-pts" data-i18n="rew.ms3.pts">+100 pts — claimed</span></div>
+      <div class="ms-row"><div class="ms-check"></div><span class="ms-name" data-i18n="rew.ms4.name">30-day streak</span><span class="ms-pts" data-i18n="rew.ms4.pts">+200 pts — keep going</span></div>
+    </div>
+    <div class="heatmap-wrap">
+      <div class="heatmap-lbl" data-i18n="rew.heatmap.lbl">30-Day Activity</div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th data-i18n="rew.table.action">Action</th><th data-i18n="rew.table.points">Points</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="rew.row.pom">Pomodoro 25 min</td><td><span class="pts" data-i18n="rew.row.pom.pts">+10 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.focus">Focus 45 min</td><td><span class="pts" data-i18n="rew.row.focus.pts">+18 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.deep">Deep Work 60 min</td><td><span class="pts" data-i18n="rew.row.deep.pts">+24 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.marathon">Marathon 90 min</td><td><span class="pts" data-i18n="rew.row.marathon.pts">+36 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.manual">Manual session log (per 5 min)</td><td><span class="pts" data-i18n="rew.row.manual.pts">+1 pt</span></td></tr>
+        <tr><td data-i18n="rew.row.kit">Generate Study Kit</td><td><span class="pts" data-i18n="rew.row.kit.pts">+3 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.guide">Generate Personalised Study Guide</td><td><span class="pts" data-i18n="rew.row.guide.pts">+5 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.login">Daily login bonus</td><td><span class="pts" data-i18n="rew.row.login.pts">+5 pts</span></td></tr>
+        <tr><td data-i18n="rew.row.ms">3 / 7 / 14 / 30-day streak milestones</td><td><span class="pts" data-i18n="rew.row.ms.pts">+25 / 50 / 100 / 200 pts</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
+      <h3 data-i18n="rew.badges.title">100+ Badges</h3>
+      <p data-i18n="rew.badges.body">First Step, Pomodoro Pro, Hot Streak, Unstoppable, Flow State, Scholar, Diamond Mind, and way more to unlock.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
+      <h3 data-i18n="rew.custom.title">Custom Rewards</h3>
+      <p data-i18n="rew.custom.body">Set any reward you want — "1 hour of gaming", "boba run", "new shoes". Assign a point cost and unlock it when you've earned it.</p>
+    </div>
+    <div class="grid-card">
+      <div class="grid-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12V6H4v16h8"/><path d="M16 19l2 2 4-4"/></svg></div>
+      <h3 data-i18n="rew.wishlist.title">Wishlist</h3>
+      <p data-i18n="rew.wishlist.body">Enter any real-world item and its price. The app calculates how many points it costs — bigger rewards take more sessions to unlock.</p>
+    </div>
+  </div>
+</section>
+<hr/>
+<section class="section" id="social">
+  <div class="section-label" data-i18n="sec.social.label">🆕 New Feature</div>
+  <h2 data-i18n="sec.social.h2">Study with your squad.</h2>
+  <p class="section-sub" data-i18n="sec.social.sub">Add friends, chat while you study, brag about your streaks, and set community goals together — all inside the app.</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:40px;">
+    <div style="border:1px solid var(--border);border-radius:var(--r);padding:28px;border-top:3px solid var(--green);">
+      <div style="font-size:24px;margin-bottom:12px;">💬</div>
+      <h3 style="font-size:15px;font-weight:800;margin-bottom:8px;" data-i18n="social.chat.title">Friend Chat</h3>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.65;" data-i18n="social.chat.body">Add friends by their username and chat in real time. Share what you're studying, send memes, keep each other accountable.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--r);padding:28px;border-top:3px solid #7c3aed;">
+      <div style="font-size:24px;margin-bottom:12px;">🏆</div>
+      <h3 style="font-size:15px;font-weight:800;margin-bottom:8px;" data-i18n="social.feed.title">Achievement Feed</h3>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.65;" data-i18n="social.feed.body">Finished a 90-minute deep work session? Unlocked a badge? It posts to your friend feed automatically. Brag legally.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--r);padding:28px;border-top:3px solid #d97706;">
+      <div style="font-size:24px;margin-bottom:12px;">🎯</div>
+      <h3 style="font-size:15px;font-weight:800;margin-bottom:8px;" data-i18n="social.goals.title">Community Goals</h3>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.65;" data-i18n="social.goals.body">Create a group goal — "everyone studies 2 hours today" — and watch the progress bar fill as friends complete sessions.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--r);padding:28px;border-top:3px solid #0ea5e9;">
+      <div style="font-size:24px;margin-bottom:12px;">👥</div>
+      <h3 style="font-size:15px;font-weight:800;margin-bottom:8px;" data-i18n="social.friends.title">Friends List</h3>
+      <p style="font-size:13px;color:var(--text-2);line-height:1.65;" data-i18n="social.friends.body">See who's currently in focus mode, their streak, and their XP. Friendly competition makes studying way less boring.</p>
+    </div>
+  </div>
+</section>
+<hr/>
+<section class="section" id="contact">
+  <div class="section-label" data-i18n="sec.contact.label">Contact</div>
+  <h2 data-i18n="sec.contact.h2">Get in touch.</h2>
+  <p class="section-sub" data-i18n="sec.contact.sub">This is a solo project — I built it because I needed it. If you find a bug or have an idea, I genuinely want to know.</p>
+
+  <div class="contact-grid">
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new" target="_blank">
+      <div class="contact-icon" style="background:#fff0f0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      </div>
+      <div>
+        <h3 data-i18n="contact.bug.title">Report a Bug</h3>
+        <p data-i18n="contact.bug.body">Found something broken? Open a GitHub Issue and I'll look into it as soon as I can.</p>
+        <div class="contact-handle" data-i18n="contact.handle.issues">GitHub Issues →</div>
+      </div>
+    </a>
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new?labels=enhancement" target="_blank">
+      <div class="contact-icon" style="background:#f0f7ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+      </div>
+      <div>
+        <h3 data-i18n="contact.feature.title">Request a Feature</h3>
+        <p data-i18n="contact.feature.body">Have an idea for something that would make the app better? I'd love to hear it.</p>
+        <div class="contact-handle" data-i18n="contact.handle.issues">GitHub Issues →</div>
+      </div>
+    </a>
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer" target="_blank">
+      <div class="contact-icon" style="background:#f4f4f4;">
+        <svg viewBox="0 0 24 24" fill="#111" width="20" height="20"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      </div>
+      <div>
+        <h3 data-i18n="contact.profile.title">GitHub Profile</h3>
+        <p data-i18n="contact.profile.body">See other projects, follow for updates, or just say hi on GitHub.</p>
+        <div class="contact-handle">@Mr-Pythoneer →</div>
+      </div>
+    </a>
+    <a class="contact-card" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank">
+      <div class="contact-icon" style="background:#f0fdf4;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round"><path d="M8 6l4-4 4 4M12 2v13"/><path d="M20 16l-4 4-4-4"/></svg>
+      </div>
+      <div>
+        <h3 data-i18n="contact.contribute.title">Contribute</h3>
+        <p data-i18n="contact.contribute.body">The codebase is open — fork the repo, make your change, and send a pull request.</p>
+        <div class="contact-handle" data-i18n="contact.handle.pr">Open a Pull Request →</div>
+      </div>
+    </a>
+  </div>
+
+  <div style="background:#f9f8f5;border:1px solid var(--border);border-radius:var(--r);padding:28px 32px;display:flex;align-items:flex-start;gap:18px;">
+    <div style="font-size:28px;line-height:1;">🐌</div>
+    <div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;" data-i18n="contact.solo.title">Built by one person, for students.</div>
+      <div style="font-size:13px;color:var(--text-2);line-height:1.7;max-width:540px;" data-i18n="contact.solo.body">Ur Study Bro is a solo side project. Response times may vary, but every bug report and feature idea is read. If you find the app useful, the best thing you can do is star the repo and tell a friend.</div>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:600;color:var(--green);text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.782 1.4 8.163L12 18.896l-7.334 3.859 1.4-8.163L.132 9.21l8.2-1.192z"/></svg>
+        <span data-i18n="contact.solo.star">Star on GitHub</span>
+      </a>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a class="nav-logo" href="index.html" style="text-decoration:none;">
+        <div class="nav-logo-icon">
+    🐌
+        </div>
+        Ur Study Bro
+      </a>
+      <p data-i18n="footer.tagline">A free, open-source study app that starts by understanding how you learn — then builds everything around it.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.product">Product</h4>
+      <a href="features.html" data-i18n="footer.link.features">Features</a>
+      <a href="ai.html" data-i18n="footer.link.ai">AI Tools</a>
+      <a href="features.html#assessment" data-i18n="footer.link.assessment">Assessment</a>
+      <a href="features.html#plan" data-i18n="footer.link.plan">Study Path</a>
+      <a href="features.html#rewards" data-i18n="footer.link.rewards">Rewards</a>
+      <a href="download.html" data-i18n="footer.link.download">Download</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.resources">Resources</h4>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" data-i18n="footer.link.repo">GitHub Repo</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases" target="_blank" data-i18n="footer.link.releases">Releases</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank" data-i18n="footer.link.bugs">Bug Reports</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank" data-i18n="footer.link.contribute">Contribute</a>
+      <a href="faq.html" data-i18n="footer.link.faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.contact">Contact</h4>
+      <a href="https://github.com/Mr-Pythoneer" target="_blank">@Mr-Pythoneer</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new" target="_blank" data-i18n="footer.link.reportBug">Report a Bug</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new?labels=enhancement" target="_blank" data-i18n="footer.link.requestFeature">Request a Feature</a>
+      <a href="features.html#contact" data-i18n="footer.link.getInTouch">Get in Touch</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span data-i18n="footer.copyright">Copyright Mr_Pythoneer 2026© · Released under the <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/blob/main/LICENSE" target="_blank">MIT License</a></span>
+    <span data-i18n="footer.built">Built with Electron · No tracking · No telemetry · v5.2.5</span>
+  </div>
+</footer>
+<script src="assets/i18n.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

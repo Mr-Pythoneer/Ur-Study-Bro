@@ -1,0 +1,170 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FAQ — Ur Study Bro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐌</text></svg>"/>
+  <meta name="description" content="Common questions about Ur Study Bro — pricing, privacy, AI providers, platforms, and the macOS install fix."/>
+  <link rel="stylesheet" href="assets/site.css"/>
+</head>
+<body data-page="faq">
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🐌</div>
+    Ur Study Bro
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="features.html"  data-page="features"  data-i18n="nav.features">Features</a>
+    <a class="nav-link" href="recording.html" data-page="recording" data-i18n="nav.recording">Recording</a>
+    <a class="nav-link" href="ai.html"        data-page="ai"        data-i18n="nav.ai">AI</a>
+    <a class="nav-link" href="faq.html"       data-page="faq"       data-i18n="nav.faq">FAQ</a>
+    <a class="nav-link" href="index.html#support" data-i18n="nav.support">Support ☕</a>
+    <a class="nav-link" href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" data-i18n="nav.github">GitHub</a>
+    <a class="nav-btn" href="app.html" style="background:transparent;color:var(--green);border:1.5px solid var(--green);margin-inline-end:6px;" data-i18n="nav.tryOnline">Try Online</a>
+    <a class="nav-btn" href="download.html" data-page="download" data-i18n="nav.download">Download</a>
+    <div class="lang-picker" id="langPicker">
+      <button class="lang-btn" onclick="toggleLangMenu()" aria-label="Change language">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span id="langBtnLabel">EN</span>
+      </button>
+      <div class="lang-dropdown" id="langDropdown"></div>
+    </div>
+  </div>
+</nav>
+<section class="section" id="faq">
+  <div class="section-label" data-i18n="sec.faq.label">FAQ</div>
+  <h2 data-i18n="sec.faq.h2">Things people usually ask.</h2>
+  <p class="section-sub" data-i18n="sec.faq.sub">I've tried to answer the obvious ones below. If you've got something else, open a GitHub Issue.</p>
+
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q1">Is Ur Study Bro really free?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a1">Yes — completely free, forever. No subscription, no free trial, no premium tier. The app is MIT-licensed and open source. You can download it, modify it, and use it however you like.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q2">Do I need an account or internet connection?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a2">No account required — ever. The app works entirely offline. Your data stays on your device. An internet connection is only needed when you actively use the AI features (which require an API key you control).</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q3">Which AI providers are supported?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a3">By default the app uses <strong>Ollama</strong> (local, no key needed). Optionally you can switch to Google Gemini, Anthropic Claude, OpenAI GPT-4o, or Groq in Settings — all have free tiers. Your API key never leaves your device.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q4">What platforms does it run on?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a4">
+        <strong>macOS:</strong> Apple Silicon (arm64 DMG), Intel / 2019 and older (x64 DMG), and a Universal build that runs on both.<br>
+        <strong>Windows:</strong> One installer that auto-detects your CPU — works on 64-bit (x64), 32-bit (ia32), and ARM64 devices.<br>
+        <strong>Linux:</strong> AppImage for x64 (works on Ubuntu, Debian, Fedora, Deepin, UOS, Kylin, and most other distros) · AppImage for ARM64 · pacman package for Arch / Manjaro / EndeavourOS.<br><br>
+        A mobile version for iOS and Android is planned. Not sure which Mac you have? Apple menu → About This Mac. "Apple M1/M2/M3/M4" = arm64. "Intel Core" = x64. If you're unsure, grab the Universal DMG — it works on everything.
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q5">Is the cognitive assessment scientifically valid?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a5">The six tests are adapted from well-established clinical instruments used in psychoeducational assessments: Digit Span (WISC/WAIS), AX-CPT, Symbol Search, Matrix Reasoning, Reading Comprehension, and Task Switching. The app is an <strong>educational tool</strong>, not a medical device — results are not a formal diagnosis. For a clinical assessment, consult a licensed psychologist.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q6">Do I need an API key for AI features?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a6">Nope. The app uses <strong>Ollama</strong> by default — a free, local AI that runs entirely on your machine. No API key, no account, no internet needed for AI. Just install Ollama, pull a model (e.g. <code>ollama pull llama3.2</code>), and every AI feature works out of the box. If you want to use a cloud provider (Gemini, Claude, GPT-4o, Groq) you can switch in Settings — but it's completely optional.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q7">Can I contribute or report a bug?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a7">Yes! The project is open source under the MIT License. You can <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank">open an issue</a> for bug reports or feature requests, or <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank">submit a pull request</a>. All contributions are welcome.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q8">The app won't open on my Mac — how do I fix it?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a8">
+        There are a few reasons this can happen — find yours below:<br><br>
+        <strong>❶ "App is damaged and can't be opened" (most common)</strong><br>
+        macOS quarantines apps not signed with a paid Apple certificate. Fix: open Terminal and run:<br>
+        <code style="display:inline-block;background:#f3f4f6;padding:3px 8px;border-radius:4px;margin:4px 0;">xattr -cr "/Applications/Ur Study Bro.app"</code><br>
+        Then open the app normally. Alternatively: right-click the app → <strong>Open</strong> → click <strong>Open</strong> in the dialog.<br><br>
+        <strong>❷ "Ur Study Bro was blocked" in System Settings</strong><br>
+        Go to <strong>System Settings → Privacy &amp; Security</strong>, scroll down, and click <strong>Open Anyway</strong> next to the app name.<br><br>
+        <strong>❸ App bounces in the Dock and closes immediately</strong><br>
+        You may be on an Intel Mac running the wrong build. Download the <strong>x64 (Intel) version</strong> from the releases page — it's a separate DMG labelled <em>x64.dmg</em>.<br><br>
+        <strong>❹ App opens but instantly crashes / blank window</strong><br>
+        Make sure you're on <strong>macOS 11 Big Sur or later</strong>. Electron 35 doesn't support older macOS versions.<br><br>
+        <strong>❺ Nothing happens when you double-click</strong><br>
+        Make sure you dragged the app out of the DMG into your <strong>Applications</strong> folder before opening it. Running it from inside the DMG can cause silent failures.
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        <span data-i18n="faq.q9">How does Focus Guard work exactly?</span>
+        <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a" data-i18n="faq.a9">When you start a timer with Focus Guard on, you choose which apps are allowed (e.g. your notes app, a browser). Every 2 seconds, the system checks which app is in the foreground. If it's not on your allowed list, the app hides it at the system level and brings Ur Study Bro back to the front. On macOS, this uses AppleScript to set the app's visibility. You can only disable Focus Guard by resetting the timer — and sessions ended this way don't earn points.</div>
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a class="nav-logo" href="index.html" style="text-decoration:none;">
+        <div class="nav-logo-icon">
+    🐌
+        </div>
+        Ur Study Bro
+      </a>
+      <p data-i18n="footer.tagline">A free, open-source study app that starts by understanding how you learn — then builds everything around it.</p>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.product">Product</h4>
+      <a href="features.html" data-i18n="footer.link.features">Features</a>
+      <a href="ai.html" data-i18n="footer.link.ai">AI Tools</a>
+      <a href="features.html#assessment" data-i18n="footer.link.assessment">Assessment</a>
+      <a href="features.html#plan" data-i18n="footer.link.plan">Study Path</a>
+      <a href="features.html#rewards" data-i18n="footer.link.rewards">Rewards</a>
+      <a href="download.html" data-i18n="footer.link.download">Download</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.resources">Resources</h4>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" data-i18n="footer.link.repo">GitHub Repo</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases" target="_blank" data-i18n="footer.link.releases">Releases</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues" target="_blank" data-i18n="footer.link.bugs">Bug Reports</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/pulls" target="_blank" data-i18n="footer.link.contribute">Contribute</a>
+      <a href="faq.html" data-i18n="footer.link.faq">FAQ</a>
+    </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.contact">Contact</h4>
+      <a href="https://github.com/Mr-Pythoneer" target="_blank">@Mr-Pythoneer</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new" target="_blank" data-i18n="footer.link.reportBug">Report a Bug</a>
+      <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/issues/new?labels=enhancement" target="_blank" data-i18n="footer.link.requestFeature">Request a Feature</a>
+      <a href="features.html#contact" data-i18n="footer.link.getInTouch">Get in Touch</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span data-i18n="footer.copyright">Copyright Mr_Pythoneer 2026© · Released under the <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro/blob/main/LICENSE" target="_blank">MIT License</a></span>
+    <span data-i18n="footer.built">Built with Electron · No tracking · No telemetry · v5.2.5</span>
+  </div>
+</footer>
+<script src="assets/i18n.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
