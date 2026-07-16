@@ -1,0 +1,62 @@
+name: Build & Release
+
+# Builds native installers for macOS, Windows, and Linux on their own runners
+# (no wine/Docker needed) and publishes them to a GitHub release.
+#
+# To cut a release:
+#   1. Bump "version" in package.json (e.g. 5.2.7) + commit
+#   2. git tag v5.2.7 && git push origin v5.2.7
+#   3. This workflow builds all 3 platforms and attaches them to a DRAFT
+#      release for that tag. Review it on GitHub, then click Publish.
+#
+# Or run it manually from the Actions tab (workflow_dispatch) against an
+# existing tag to backfill assets — e.g. to add native Windows/Linux builds
+# to a release that shipped Mac-only.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Tag or branch to build (e.g. v5.2.6). Defaults to the current branch.'
+        required: false
+
+permissions:
+  contents: write   # needed to create/update releases
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false   # one platform failing shouldn't kill the others
+      matrix:
+        include:
+          - os: macos-latest
+            platform: '--mac'
+          - os: windows-latest
+            platform: '--win'
+          - os: ubuntu-latest
+            platform: '--linux'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & publish (${{ matrix.platform }})
+        run: npx electron-builder ${{ matrix.platform }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # App is intentionally unsigned (no paid Apple cert) — matches local builds.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
