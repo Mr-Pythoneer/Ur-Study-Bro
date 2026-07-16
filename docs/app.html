@@ -491,7 +491,7 @@ const csSetJSON = (k,v) => csSet(k,JSON.stringify(v))
 let authMode = 'signin'
 function switchTab(mode) {
   authMode = mode
-  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)====(mode==='signin')))
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0)===(mode==='signin')))
   document.getElementById('authSubmit').textContent = mode==='signin' ? 'Sign In →' : 'Create Account →'
   document.getElementById('authErr').textContent = ''
 }
@@ -1017,13 +1017,31 @@ function generatePlan(answers, goalsRaw){
 
 /* ═══════════════════════════════════════════════════════════════
    AI TUTOR
-   Default: Ollama at localhost:11434 (same as desktop app, no key)
-   Fallback: cloud providers via Settings ⚙️
+   Local (file:// or localhost): Ollama at localhost:11434, no key.
+   Hosted (github.io): Ollama's OLLAMA_ORIGINS allowlist only permits
+   localhost origins, so it 403s a hosted page no matter what — the
+   default there is a cloud provider via Settings ⚙️
 ═══════════════════════════════════════════════════════════════ */
 let aiMessages = []
 
+// hostname==='' covers file://
+const IS_LOCAL = ['localhost','127.0.0.1',''].includes(location.hostname)
+const defaultProvider = () => localStorage.getItem('ai_provider') || (IS_LOCAL ? 'ollama' : 'gemini')
+
+const aiBtn = label => `<button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">${label}</button>`
+
+// Hosted origin → Ollama rejects us on CORS. Saying "open the desktop app" would be a lie.
+const ollamaBlockedHtml = () =>
+  `⚠️ This page is served from ${location.origin}, and Ollama only accepts requests from localhost — so it can't be reached from here, even while it's running. `
+  + aiBtn('Add a cloud API key in Settings ⚙️')
+  + `<br><small style="color:var(--text-3)">Or allow this origin: run Ollama with OLLAMA_ORIGINS=${location.origin} — on macOS: <code>launchctl setenv OLLAMA_ORIGINS "${location.origin}"</code> then restart Ollama.</small>`
+
+// Local origin → Ollama really may just be down; the original message is correct here.
+const ollamaDownHtml = () =>
+  '⚠️ Ollama not reachable. Make sure the desktop app is open, or ' + aiBtn('switch to a cloud provider ⚙️')
+
 function loadAISettings(){
-  const p = localStorage.getItem('ai_provider')||'ollama'
+  const p = defaultProvider()
   document.getElementById('aiProvider').value = p
   document.getElementById('ollamaModel').value = localStorage.getItem('ai_model_ollama')||'gemma3:4b'
   if(p!=='ollama') document.getElementById('aiKey').value = localStorage.getItem('ai_key_'+p)||''
@@ -1072,7 +1090,7 @@ function toggleKeyVis(){
 }
 
 function updateAIHeader(){
-  const p = localStorage.getItem('ai_provider')||'ollama'
+  const p = defaultProvider()
   const labels = {
     ollama:`🖥️ Ollama · ${localStorage.getItem('ai_model_ollama')||'gemma3:4b'}`,
     gemini:'☁️ Gemini 2.0 Flash',
@@ -1084,6 +1102,12 @@ function updateAIHeader(){
 
 async function probeOllama(){
   const status = document.getElementById('aiStatus')
+  if(!IS_LOCAL){
+    // Don't fire a request we know Ollama will 403 — just explain it.
+    status.className='ai-status ollama-fail'
+    status.innerHTML=ollamaBlockedHtml()
+    return
+  }
   try {
     const res = await fetch('http://localhost:11434/api/tags',{signal:AbortSignal.timeout(2000)})
     if(res.ok){
@@ -1092,7 +1116,7 @@ async function probeOllama(){
     } else { throw new Error('not ok') }
   } catch {
     status.className='ai-status ollama-fail'
-    status.innerHTML='⚠️ Ollama not reachable. Make sure the desktop app is open, or <button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">switch to a cloud provider ⚙️</button>'
+    status.innerHTML=ollamaDownHtml()
   }
 }
 
@@ -1112,12 +1136,21 @@ async function sendAI(){
   const input = document.getElementById('aiInput')
   const text = input.value.trim(); if(!text) return
   const btn = document.getElementById('aiSendBtn')
-  const provider = localStorage.getItem('ai_provider')||'ollama'
+  const provider = defaultProvider()
   const key = localStorage.getItem('ai_key_'+provider)||''
 
   if(provider!=='ollama' && !key){
     openAISettings()
     document.getElementById('aiKey').focus()
+    return
+  }
+
+  // Hosted page + Ollama selected: the request is guaranteed to 403. Explain instead of firing it.
+  if(provider==='ollama' && !IS_LOCAL){
+    const status=document.getElementById('aiStatus')
+    status.className='ai-status ollama-fail'
+    status.innerHTML=ollamaBlockedHtml()
+    openAISettings()
     return
   }
 
@@ -1217,10 +1250,15 @@ async function sendAI(){
 
   } catch(e){
     if(provider==='ollama'){
-      bubble.innerHTML = `⚠️ Ollama not reachable. <button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">Switch to cloud AI ⚙️</button><br><small style="color:var(--text-3)">Make sure the Ur Study Bro desktop app is open (it keeps Ollama running), or use a cloud provider in Settings.</small>`
+      const msg = IS_LOCAL
+        ? `⚠️ Ollama not reachable. ${aiBtn('Switch to cloud AI ⚙️')}<br><small style="color:var(--text-3)">Make sure the Ur Study Bro desktop app is open (it keeps Ollama running), or use a cloud provider in Settings.</small>`
+        : ollamaBlockedHtml()
+      bubble.innerHTML = msg
       const status=document.getElementById('aiStatus')
       status.className='ai-status ollama-fail'
-      status.innerHTML='⚠️ Ollama not reachable — <button onclick="openAISettings()" style="background:none;border:none;color:var(--green);font-weight:700;cursor:pointer;font-family:inherit;font-size:inherit;padding:0">switch to cloud ⚙️</button>'
+      status.innerHTML = IS_LOCAL
+        ? '⚠️ Ollama not reachable — ' + aiBtn('switch to cloud ⚙️')
+        : ollamaBlockedHtml()
     } else {
       bubble.innerHTML = '⚠️ Error: '+escHtml(e.message)
     }

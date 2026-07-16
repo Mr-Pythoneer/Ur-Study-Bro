@@ -1,0 +1,868 @@
+<!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<style>
+  /* ── Hero ──────────────────────────────────────────────────── */
+  .rl-hero {
+    background: linear-gradient(135deg,#1e3a2f 0%,#0f7b6c 60%,#1a5276 100%);
+    border-radius: var(--radius); padding: 22px 28px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+  }
+  .rl-hero-left  { display: flex; align-items: baseline; gap: 10px; }
+  .rl-points     { font-size: 48px; font-weight: 900; color: #fff; line-height: 1; font-variant-numeric: tabular-nums; }
+  .rl-points-unit{ font-size: 18px; font-weight: 700; color: #6ee7b7; }
+  .rl-hero-sub   { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 6px; }
+  .rl-hero-stats { display: flex; gap: 26px; }
+  .rl-hero-stat  { text-align: right; }
+  .rl-hs-val     { font-size: 22px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+  .rl-hs-lbl     { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 2px; text-transform: uppercase; letter-spacing: .4px; }
+  .rl-delta {
+    font-size: 13px; font-weight: 800; color: #6ee7b7;
+    opacity: 0; transform: translateY(4px); transition: all .25s;
+  }
+  .rl-delta.show { opacity: 1; transform: translateY(0); }
+  .rl-delta.neg  { color: #fca5a5; }
+
+  /* ── Layout ────────────────────────────────────────────────── */
+  .rl-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  @media (max-width: 1100px) { .rl-grid { grid-template-columns: 1fr; } }
+
+  /* ── Question card ─────────────────────────────────────────── */
+  .rl-topic-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-light); color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 99px;
+    padding: 4px 12px; font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .rl-diff-chip {
+    display: inline-flex; align-items: center;
+    background: var(--bg-main); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 99px;
+    padding: 4px 10px; font-size: 11px; font-weight: 700; margin-left: 6px;
+  }
+  .rl-q-head { display: flex; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 6px; }
+  .rl-q-text {
+    font-size: 19px; font-weight: 600; color: var(--text-primary);
+    line-height: 1.5; margin-bottom: 18px;
+  }
+  .rl-options { display: flex; flex-direction: column; gap: 8px; }
+  .rl-opt {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 13px 16px; text-align: left; cursor: pointer;
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: var(--radius); font-family: var(--font);
+    font-size: 14px; color: var(--text-primary); transition: all .12s;
+  }
+  .rl-opt:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-light); }
+  .rl-opt:disabled { cursor: default; }
+  .rl-opt-key {
+    width: 24px; height: 24px; flex-shrink: 0; border-radius: var(--radius-sm);
+    background: var(--bg-main); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: var(--text-secondary);
+  }
+  .rl-opt.correct { border-color: #0f7b6c; background: #e7f5f1; }
+  .rl-opt.correct .rl-opt-key { background: #0f7b6c; border-color: #0f7b6c; color: #fff; }
+  .rl-opt.wrong   { border-color: #dc2626; background: #fdecec; }
+  .rl-opt.wrong .rl-opt-key { background: #dc2626; border-color: #dc2626; color: #fff; }
+  .rl-opt.muted   { opacity: .45; }
+  body.dark-mode .rl-opt.correct { background: #0d2e2a; }
+  body.dark-mode .rl-opt.wrong   { background: #2e1414; }
+
+  /* ── Feedback ──────────────────────────────────────────────── */
+  .rl-feedback {
+    margin-top: 16px; padding: 14px 16px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--bg-main);
+    font-size: 13px; line-height: 1.6; color: var(--text-primary);
+  }
+  .rl-feedback.good { border-color: #0f7b6c; background: var(--accent-light); }
+  .rl-feedback.bad  { border-color: #f0c040; background: #fff8e6; }
+  body.dark-mode .rl-feedback.bad { background: #2e2410; }
+  .rl-fb-head { font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .rl-fb-answer { font-weight: 700; color: var(--accent); }
+
+  .rl-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .rl-hint { font-size: 12px; color: var(--text-secondary); margin-top: 12px; }
+  .rl-kbd {
+    display: inline-block; padding: 1px 5px; border-radius: 3px;
+    border: 1px solid var(--border); background: var(--bg-main);
+    font-size: 11px; font-weight: 700; font-family: ui-monospace, Menlo, monospace;
+  }
+
+  /* ── Agent brain panel ─────────────────────────────────────── */
+  .rl-brain { position: sticky; top: 0; }
+  .rl-why {
+    padding: 12px 14px; border-radius: var(--radius); margin-bottom: 14px;
+    background: #0d1f1d; color: #6ee7b7; font-size: 12px; line-height: 1.55;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .rl-why-tag { font-weight: 800; color: #fff; }
+  .rl-why-eq  { color: rgba(255,255,255,.55); display: block; margin-top: 6px; }
+
+  .rl-arm { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .rl-arm:last-child { border-bottom: none; }
+  .rl-arm.picked { background: var(--accent-light); margin: 0 -12px; padding: 10px 12px; border-radius: var(--radius-sm); border-bottom-color: transparent; }
+  .rl-arm-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .rl-arm-name { font-size: 13px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rl-arm-score { font-size: 12px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .rl-arm-bars { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .rl-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; display: flex; }
+  .rl-bar-q { height: 100%; background: var(--accent); }
+  .rl-bar-u { height: 100%; background: #93c5fd; }
+  .rl-arm-meta { font-size: 11px; color: var(--text-secondary); margin-top: 5px; font-variant-numeric: tabular-nums; }
+  .rl-legend { display: flex; gap: 12px; font-size: 10px; color: var(--text-secondary); margin-top: 10px; }
+  .rl-legend-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+
+  /* ── Policy controls ───────────────────────────────────────── */
+  .rl-policy-tabs { display: flex; gap: 4px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 3px; margin-bottom: 12px; }
+  .rl-policy-tab {
+    flex: 1; padding: 6px 4px; border: none; border-radius: 6px; cursor: pointer;
+    background: transparent; color: var(--text-secondary);
+    font-family: var(--font); font-size: 11px; font-weight: 700; transition: all .15s;
+  }
+  .rl-policy-tab.active { background: var(--bg-card); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+  .rl-slider-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .rl-slider-lbl { font-size: 11px; font-weight: 700; color: var(--text-secondary); width: 92px; flex-shrink: 0; }
+  .rl-slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .rl-slider-val { font-size: 11px; font-weight: 800; color: var(--accent); width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+  .rl-policy-note { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-top: 10px; }
+
+  /* ── Topics editor ─────────────────────────────────────────── */
+  .rl-topic-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .rl-topic-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-main); border: 1px solid var(--border);
+    border-radius: 99px; padding: 5px 6px 5px 12px; font-size: 12px; font-weight: 600;
+    color: var(--text-primary);
+  }
+  .rl-topic-x {
+    border: none; background: transparent; cursor: pointer; color: var(--text-secondary);
+    font-size: 15px; line-height: 1; padding: 0 4px; border-radius: 50%;
+  }
+  .rl-topic-x:hover { color: #dc2626; }
+  .rl-add-row { display: flex; gap: 8px; }
+  .rl-add-row input {
+    flex: 1; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px;
+    background: var(--bg-card); color: var(--text-primary);
+  }
+  .rl-add-row input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── Sparkline ─────────────────────────────────────────────── */
+  .rl-spark { width: 100%; height: 54px; display: block; }
+  .rl-spark-empty { font-size: 12px; color: var(--text-secondary); font-style: italic; }
+
+  .rl-loading { display: flex; align-items: center; gap: 10px; padding: 30px 0; color: var(--text-secondary); font-size: 13px; }
+  .rl-mini-spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite;
+  }
+</style>
+
+<div class="page-header">
+  <div class="page-title">RL Mode</div>
+  <div class="page-subtitle">Answer questions, earn points toward your rewards — while the app learns what to ask you next.</div>
+</div>
+
+<div class="rl-hero">
+  <div>
+    <div class="rl-hero-left">
+      <span class="rl-points" id="rlPoints">0</span>
+      <span class="rl-points-unit">pts</span>
+      <span class="rl-delta" id="rlDelta"></span>
+    </div>
+    <div class="rl-hero-sub">Same Study Points as everywhere else — spend them in the Rewards shop.</div>
+  </div>
+  <div class="rl-hero-stats">
+    <div class="rl-hero-stat">
+      <div class="rl-hs-val" id="rlStreakVal">0</div>
+      <div class="rl-hs-lbl">Streak</div>
+    </div>
+    <div class="rl-hero-stat">
+      <div class="rl-hs-val" id="rlAccVal">—</div>
+      <div class="rl-hs-lbl">Accuracy</div>
+    </div>
+    <div class="rl-hero-stat">
+      <div class="rl-hs-val" id="rlAnsweredVal">0</div>
+      <div class="rl-hs-lbl">Answered</div>
+    </div>
+  </div>
+</div>
+
+<div class="rl-grid">
+  <!-- ── Left: the quiz ─────────────────────────────────────── -->
+  <div>
+    <div class="card" id="rlQuizCard">
+      <div id="rlQuizBody">
+        <div class="rl-loading"><div class="rl-mini-spinner"></div> Starting up…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Accuracy over time</div>
+      <div id="rlSparkWrap"><div class="rl-spark-empty">Answer a few questions to see your trend.</div></div>
+    </div>
+  </div>
+
+  <!-- ── Right: the agent's brain ───────────────────────────── -->
+  <div class="rl-brain">
+    <div class="card">
+      <div class="card-title">Agent brain</div>
+      <div class="rl-why" id="rlWhy">Waiting for the first pull…</div>
+      <div id="rlArms"></div>
+      <div class="rl-legend">
+        <span><span class="rl-legend-dot" style="background:var(--accent)"></span>Q (learning gain)</span>
+        <span><span class="rl-legend-dot" style="background:#93c5fd"></span>Uncertainty bonus</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Policy</div>
+      <div class="rl-policy-tabs">
+        <button class="rl-policy-tab" data-policy="ucb">UCB1</button>
+        <button class="rl-policy-tab" data-policy="egreedy">ε-greedy</button>
+        <button class="rl-policy-tab" data-policy="random">Random</button>
+      </div>
+      <div id="rlPolicyParams"></div>
+      <div class="rl-policy-note" id="rlPolicyNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Topics <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-secondary)">(one arm each)</span></div>
+      <div class="rl-topic-list" id="rlTopicList"></div>
+      <div class="rl-add-row">
+        <input type="text" id="rlTopicInput" placeholder="Add a topic…" maxlength="40">
+        <button class="btn btn-ghost" id="rlAddTopicBtn">Add</button>
+      </div>
+      <div class="rl-policy-note" id="rlSubjectNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Reset</div>
+      <div class="rl-policy-note" style="margin-top:0">Wipes what the agent has learned about you. Your Study Points are kept.</div>
+      <button class="btn btn-ghost" id="rlResetBtn" style="margin-top:10px">Reset agent memory</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict'
+
+  // ── Storage keys ────────────────────────────────────────────
+  const K = {
+    arms:    'rlArms',      // { topic: {n, acc, q, correct, total} }
+    topics:  'rlTopics',    // [ 'Algebra', ... ]
+    log:     'rlLog',       // [ {ts, topic, correct, reward, points} ]
+    asked:   'rlAsked',     // [ question text ] — dedup
+    policy:  'rlPolicy',    // 'ucb' | 'egreedy' | 'random'
+    eps:     'rlEpsilon',
+    c:       'rlC',
+    streak:  'rlStreak',
+  }
+
+  // ── Tunables ────────────────────────────────────────────────
+  const ALPHA      = 0.3    // learning rate for the Q / accuracy updates
+  const ACC_INIT   = 0.5    // a brand-new topic is assumed a coin flip
+  const Q_INIT     = 0.5
+  const WRONG_R    = 0.15   // a miss still tells the agent this topic is live
+  const PTS_BASE   = 10
+  const PTS_HARD   = 10     // scaled by (1 - accuracy) — weak topics pay more
+  const PTS_WRONG  = -5
+  const PTS_DUNNO  = -2     // honesty is cheaper than a wild guess
+  const BATCH      = 4      // ai:chat caps at 1024 tokens — keep batches small
+  const PREFETCH_AT= 2
+  const LOG_CAP    = 500
+
+  // ── State ───────────────────────────────────────────────────
+  let arms    = csGetJSON(K.arms, {})
+  let topics  = csGetJSON(K.topics, [])
+  let log     = csGetJSON(K.log, [])
+  let asked   = csGetJSON(K.asked, [])
+  let policy  = csGet(K.policy) || 'ucb'
+  let epsilon = parseFloat(csGet(K.eps) || '0.2')
+  // Textbook UCB1 uses c≈1.4 for rewards spread across [0,1]. Our reward is
+  // learning gain, which compresses Q into roughly [0, 0.5] and collapses
+  // toward 0 as topics get mastered — at c=1.4 the bonus swamps the value
+  // term and the agent degrades to uniform pulling. Simulated across c:
+  // 1.4 → 92.7% final skill, 0.3 → 94.3%, 0.05 → 94.7%, random → 87.8%.
+  // 0.3 keeps real exploration while staying within noise of the best.
+  let cParam  = parseFloat(csGet(K.c) || '0.3')
+  let streak  = parseInt(csGet(K.streak) || '0')
+
+  const queue     = {}      // topic -> [question objects] (memory only)
+  let current     = null    // the question on screen
+  let currentPick = null    // { topic, why, tag }
+  let answered    = false
+  let generating  = {}      // topic -> bool
+  let destroyed   = false
+
+  // ── Points — no global award API exists, so read-modify-write
+  //    against studyPoints exactly like rewards.html does. ─────
+  const getPoints = () => parseInt(csGet('studyPoints') || '0')
+  const setPoints = (n) => csSet('studyPoints', String(Math.max(0, n)))
+
+  function awardPoints(delta) {
+    const before = getPoints()
+    setPoints(before + delta)
+    const after = getPoints()
+    renderHero()
+    flashDelta(after - before)   // report what actually landed, not what we asked for
+    return after - before
+  }
+
+  function flashDelta(d) {
+    const el = document.getElementById('rlDelta')
+    if (!el) return
+    el.textContent = (d > 0 ? '+' : '') + d
+    el.classList.toggle('neg', d < 0)
+    el.classList.add('show')
+    setTimeout(() => el.classList.remove('show'), 1400)
+  }
+
+  // ── The bandit ──────────────────────────────────────────────
+  function arm(topic) {
+    if (!arms[topic]) arms[topic] = { n: 0, acc: ACC_INIT, q: Q_INIT, correct: 0, total: 0 }
+    return arms[topic]
+  }
+
+  const totalPulls = () => topics.reduce((s, t) => s + arm(t).n, 0)
+
+  // Uncertainty bonus: how little we know about this arm.
+  function ucbBonus(topic) {
+    const a = arm(topic)
+    if (a.n === 0) return Infinity
+    const N = Math.max(totalPulls(), 1)
+    return cParam * Math.sqrt(2 * Math.log(N) / a.n)
+  }
+
+  // Pick an arm. Returns { topic, tag, why }.
+  function selectArm() {
+    if (!topics.length) return null
+
+    if (policy === 'random') {
+      const t = topics[Math.floor(Math.random() * topics.length)]
+      return { topic: t, tag: 'RANDOM', why: 'Uniform pick — no learning. This is the control condition.' }
+    }
+
+    // Any never-tried arm goes first — a Q-value from zero data is meaningless.
+    const fresh = topics.filter(t => arm(t).n === 0)
+    if (fresh.length) {
+      const t = fresh[Math.floor(Math.random() * fresh.length)]
+      return { topic: t, tag: 'EXPLORE', why: `"${t}" has never been tried. Untried arms are infinitely uncertain, so they get pulled first.` }
+    }
+
+    if (policy === 'egreedy') {
+      const roll = Math.random()
+      if (roll < epsilon) {
+        const t = topics[Math.floor(Math.random() * topics.length)]
+        return { topic: t, tag: 'EXPLORE', why: `Rolled ${roll.toFixed(2)} < ε=${epsilon.toFixed(2)} → take a random arm instead of the best one.` }
+      }
+      const best = topics.slice().sort((a, b) => arm(b).q - arm(a).q)[0]
+      return { topic: best, tag: 'EXPLOIT', why: `Rolled ${roll.toFixed(2)} ≥ ε=${epsilon.toFixed(2)} → take the highest Q. "${best}" leads at Q=${arm(best).q.toFixed(2)}.` }
+    }
+
+    // UCB1: value + uncertainty, so rarely-pulled arms get a shot on their own merit.
+    const scored = topics.map(t => ({ t, q: arm(t).q, u: ucbBonus(t), s: arm(t).q + ucbBonus(t) }))
+                         .sort((a, b) => b.s - a.s)
+    const top = scored[0]
+    const drivenByU = top.u > top.q
+    return {
+      topic: top.t,
+      tag: drivenByU ? 'EXPLORE' : 'EXPLOIT',
+      why: drivenByU
+        ? `"${top.t}" wins on uncertainty: only ${arm(top.t).n} pulls, so its bonus (${top.u.toFixed(2)}) outweighs its Q (${top.q.toFixed(2)}).`
+        : `"${top.t}" wins on value: Q=${top.q.toFixed(2)} is the best learning gain, bonus only ${top.u.toFixed(2)}.`,
+    }
+  }
+
+  // The reward function — the whole design lives here.
+  // Getting a weak topic right is worth a lot; getting a mastered topic
+  // right is worth almost nothing. That stops the agent from spamming
+  // you with things you already know.
+  function rewardFor(correct, accBefore) {
+    return correct ? Math.max(0, 1 - accBefore) : WRONG_R
+  }
+
+  function updateArm(topic, correct) {
+    const a = arm(topic)
+    const accBefore = a.acc
+    const r = rewardFor(correct, accBefore)
+
+    a.q   = a.q   + ALPHA * (r - a.q)                // Q ← Q + α(r − Q)
+    a.acc = a.acc + ALPHA * ((correct ? 1 : 0) - a.acc)
+    a.n  += 1
+    a.total += 1
+    if (correct) a.correct += 1
+
+    csSetJSON(K.arms, arms)
+    return { accBefore, reward: r, qBefore: a.q - ALPHA * (r - a.q), qAfter: a.q }
+  }
+
+  function pointsFor(correct, accBefore, streakNow) {
+    if (!correct) return PTS_WRONG
+    const mult = Math.min(1 + streakNow * 0.1, 2)
+    return Math.round((PTS_BASE + PTS_HARD * (1 - accBefore)) * mult)
+  }
+
+  // ── Question generation ─────────────────────────────────────
+  function difficultyFor(topic) {
+    const a = arm(topic).acc
+    return a < 0.4 ? 'easy' : a < 0.75 ? 'medium' : 'hard'
+  }
+
+  function hasAI() {
+    const provider = localStorage.getItem('ai_provider') || 'ollama'
+    return provider === 'ollama' || !!localStorage.getItem('ai_key_' + provider)
+  }
+
+  async function generate(topic) {
+    if (generating[topic]) return
+    generating[topic] = true
+    try {
+      if (!hasAI() || !window.api?.askAI) {
+        pushQueue(topic, fallbackFor(topic))
+        return
+      }
+      const provider = localStorage.getItem('ai_provider') || 'ollama'
+      const diff = difficultyFor(topic)
+      const recent = asked.slice(-25).join(' | ')
+
+      const res = await window.api.askAI({
+        provider,
+        apiKey: localStorage.getItem('ai_key_' + provider) || '',
+        model: localStorage.getItem('ai_model_' + provider) || (provider === 'ollama' ? 'gemma3:4b' : null),
+        systemPrompt: 'You write quiz questions. Return ONLY a valid JSON array. No markdown, no prose, no code fences.',
+        messages: [{ role: 'user', content:
+`Write ${BATCH} ${diff} multiple-choice questions about: ${topic}
+
+Rules:
+- Exactly 4 options each, exactly one correct.
+- "answer" is the 0-based index of the correct option.
+- "why" is a single short sentence explaining the correct answer.
+- Do not repeat any of these already-asked questions: ${recent || '(none yet)'}
+
+Return ONLY this JSON shape:
+[{"q":"...","options":["...","...","...","..."],"answer":0,"why":"..."}]` }],
+      })
+
+      if (res.error) throw new Error(res.error)
+      const raw = (res.reply || '').trim()
+      const match = raw.match(/\[[\s\S]*\]/)
+      if (!match) throw new Error('no JSON array in reply')
+
+      const parsed = JSON.parse(match[0])
+      const clean = (Array.isArray(parsed) ? parsed : []).filter(valid).map(q => ({
+        q: String(q.q).trim(),
+        options: q.options.map(o => String(o).trim()),
+        answer: q.answer,
+        why: String(q.why || '').trim(),
+        topic, diff, ai: true,
+      })).filter(q => !asked.includes(q.q))
+
+      pushQueue(topic, clean.length ? clean : fallbackFor(topic))
+    } catch (e) {
+      pushQueue(topic, fallbackFor(topic))
+    } finally {
+      generating[topic] = false
+    }
+  }
+
+  function valid(q) {
+    return q && typeof q.q === 'string' && q.q.trim()
+      && Array.isArray(q.options) && q.options.length === 4
+      && q.options.every(o => String(o).trim())
+      && Number.isInteger(q.answer) && q.answer >= 0 && q.answer <= 3
+  }
+
+  function pushQueue(topic, items) {
+    if (!queue[topic]) queue[topic] = []
+    queue[topic].push(...items)
+  }
+
+  // Offline bank so the RL machinery still runs with no AI configured.
+  function fallbackFor(topic) {
+    const bank = [
+      { q: `You just got a "${topic}" question wrong. What does the research say is the single most valuable next step?`,
+        options: ['Read the correct answer and move on', 'Try to recall the answer again tomorrow', 'Re-read your notes on it once', 'Skip the topic for a week'],
+        answer: 1, why: 'Spaced retrieval beats re-reading — the effort of recalling is what builds the memory.' },
+      { q: `Which study method is proven most effective for retaining ${topic}?`,
+        options: ['Highlighting your notes', 'Re-reading the chapter', 'Testing yourself from memory', 'Watching a video on it'],
+        answer: 2, why: 'Active recall (self-testing) consistently outperforms passive review in the literature.' },
+      { q: `You can study ${topic} for 4 hours. Which schedule retains the most?`,
+        options: ['4 hours today', '2 hours today, 2 tomorrow', '1 hour a day for 4 days', '30 min a day for 8 days'],
+        answer: 3, why: 'The spacing effect: the same total time spread over more days retains substantially more.' },
+      { q: `What does it usually mean if ${topic} feels easy while you study but you blank on the test?`,
+        options: ['You know it and just got unlucky', 'You mistook familiarity for recall', 'The test was unfair', 'You need to study longer'],
+        answer: 1, why: 'Fluency illusion — recognising material is not the same as retrieving it unaided.' },
+    ]
+    return bank.map(b => ({ ...b, topic, diff: 'easy', ai: false }))
+  }
+
+  // ── Round loop ──────────────────────────────────────────────
+  async function nextQuestion() {
+    if (destroyed) return
+    answered = false
+
+    if (!topics.length) return renderNoTopics()
+
+    currentPick = selectArm()
+    if (!currentPick) return renderNoTopics()
+    const topic = currentPick.topic
+
+    renderBrain()
+
+    if (!queue[topic] || !queue[topic].length) {
+      renderGenerating(topic)
+      await generate(topic)
+      if (destroyed) return
+    }
+
+    current = (queue[topic] || []).shift()
+    if (!current) { current = fallbackFor(topic)[0] }
+
+    asked.push(current.q)
+    if (asked.length > 200) asked = asked.slice(-200)
+    csSetJSON(K.asked, asked)
+
+    renderQuestion()
+    if ((queue[topic] || []).length <= PREFETCH_AT) generate(topic)   // prefetch, don't await
+  }
+
+  function answer(idx) {
+    if (answered || !current) return
+    answered = true
+
+    const isDunno  = idx === -1
+    const correct  = !isDunno && idx === current.answer
+    const topic    = current.topic
+
+    const { accBefore, reward, qBefore, qAfter } = updateArm(topic, correct)
+
+    streak = correct ? streak + 1 : 0
+    csSet(K.streak, String(streak))
+
+    const want    = isDunno ? PTS_DUNNO : pointsFor(correct, accBefore, correct ? streak - 1 : 0)
+    const applied = awardPoints(want)
+
+    log.push({ ts: Date.now(), topic, correct, reward, points: applied, policy })
+    if (log.length > LOG_CAP) log = log.slice(-LOG_CAP)
+    csSetJSON(K.log, log)
+
+    renderAnswered(idx, correct, isDunno, { reward, qBefore, qAfter, want, applied })
+    renderBrain({ reward, qBefore, qAfter, topic })
+    renderHero()
+    renderSpark()
+  }
+
+  // ── Rendering ───────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id)
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+
+  function renderHero() {
+    if (!$('rlPoints')) return
+    $('rlPoints').textContent = getPoints().toLocaleString()
+    $('rlStreakVal').textContent = streak
+    $('rlAnsweredVal').textContent = log.length
+    const recent = log.slice(-20)
+    $('rlAccVal').textContent = recent.length
+      ? Math.round(recent.filter(l => l.correct).length / recent.length * 100) + '%'
+      : '—'
+  }
+
+  function renderNoTopics() {
+    $('rlQuizBody').innerHTML = `
+      <div class="empty-state-box">
+        <div class="empty-icon">🎰</div>
+        <p><strong>No topics yet.</strong><br>Add a topic on the right — each one becomes an arm the agent can pull. Your study plan subjects import automatically.</p>
+      </div>`
+    renderBrain()
+  }
+
+  function renderGenerating(topic) {
+    $('rlQuizBody').innerHTML = `
+      <div class="rl-q-head"><span class="rl-topic-chip">${esc(topic)}</span></div>
+      <div class="rl-loading"><div class="rl-mini-spinner"></div> Writing a ${difficultyFor(topic)} question…</div>`
+  }
+
+  function renderQuestion() {
+    const keys = ['A', 'B', 'C', 'D']
+    $('rlQuizBody').innerHTML = `
+      <div class="rl-q-head">
+        <span class="rl-topic-chip">${esc(current.topic)}</span>
+        <span class="rl-diff-chip">${esc(current.diff)}</span>
+        ${current.ai ? '' : '<span class="rl-diff-chip">offline bank</span>'}
+      </div>
+      <div class="rl-q-text">${esc(current.q)}</div>
+      <div class="rl-options">
+        ${current.options.map((o, i) => `
+          <button class="rl-opt" data-idx="${i}">
+            <span class="rl-opt-key">${keys[i]}</span><span>${esc(o)}</span>
+          </button>`).join('')}
+      </div>
+      <div class="rl-actions">
+        <button class="btn btn-ghost" data-idx="-1">I don't know (${PTS_DUNNO} pts)</button>
+      </div>
+      <div class="rl-hint">Keys <span class="rl-kbd">1</span>–<span class="rl-kbd">4</span> to answer · <span class="rl-kbd">Enter</span> for next</div>`
+
+    $('rlQuizBody').querySelectorAll('[data-idx]').forEach(b => {
+      b.addEventListener('click', () => answer(parseInt(b.dataset.idx)))
+    })
+  }
+
+  function renderAnswered(picked, correct, isDunno, m) {
+    const opts = $('rlQuizBody').querySelectorAll('.rl-opt')
+    opts.forEach((el, i) => {
+      el.disabled = true
+      if (i === current.answer) el.classList.add('correct')
+      else if (i === picked)    el.classList.add('wrong')
+      else                      el.classList.add('muted')
+    })
+
+    const head = correct ? '✅ Correct' : isDunno ? '🤔 No shame in that' : '❌ Not quite'
+    const ptsTxt = m.applied === 0 && m.want < 0
+      ? `<span style="color:var(--text-secondary)">no points lost — you're already at 0</span>`
+      : `<strong style="color:${m.applied >= 0 ? 'var(--accent)' : '#dc2626'}">${m.applied >= 0 ? '+' : ''}${m.applied} pts</strong>`
+
+    const body = correct
+      ? `${ptsTxt} — you were at ${Math.round(m.reward * 100)}% below mastery on this topic, so it paid well.${streak > 1 ? ` Streak ×${Math.min(1 + (streak - 1) * 0.1, 2).toFixed(1)}.` : ''}`
+      : `${ptsTxt}. The answer is <span class="rl-fb-answer">${esc(current.options[current.answer])}</span>.${current.why ? ' ' + esc(current.why) : ''}`
+
+    $('rlQuizBody').insertAdjacentHTML('beforeend', `
+      <div class="rl-feedback ${correct ? 'good' : 'bad'}">
+        <div class="rl-fb-head">${head}</div>
+        <div>${body}</div>
+      </div>
+      <div class="rl-actions">
+        <button class="btn btn-primary" id="rlNextBtn">Next question →</button>
+      </div>`)
+
+    $('rlNextBtn').addEventListener('click', nextQuestion)
+    $('rlNextBtn').focus()
+  }
+
+  function renderBrain(update) {
+    const why = $('rlWhy')
+    if (!why) return
+
+    if (!topics.length) {
+      why.innerHTML = 'No arms to pull. Add a topic first.'
+      $('rlArms').innerHTML = ''
+      return
+    }
+
+    if (currentPick) {
+      why.innerHTML = `<span class="rl-why-tag">${currentPick.tag}</span> → ${esc(currentPick.why)}` +
+        (update ? `<span class="rl-why-eq">Q ← ${update.qBefore.toFixed(2)} + ${ALPHA} × (${update.reward.toFixed(2)} − ${update.qBefore.toFixed(2)}) = ${update.qAfter.toFixed(2)}</span>` : '')
+    }
+
+    const rows = topics.map(t => {
+      const a = arm(t)
+      const u = ucbBonus(t)
+      const uShow = u === Infinity ? 1 : Math.min(u, 1)
+      const score = policy === 'ucb' ? a.q + (u === Infinity ? 99 : u) : a.q
+      return { t, a, u, uShow, score }
+    }).sort((x, y) => y.score - x.score)
+
+    $('rlArms').innerHTML = rows.map(r => {
+      const picked = currentPick && currentPick.topic === r.t
+      const qPct = Math.round(Math.min(r.a.q, 1) * 100)
+      const uPct = policy === 'ucb' ? Math.round(r.uShow * 100) : 0
+      const total = Math.min(qPct + uPct, 100)
+      const accTxt = r.a.n === 0 ? 'untried' : `${Math.round(r.a.acc * 100)}% acc`
+      return `
+        <div class="rl-arm ${picked ? 'picked' : ''}">
+          <div class="rl-arm-top">
+            <span class="rl-arm-name">${picked ? '▸ ' : ''}${esc(r.t)}</span>
+            <span class="rl-arm-score">${r.u === Infinity && policy === 'ucb' ? '∞' : r.score.toFixed(2)}</span>
+          </div>
+          <div class="rl-arm-bars">
+            <div class="rl-bar-wrap">
+              <div class="rl-bar-q" style="width:${(qPct / Math.max(total, 1)) * Math.min(total, 100)}%"></div>
+              <div class="rl-bar-u" style="width:${(uPct / Math.max(total, 1)) * Math.min(total, 100)}%"></div>
+            </div>
+          </div>
+          <div class="rl-arm-meta">Q ${r.a.q.toFixed(2)} · ${r.a.n} pull${r.a.n === 1 ? '' : 's'} · ${accTxt}${policy === 'ucb' && r.u !== Infinity ? ` · bonus ${r.u.toFixed(2)}` : ''}</div>
+        </div>`
+    }).join('')
+  }
+
+  function renderSpark() {
+    const wrap = $('rlSparkWrap')
+    if (!wrap) return
+    if (log.length < 3) {
+      wrap.innerHTML = '<div class="rl-spark-empty">Answer a few questions to see your trend.</div>'
+      return
+    }
+    // Rolling accuracy over a 5-answer window.
+    const W = 5
+    const pts = []
+    for (let i = 0; i < log.length; i++) {
+      const win = log.slice(Math.max(0, i - W + 1), i + 1)
+      pts.push(win.filter(l => l.correct).length / win.length)
+    }
+    const show = pts.slice(-60)
+    const w = 100, h = 100
+    const step = show.length > 1 ? w / (show.length - 1) : w
+    const d = show.map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(2)},${((1 - p) * h).toFixed(2)}`).join(' ')
+    const area = `${d} L${w},${h} L0,${h} Z`
+    const last = Math.round(show[show.length - 1] * 100)
+
+    wrap.innerHTML = `
+      <svg class="rl-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <line x1="0" y1="${h / 2}" x2="${w}" y2="${h / 2}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="2 2"/>
+        <path d="${area}" fill="var(--accent-light)"/>
+        <path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+      </svg>
+      <div class="rl-arm-meta" style="margin-top:6px">Rolling ${W}-answer accuracy · now ${last}% · ${log.length} answered · dashed line = 50%</div>`
+  }
+
+  function renderPolicy() {
+    document.querySelectorAll('.rl-policy-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.policy === policy)
+    })
+
+    const notes = {
+      ucb: 'UCB1 picks the arm with the best <em>value + uncertainty</em>. Rarely-pulled topics get a bonus, so it explores on its own without needing randomness. Push <strong>c</strong> up past ~1 and the bonus drowns out the Q values — the agent stops targeting your weak spots and decays into Random.',
+      egreedy: 'ε-greedy takes the best-known arm most of the time, but with probability ε it rolls the dice instead. Simple, and surprisingly hard to beat.',
+      random: 'No learning at all — a uniform coin flip. Run this for a while and compare your accuracy trend against UCB1. This is the control.',
+    }
+    $('rlPolicyNote').innerHTML = notes[policy]
+
+    const params = $('rlPolicyParams')
+    if (policy === 'ucb') {
+      params.innerHTML = `
+        <div class="rl-slider-row">
+          <span class="rl-slider-lbl">Exploration c</span>
+          <input type="range" id="rlCSlider" min="0" max="1.5" step="0.05" value="${cParam}">
+          <span class="rl-slider-val" id="rlCVal">${cParam.toFixed(2)}</span>
+        </div>`
+      $('rlCSlider').addEventListener('input', e => {
+        cParam = parseFloat(e.target.value)
+        $('rlCVal').textContent = cParam.toFixed(2)
+        csSet(K.c, String(cParam))
+        renderBrain()
+      })
+    } else if (policy === 'egreedy') {
+      params.innerHTML = `
+        <div class="rl-slider-row">
+          <span class="rl-slider-lbl">Epsilon ε</span>
+          <input type="range" id="rlEpsSlider" min="0" max="1" step="0.05" value="${epsilon}">
+          <span class="rl-slider-val" id="rlEpsVal">${epsilon.toFixed(2)}</span>
+        </div>`
+      $('rlEpsSlider').addEventListener('input', e => {
+        epsilon = parseFloat(e.target.value)
+        $('rlEpsVal').textContent = epsilon.toFixed(2)
+        csSet(K.eps, String(epsilon))
+      })
+    } else {
+      params.innerHTML = ''
+    }
+  }
+
+  function renderTopics() {
+    $('rlTopicList').innerHTML = topics.length
+      ? topics.map(t => `
+          <span class="rl-topic-pill">${esc(t)}
+            <button class="rl-topic-x" data-topic="${esc(t)}" title="Remove">×</button>
+          </span>`).join('')
+      : '<span class="rl-policy-note" style="margin:0">No topics yet.</span>'
+
+    $('rlTopicList').querySelectorAll('.rl-topic-x').forEach(b => {
+      b.addEventListener('click', () => removeTopic(b.dataset.topic))
+    })
+
+    const subs = csGetJSON('planSubjects', [])
+    $('rlSubjectNote').innerHTML = subs.length
+      ? `Imported ${subs.length} subject${subs.length === 1 ? '' : 's'} from your study plan.`
+      : `Tip: add subjects in <a href="#" id="rlPlanLink" style="color:var(--accent)">Study Path</a> and they'll import here automatically.`
+
+    const link = $('rlPlanLink')
+    if (link) link.addEventListener('click', e => { e.preventDefault(); window.navigateTo('plan') })
+  }
+
+  function addTopic(name) {
+    const t = String(name || '').trim()
+    if (!t) return
+    if (topics.some(x => x.toLowerCase() === t.toLowerCase())) return
+    topics.push(t)
+    csSetJSON(K.topics, topics)
+    arm(t)
+    csSetJSON(K.arms, arms)
+    renderTopics()
+    renderBrain()
+    if (!current) nextQuestion()
+  }
+
+  function removeTopic(t) {
+    topics = topics.filter(x => x !== t)
+    delete arms[t]
+    delete queue[t]
+    csSetJSON(K.topics, topics)
+    csSetJSON(K.arms, arms)
+    renderTopics()
+    renderBrain()
+    if (current && current.topic === t) nextQuestion()
+  }
+
+  // ── Wiring ──────────────────────────────────────────────────
+  document.querySelectorAll('.rl-policy-tab').forEach(b => {
+    b.addEventListener('click', () => {
+      policy = b.dataset.policy
+      csSet(K.policy, policy)
+      renderPolicy()
+      renderBrain()
+    })
+  })
+
+  $('rlAddTopicBtn').addEventListener('click', () => {
+    addTopic($('rlTopicInput').value)
+    $('rlTopicInput').value = ''
+  })
+  $('rlTopicInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { addTopic(e.target.value); e.target.value = '' }
+  })
+
+  $('rlResetBtn').addEventListener('click', () => {
+    if (!confirm('Reset what the agent has learned about you?\n\nTopics and Study Points are kept — pull counts, Q-values, accuracy and history are wiped.')) return
+    arms = {}; log = []; asked = []; streak = 0
+    topics.forEach(arm)
+    csSetJSON(K.arms, arms); csSetJSON(K.log, log); csSetJSON(K.asked, asked); csSet(K.streak, '0')
+    Object.keys(queue).forEach(k => delete queue[k])
+    renderHero(); renderSpark(); renderTopics(); nextQuestion()
+  })
+
+  function onKey(e) {
+    if (e.target.tagName === 'INPUT') return
+    if (!answered && current && ['1', '2', '3', '4'].includes(e.key)) {
+      const i = parseInt(e.key) - 1
+      if (i < current.options.length) { e.preventDefault(); answer(i) }
+    } else if (answered && e.key === 'Enter') {
+      e.preventDefault(); nextQuestion()
+    }
+  }
+  document.addEventListener('keydown', onKey)
+
+  // Pages are re-executed on every visit — tear down the global listener.
+  window._pageCleanup = () => {
+    destroyed = true
+    document.removeEventListener('keydown', onKey)
+  }
+
+  // ── Boot ────────────────────────────────────────────────────
+  // Study-plan subjects are free arms — import any we haven't seen.
+  csGetJSON('planSubjects', []).forEach(s => {
+    const t = String(s || '').trim()
+    if (t && !topics.some(x => x.toLowerCase() === t.toLowerCase())) topics.push(t)
+  })
+  csSetJSON(K.topics, topics)
+  topics.forEach(arm)
+  csSetJSON(K.arms, arms)
+
+  renderHero()
+  renderPolicy()
+  renderTopics()
+  renderSpark()
+  nextQuestion()
+})()
+</script>

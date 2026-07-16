@@ -21,10 +21,37 @@
   .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
   .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
 
-  .ai-key-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-  .ai-key-row:last-child { border-bottom: none; }
-  .ai-key-label { font-weight: 600; color: var(--text-primary); }
-  .ai-key-value { color: var(--text-secondary); font-family: monospace; font-size: 12px; }
+  .ai-field { margin-bottom: 12px; }
+  .ai-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--text-secondary); margin-bottom: 6px; }
+  .ai-field select, .ai-field input {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 11px;
+    font-size: 13px; color: var(--text-primary); font-family: var(--font);
+    outline: none; transition: border-color .15s;
+  }
+  .ai-field select:focus, .ai-field input:focus { border-color: var(--accent); }
+  .ai-field input[type=password] { letter-spacing: .1em; }
+  .ai-hint { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-top: 6px; }
+  .ai-hint a { color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
+  .ai-saved { display: none; font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 8px; }
+
+  .pull-row { display: flex; gap: 8px; align-items: center; }
+  .pull-row input {
+    flex: 1; box-sizing: border-box;
+    background: var(--bg-card); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 11px;
+    font-size: 13px; color: var(--text-primary); font-family: var(--font);
+    outline: none; transition: border-color .15s;
+  }
+  .pull-row input:focus { border-color: var(--accent); }
+  .pull-progress {
+    display: none; margin-top: 8px; padding: 8px 11px;
+    background: var(--accent-light); border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: 12px; color: var(--accent); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
 
   .feedback-thanks { background: var(--accent-light); border: 1px solid var(--accent); color: var(--accent); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; font-weight: 600; display: none; margin-top: 10px; }
   .feedback-thanks.visible { display: block; }
@@ -52,8 +79,39 @@
 <!-- ── AI Settings ─────────────────────────────────────────────────── -->
 <div class="card settings-section" style="margin-top:16px;">
   <div class="card-title">AI Settings</div>
-  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Change your AI provider and API key in the <strong>AI Tutor</strong> tab.</div>
-  <div id="aiSettingsRows"></div>
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Choose which AI powers your tutor, quizzes, and summaries.</div>
+
+  <div class="ai-field">
+    <label for="providerSel">AI Provider</label>
+    <select id="providerSel">
+      <option value="ollama">Ollama (local)</option>
+      <option value="gemini">Google Gemini</option>
+      <option value="openai">OpenAI</option>
+      <option value="anthropic">Anthropic Claude</option>
+      <option value="groq">Groq</option>
+    </select>
+  </div>
+
+  <div class="ai-field" id="aiModelRow">
+    <label for="modelSel">Model</label>
+    <select id="modelSel"></select>
+  </div>
+
+  <div class="ai-field" id="aiKeyRow">
+    <label for="apiKeyInput">API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-…" autocomplete="off" spellcheck="false" />
+    <div class="ai-hint" id="aiKeyHint"></div>
+  </div>
+
+  <div class="ai-hint" id="aiOllamaNote" style="display:none;margin-bottom:12px;">
+    Ollama runs on your device — no API key needed. Pick the model in <strong>Local AI (Ollama)</strong> below.
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn btn-primary" id="aiSaveBtn" style="font-size:13px;">Save AI Settings</button>
+    <button class="btn btn-ghost" id="aiOpenChatBtn" style="font-size:13px;">Open Ask the AI →</button>
+  </div>
+  <div class="ai-saved" id="aiSaved">Saved ✓</div>
 </div>
 
 <!-- ── Ollama (Local AI) ──────────────────────────────────────────── -->
@@ -85,6 +143,24 @@
     </div>
     <button class="btn btn-primary" id="ollamaSetModelBtn" style="font-size:13px;">Use This Model</button>
     <div id="ollamaModelSaved" style="display:none;font-size:12px;color:var(--accent);margin-top:6px;font-weight:600;">✓ Model updated!</div>
+
+    <!-- Install the model recommended for this machine (shown when none installed) -->
+    <button class="btn btn-primary" id="ollamaPullRecBtn" style="display:none;font-size:13px;">Install recommended model</button>
+
+    <!-- Add any model by name -->
+    <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;">
+      <div class="ai-field" style="margin-bottom:8px;">
+        <label for="ollamaPullInput">Add a model</label>
+        <div class="pull-row">
+          <input type="text" id="ollamaPullInput" placeholder="e.g. gemma3:4b" spellcheck="false" autocomplete="off" />
+          <button class="btn btn-ghost" id="ollamaPullBtn" style="font-size:13px;white-space:nowrap;">⬇ Download</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">
+        Browse model names at <a href="#" id="ollamaLibraryLink" style="color:var(--accent);font-weight:600;">ollama.com/library</a>. Downloads are a few GB and run in the background.
+      </div>
+      <div class="pull-progress" id="ollamaPullProgress"></div>
+    </div>
   </div>
 </div>
 
@@ -116,9 +192,9 @@
 <!-- ── About ──────────────────────────────────────────────────────── -->
 <div class="card settings-section" style="margin-top:16px;">
   <div class="card-title">About</div>
-  <div style="font-size:14px;color:var(--text-primary);margin-bottom:8px;font-weight:600;">Ur Study Bro — v4.0.0</div>
+  <div style="font-size:14px;color:var(--text-primary);margin-bottom:8px;font-weight:600;">Ur Study Bro — v5.2.5</div>
   <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Your focused study partner, built for students who mean business.</div>
-  <a href="https://github.com/Mr-Pythoneer/clever-snail" target="_blank" style="font-size:13px;color:var(--accent);font-weight:600;text-decoration:none;">View on GitHub →</a>
+  <a href="https://github.com/Mr-Pythoneer/Ur-Study-Bro" target="_blank" style="font-size:13px;color:var(--accent);font-weight:600;text-decoration:none;">View on GitHub →</a>
 </div>
 
 <script>
@@ -128,33 +204,101 @@
   document.getElementById('settingsUsername').textContent = username
 
   // ── AI Settings ───────────────────────────────────────────
-  const provider = localStorage.getItem('ai_provider') || null
-  const aiRows = document.getElementById('aiSettingsRows')
-  if (!provider) {
-    aiRows.innerHTML = '<div style="font-size:13px;color:var(--text-secondary);">No AI provider configured yet.</div>'
-  } else {
-    const rawKey = localStorage.getItem('ai_key_' + provider) || ''
-    const maskedKey = rawKey.length > 8
-      ? rawKey.slice(0, 4) + '••••••••' + rawKey.slice(-4)
-      : rawKey ? '••••••••' : '(not set)'
-    const modelKey = localStorage.getItem('ai_model_' + provider) || '(default)'
-    aiRows.innerHTML = `
-      <div class="ai-key-row">
-        <span class="ai-key-label">Provider</span>
-        <span class="ai-key-value">${provider}</span>
-      </div>
-      <div class="ai-key-row">
-        <span class="ai-key-label">API Key</span>
-        <span class="ai-key-value">${maskedKey}</span>
-      </div>
-      <div class="ai-key-row">
-        <span class="ai-key-label">Model</span>
-        <span class="ai-key-value">${modelKey}</span>
-      </div>
-    `
+  // Writes exactly the keys window.aiChat (index.html) reads:
+  //   ai_provider, ai_key_<provider>, ai_model_<provider>.
+  const providerSel = document.getElementById('providerSel')
+  const modelSel    = document.getElementById('modelSel')
+  const apiKeyInput = document.getElementById('apiKeyInput')
+  const aiKeyHint   = document.getElementById('aiKeyHint')
+
+  const MODELS = {
+    ollama: [], // model is chosen in the Ollama card below
+    gemini: [
+      { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite (fastest)' },
+      { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash (fast)' },
+      { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash (smart)' },
+      { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro (best)' },
+    ],
+    openai: [
+      { value: 'gpt-4o-mini', label: 'GPT-4o mini (fast)' },
+      { value: 'gpt-4o',      label: 'GPT-4o (smart)' },
+    ],
+    anthropic: [
+      { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku (fast)' },
+      { value: 'claude-sonnet-4-6',         label: 'Claude Sonnet (smart)' },
+    ],
+    groq: [
+      { value: 'llama-3.1-8b-instant',    label: 'Llama 3.1 8B (fastest)' },
+      { value: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B (smart)' },
+    ],
   }
 
-async function checkOllama() {
+  const KEY_HINTS = {
+    gemini:    { placeholder: 'AIza…',   url: 'https://aistudio.google.com/apikey',      label: 'aistudio.google.com' },
+    openai:    { placeholder: 'sk-…',    url: 'https://platform.openai.com/api-keys',    label: 'platform.openai.com' },
+    anthropic: { placeholder: 'sk-ant-…',url: 'https://console.anthropic.com',           label: 'console.anthropic.com' },
+    groq:      { placeholder: 'gsk_…',   url: 'https://console.groq.com/keys',           label: 'console.groq.com' },
+  }
+
+  function syncProviderUI() {
+    const p = providerSel.value
+    const isOllama = p === 'ollama'
+    document.getElementById('aiKeyRow').style.display    = isOllama ? 'none' : ''
+    document.getElementById('aiModelRow').style.display  = isOllama ? 'none' : ''
+    document.getElementById('aiOllamaNote').style.display = isOllama ? '' : 'none'
+    if (isOllama) return
+
+    modelSel.innerHTML = MODELS[p].map(m => `<option value="${m.value}">${m.label}</option>`).join('')
+    const savedModel = localStorage.getItem('ai_model_' + p)
+    if (savedModel) modelSel.value = savedModel
+    apiKeyInput.value = localStorage.getItem('ai_key_' + p) || ''
+    const hint = KEY_HINTS[p]
+    apiKeyInput.placeholder = hint.placeholder
+    aiKeyHint.innerHTML = `Get a key at <a data-url="${hint.url}">${hint.label}</a>`
+  }
+
+  // Load only — never write ai_provider here. Opening Settings must not
+  // silently switch the user off the provider they chose.
+  function loadAiSettings() {
+    const saved = localStorage.getItem('ai_provider')
+    providerSel.value = (saved && MODELS[saved]) ? saved : 'ollama'
+    syncProviderUI()
+  }
+
+  function saveAiSettings() {
+    const p = providerSel.value
+    localStorage.setItem('ai_provider', p)
+    if (p !== 'ollama') {
+      localStorage.setItem('ai_key_' + p, apiKeyInput.value.trim())
+      if (modelSel.value) localStorage.setItem('ai_model_' + p, modelSel.value)
+    }
+    const saved = document.getElementById('aiSaved')
+    saved.style.display = 'block'
+    setTimeout(() => { saved.style.display = 'none' }, 2000)
+  }
+
+  providerSel.addEventListener('change', syncProviderUI)
+  document.getElementById('aiSaveBtn').addEventListener('click', saveAiSettings)
+  document.getElementById('aiOpenChatBtn').addEventListener('click', () => window.navigateTo('ai'))
+  // Key-provider links are injected as HTML, so delegate the click.
+  aiKeyHint.addEventListener('click', e => {
+    const a = e.target.closest('a[data-url]')
+    if (a) window.api.openExternal(a.dataset.url)
+  })
+
+  loadAiSettings()
+
+  // ── Ollama ────────────────────────────────────────────────
+  let recommended = 'gemma3:1b'   // set by checkOllama() from real hardware info
+  let pulling = false
+
+  function fmtBytes(n) {
+    if (!n) return '0 MB'
+    const mb = n / 1048576
+    return mb >= 1024 ? (mb / 1024).toFixed(1) + ' GB' : Math.round(mb) + ' MB'
+  }
+
+  async function checkOllama() {
     const badge = document.getElementById('ollamaStatusBadge')
     badge.textContent = 'Checking…'
     badge.style.background = '#f3f4f6'
@@ -162,7 +306,6 @@ async function checkOllama() {
     if (!window.api?.ollamaStatus) return
 
     // Get hardware info first so we know what model to recommend
-    let recommended = 'gemma3:1b'
     if (window.api?.systemInfo) {
       const info = await window.api.systemInfo()
       recommended = info.recommended || 'gemma3:1b'
@@ -178,34 +321,32 @@ async function checkOllama() {
 
       // Populate model dropdown
       const sel = document.getElementById('ollamaModelSelect')
+      const recBtn = document.getElementById('ollamaPullRecBtn')
       const active = localStorage.getItem('ai_model_ollama') || models[0] || ''
       if (models.length) {
         sel.innerHTML = models.map(m =>
           `<option value="${m}" ${m === active ? 'selected' : ''}>${m}</option>`
         ).join('')
-        // Auto-set if not set yet
+        // Default the Ollama model if unset — but never touch ai_provider here.
+        // Opening this page must not silently switch a user off the provider
+        // they chose, or their saved API key stops being used with no clue why.
         if (!localStorage.getItem('ai_model_ollama')) {
-          localStorage.setItem('ai_provider', 'ollama')
           localStorage.setItem('ai_model_ollama', models[0])
-          localStorage.setItem('ai_ollama_model', models[0])
         }
         document.getElementById('ollamaActiveNote').textContent = `✓ Running — active model: ${active}`
+        sel.disabled = false
+        document.getElementById('ollamaSetModelBtn').style.display = ''
+        recBtn.style.display = 'none'
       } else {
-        sel.innerHTML = '<option>No models installed</option>'
-        document.getElementById('ollamaActiveNote').textContent = 'No models found. Run: ollama pull gemma3:4b'
-      }
-
-      // Save button
-      document.getElementById('ollamaSetModelBtn').onclick = () => {
-        const chosen = sel.value
-        if (!chosen) return
-        localStorage.setItem('ai_provider', 'ollama')
-        localStorage.setItem('ai_model_ollama', chosen)
-        localStorage.setItem('ai_ollama_model', chosen)
-        document.getElementById('ollamaActiveNote').textContent = `✓ Running — active model: ${chosen}`
-        const saved = document.getElementById('ollamaModelSaved')
-        saved.style.display = 'block'
-        setTimeout(() => saved.style.display = 'none', 2000)
+        // No models — offer a one-click install of the hardware-matched pick
+        // instead of telling the user to go run a terminal command.
+        sel.innerHTML = '<option value="">No models installed</option>'
+        sel.disabled = true
+        document.getElementById('ollamaSetModelBtn').style.display = 'none'
+        document.getElementById('ollamaActiveNote').textContent =
+          `No models installed yet — ${recommended} is the best fit for this machine.`
+        recBtn.textContent = `⬇ Install ${recommended} (recommended)`
+        recBtn.style.display = ''
       }
     } else {
       badge.textContent = '○ Not running'
@@ -215,7 +356,77 @@ async function checkOllama() {
     }
   }
 
+  // ── Pull a model via the streaming ollama:pull IPC ────────
+  async function pullModel(name) {
+    name = (name || '').trim()
+    if (!name || pulling || !window.api?.ollamaPull) return
+    pulling = true
+
+    const prog   = document.getElementById('ollamaPullProgress')
+    const btn    = document.getElementById('ollamaPullBtn')
+    const recBtn = document.getElementById('ollamaPullRecBtn')
+    btn.disabled = true; recBtn.disabled = true
+    prog.style.display = 'block'
+    prog.textContent = `Starting download of ${name}…`
+
+    // The page re-executes on every visit, so clear any stale listener
+    // before registering — otherwise progress fires N times per visit.
+    window.api.offOllamaPullProgress()
+    window.api.onOllamaPullProgress(d => {
+      if (d.total && d.completed) {
+        const pct = Math.round((d.completed / d.total) * 100)
+        prog.textContent = `${d.status || 'downloading'} — ${pct}% (${fmtBytes(d.completed)} / ${fmtBytes(d.total)})`
+      } else if (d.status) {
+        prog.textContent = d.status
+      }
+    })
+
+    try {
+      const res = await window.api.ollamaPull(name)
+      if (res && res.error) {
+        prog.textContent = '⚠️ ' + res.error
+      } else {
+        prog.textContent = `✓ ${name} installed!`
+        document.getElementById('ollamaPullInput').value = ''
+        await checkOllama()
+        setTimeout(() => { prog.style.display = 'none' }, 3000)
+      }
+    } catch (e) {
+      prog.textContent = '⚠️ ' + (e.message || 'Download failed')
+    } finally {
+      window.api.offOllamaPullProgress()
+      pulling = false
+      btn.disabled = false; recBtn.disabled = false
+    }
+  }
+
+  // Bound once, outside checkOllama() — that function re-runs after every
+  // pull/refresh, and re-binding there would stack duplicate handlers.
   document.getElementById('ollamaRefreshBtn')?.addEventListener('click', checkOllama)
+  document.getElementById('ollamaPullBtn').addEventListener('click', () => {
+    pullModel(document.getElementById('ollamaPullInput').value)
+  })
+  document.getElementById('ollamaPullInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); pullModel(e.target.value) }
+  })
+  document.getElementById('ollamaPullRecBtn').addEventListener('click', () => pullModel(recommended))
+  document.getElementById('ollamaLibraryLink').addEventListener('click', e => {
+    e.preventDefault()
+    window.api.openExternal('https://ollama.com/library')
+  })
+
+  document.getElementById('ollamaSetModelBtn').addEventListener('click', () => {
+    const chosen = document.getElementById('ollamaModelSelect').value
+    if (!chosen) return
+    localStorage.setItem('ai_provider', 'ollama')
+    localStorage.setItem('ai_model_ollama', chosen)
+    providerSel.value = 'ollama'   // keep the AI Settings card in sync
+    syncProviderUI()
+    document.getElementById('ollamaActiveNote').textContent = `✓ Running — active model: ${chosen}`
+    const saved = document.getElementById('ollamaModelSaved')
+    saved.style.display = 'block'
+    setTimeout(() => { saved.style.display = 'none' }, 2000)
+  })
 
   checkOllama()
 
