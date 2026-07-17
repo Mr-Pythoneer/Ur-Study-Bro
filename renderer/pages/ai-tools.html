@@ -1,4 +1,12 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── ai-tools.html — Assignment Checker, AI Detector, Humanizer ───────
+  Loaded by loadPage() (re-runs each visit; note the IIFE). Three AI
+  tools that all go through callAI() -> window.api.askAI. Reads the
+  active provider/key from the global ai_provider / ai_key_<p> keys.
+  FIXME below: callAI hard-requires an API key, so all three tools are
+  dead on the default Ollama provider (which needs no key).
+-->
 <style>
   .tool-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   @media (max-width:800px) { .tool-layout { grid-template-columns:1fr; } }
@@ -226,6 +234,9 @@
 
   async function callAI(systemPrompt, userContent) {
     const { provider, apiKey, model } = getApiCfg()
+    // FIXME(high): Ollama (the default provider) has no apiKey, so this throws
+    // 'no_key' and all three tools are dead out of the box. Only require a key
+    // for cloud providers: if (provider !== 'ollama' && !apiKey) throw ...
     if (!apiKey) throw new Error('no_key')
     const res = await window.api.askAI({ provider, apiKey, model, systemPrompt, messages:[{ role:'user', content:userContent }] })
     if (res.error) throw new Error(res.error)
@@ -274,6 +285,9 @@
   function renderGrade(d) {
     document.getElementById('gradePlaceholder').style.display='none'
     document.getElementById('gradeResultCard').style.display=''
+    // FIXME(high/xss): d.percent and d.on_task_score below are interpolated raw
+    // while every sibling field uses esc(). They come from AI JSON output — a
+    // crafted response injects HTML. Wrap them in esc() like the rest.
     document.getElementById('gradeBadges').innerHTML=`
       <div class="grade-badge ${gradeClass(d.grade)}"><div class="badge-val">${esc(d.grade||'?')}</div><div class="badge-lbl">Estimated Grade</div></div>
       <div class="grade-badge" style="background:#f3f4f6;color:var(--text-primary);"><div class="badge-val">${d.percent||'?'}%</div><div class="badge-lbl">Score</div></div>

@@ -1,4 +1,12 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── ai-writer.html — distraction-free editor + AI actions ───────────
+  Loaded by loadPage() (re-runs each visit; note the IIFE). A
+  contenteditable editor with an AI sidebar (improve/shorten/expand/…)
+  routed through callAI() -> window.api.askAI. Saved docs persist to
+  localStorage. See FIXMEs: AI is dead on default Ollama, and saved
+  docs use a global (cross-account) storage key.
+-->
 <style>
   .writer-shell {
     display:flex; gap:16px;
@@ -350,6 +358,8 @@
   /* ── AI call ── */
   async function callAI(system, user) {
     const { provider, apiKey, model } = getApiCfg()
+    // FIXME(high): Ollama (default) has no apiKey, so this throws and the whole
+    // AI sidebar is dead by default. Gate the key check on provider !== 'ollama'.
     if(!apiKey) throw new Error('no_key')
     const res = await window.api.askAI({provider,apiKey,model,systemPrompt:system,messages:[{role:'user',content:user}]})
     if(res.error) throw new Error(res.error)
@@ -541,6 +551,9 @@
     const existing = docs.findIndex(d=>d.title===title)
     if(existing>=0) docs[existing]={title,html,date}
     else docs.unshift({title,html,date})
+    // FIXME(medium): 'ai_writer_docs' is a GLOBAL key (not csKey-prefixed), so
+    // every account on this machine shares — and can read — the same saved docs.
+    // Use window.csSetJSON('ai_writer_docs', ...) to scope it per account.
     localStorage.setItem('ai_writer_docs', JSON.stringify(docs.slice(0,30)))
     renderSaved()
     document.getElementById('btnSave').textContent='Saved ✓'

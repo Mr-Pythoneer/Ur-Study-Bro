@@ -1,4 +1,12 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── study-kit.html — AI summary / flashcards / practice Qs ──────────
+  Loaded by loadPage() (re-runs each visit; note the IIFE). Paste notes,
+  generate a summary + flashcard deck + practice questions via
+  window.api.askAI, plus a "Personalised Study Guide" built from the
+  cognitive assessment. See FIXMEs: dead on default Ollama, and the
+  guide reads a 'cognitiveReport' key that is never written.
+-->
 <style>
   .kit-layout { display:grid; grid-template-columns:1fr 1.4fr; gap:20px; }
   @media(max-width:860px){ .kit-layout{grid-template-columns:1fr} }
@@ -324,6 +332,9 @@
     const text=document.getElementById('notesInput').value.trim()
     if(!text||text.length<50){alert('Paste at least a few sentences of notes first.');return}
     const{provider,apiKey,model}=getApiCfg()
+    // FIXME(high): Ollama (default) needs no key, and the "yellow bar above" is
+    // hidden for Ollama — so this alert points at invisible UI and Study Kit is
+    // dead out of the box. Gate on provider !== 'ollama' && !apiKey.
     if(!apiKey){alert('Enter your API key in the yellow bar above.');return}
 
     const doSummary=document.getElementById('chkSummary').checked
@@ -449,6 +460,9 @@ Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[
      PERSONALISED STUDY GUIDE
   ══════════════════════════════════════════ */
   function initGuidePanel(){
+    // FIXME(high): nothing anywhere writes 'cognitiveReport', so report is always
+    // null and the Personalised Study Guide is permanently unreachable. The
+    // assessment stores its results under a different key — read that one.
     const report = csGetJSON('cognitiveReport', null)
     if(!report){
       document.getElementById('guideNoReport').style.display = ''

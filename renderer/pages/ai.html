@@ -1,4 +1,13 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── ai.html — the AI Tutor chat ─────────────────────────────────────
+  Loaded by loadPage() (re-runs on every visit; note the IIFE). A chat
+  UI with a provider/model sidebar. Ollama (local, default) streams via
+  window.api.ollamaStream; cloud providers go through window.aiChat.
+  Provider/model/key persist in the GLOBAL localStorage keys ai_provider
+  / ai_model_<p> / ai_key_<p> (shared across accounts by design).
+  See the FIXMEs for the hidden Ollama hint and the auto-scroll target.
+-->
 <style>
   .ai-layout { display:flex; gap:20px; height:calc(100vh - 180px); min-height:400px; }
 
@@ -183,6 +192,9 @@
     ],
   }
 
+  // FIXME(medium): saveSettings only runs on the "Save" button. Changing the
+  // provider/model dropdown doesn't persist, so a picked model is lost on the
+  // next visit unless the user also clicks Save. Persist on change.
   function saveSettings() {
     localStorage.setItem('ai_provider', providerSel.value)
     localStorage.setItem('ai_model_' + providerSel.value, modelSel.value)
@@ -209,6 +221,8 @@
     document.getElementById('saveKeyBtn').textContent = isOllama ? 'Saved ✓' : 'Save Key'
 
     if (isOllama) {
+      // FIXME(low): keyHint lives inside #apiKeyRow, which was just hidden on the
+      // line above for Ollama — so this install hint is written but never shown.
       keyHint.innerHTML = 'Runs on your device. Install Ollama from <a onclick="window.api.openExternal(\'https://ollama.com\')" style="color:var(--accent);cursor:pointer;">ollama.com</a>'
     } else if (p === 'gemini') {
       keyHint.innerHTML = 'Free key at <a onclick="window.api.openExternal(\'https://aistudio.google.com/apikey\')" style="color:var(--accent);cursor:pointer;">aistudio.google.com</a>'
@@ -403,6 +417,8 @@
         full += token
         if (bubble) bubble.innerHTML = renderMarkdown(full) + '<span class="stream-cursor">▍</span>'
         // Auto-scroll
+        // FIXME(medium): the scroll container is #chatHistory, not #chatMessages —
+        // this getElementById returns null, so streamed replies never auto-scroll.
         const chat = document.getElementById('chatMessages')
         if (chat) chat.scrollTop = chat.scrollHeight
       })
