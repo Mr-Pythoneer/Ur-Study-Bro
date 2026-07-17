@@ -1,4 +1,14 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── welcome.html — the Home page ────────────────────────────────────
+  Loaded into #content by loadPage() in index.html, so its <script>
+  blocks RE-RUN on every visit (hence the IIFEs). Two roles:
+    1. renderDashboard()  — today's stats, streak, daily-goal bar,
+       "streak at risk" nudge, and the Upcoming events list.
+    2. the setup/onboarding IIFE — display name, subjects, daily goal.
+  Reads per-account data via csGet/csGetJSON. See the audit FIXMEs
+  below for streak timezone bugs and an XSS sink in Upcoming events.
+-->
 <style>
   /* ── Home page ─────────────────────────────────────────────────── */
   .home-wrap { max-width: 720px; padding-bottom: 48px; }
@@ -233,7 +243,10 @@
     const allSessions = records.length
     const pts = parseInt(csGet('studyPoints')||'0')
 
-    // Streak
+    // Streak: walk backwards from today while each day has a record.
+    // FIXME(low): toISOString() gives a UTC date, but records store LOCAL
+    // dates (localDateStr). Across a DST change or for users far from UTC,
+    // the walk-back can land on the wrong day and silently undercount.
     const days = [...new Set(records.map(r=>r.date))].sort()
     let streak = 0, check = today
     while (days.includes(check)) { streak++; const d=new Date(check); d.setDate(d.getDate()-1); check=d.toISOString().slice(0,10) }
@@ -254,13 +267,19 @@
       document.getElementById('dashGoalLabel').textContent = pct >= 100 ? '🎉 Daily goal reached!' : `${todayMins} / ${goalMins} min studied today`
     }
 
-    // Streak risk: if no study today and streak > 0
+    // Streak risk: warn after 8pm if you studied yesterday but not yet today.
+    // FIXME(high): hadYesterday builds yesterday's date with toISOString() (UTC)
+    // while `days` holds LOCAL dates. For users in the Americas (UTC-), the UTC
+    // "yesterday" is often today's local date, so hadYesterday never matches and
+    // this banner never shows. Use localDateStr on a date shifted by one day.
     const hadYesterday = days.includes((() => { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10) })())
     const streakRisk = hadYesterday && !days.includes(today) && new Date().getHours() >= 20
     const riskEl = document.getElementById('streakRisk')
     riskEl.style.display = streakRisk ? 'flex' : 'none'
 
-    // Upcoming events
+    // Upcoming events (next 3, from the shared calendar store)
+    // FIXME(medium): filter().slice(0,3) takes the FIRST three in storage order,
+    // not the soonest — sort by date before slicing, or the nearest events hide.
     const events = JSON.parse(localStorage.getItem(window.csKey ? window.csKey('calEvents') : '') || '[]')
     const upcoming = events.filter(e => e.date >= today).slice(0,3)
     const upEl = document.getElementById('dashUpcoming')
@@ -268,7 +287,12 @@
       upEl.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Upcoming</div>` +
         upcoming.map(e => `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
           <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>
+          <!-- FIXME(critical/xss): e.title comes from calendar events, which can be
+               auto-created from email subjects (untrusted). It's interpolated raw
+               into innerHTML here = stored XSS on the home page. Escape it. -->
           <div style="flex:1;font-size:13px;font-weight:600;">${e.title}</div>
+          <!-- FIXME(medium): reads e.startTime, but every writer stores the field
+               as `start` (see calendar.html), so the time never renders. -->
           <div style="font-size:12px;color:var(--text-secondary);">${e.date} ${e.startTime||''}</div>
         </div>`).join('')
     }
@@ -280,7 +304,10 @@
   let subjects = csGetJSON('subjects', [])
   let selectedGoalHours = null
 
-  // ── Restore ───────────────────────────────────────────────────
+  // ── Restore saved profile ─────────────────────────────────────
+  // FIXME(low): savedName falls back to currentUser(), which is always set, so
+  // it's never falsy — the first-run "Welcome! Let's get you set up." headline
+  // and onboarding copy below are unreachable. Track a real "has onboarded" flag.
   const savedName = csGet('displayName') || currentUser()
   const savedGoal = csGet('dailyGoalHours')
 
