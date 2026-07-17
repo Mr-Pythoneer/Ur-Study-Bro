@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+  ── app.html — the standalone WEB version of Ur Study Bro ────────────
+  Served from GitHub Pages (docs/app.html), NOT part of the Electron
+  app. Self-contained: one HTML file, one <script>, localStorage only,
+  NO window.api / IPC. Because it's a single top-level <script>, ANY
+  thrown error at parse/run time kills the ENTIRE app (this bit us once
+  with a stray '===='), so keep it defensive.
+  AI is origin-aware: Ollama only when served from localhost (browsers
+  block a hosted page from reaching localhost:11434), cloud otherwise.
+  See the audit FIXMEs below (timer replay, unescaped renderPlan, etc).
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -613,6 +624,11 @@ function updateTimerDisplay(){
   fill.style.strokeDashoffset = CIRC*(1-pct)
 }
 
+// FIXME(critical): after a session ends, T.secs stays at 0 and startBtn resets
+// to "Start". Clicking Start goes to the run branch below and starts an interval
+// that ticks T.secs to -1, so the `if(T.secs<=0)` at :640 fires completeSession()
+// AGAIN every second — farming points/records endlessly. Reset T.secs (call
+// resetTimer) when starting from a finished state.
 function startTimer(){
   if(T.running){ // pause
     clearInterval(T.interval); T.running=false
@@ -753,6 +769,8 @@ function renderPlan(){
     <div id="taskList"></div>`
 
   const list = document.getElementById('taskList')
+  // FIXME(medium/xss): t.title/t.subject/t.type come from AI-generated study
+  // tasks and are interpolated raw into innerHTML below — escape them.
   tasks.forEach((t,i)=>{
     const div = document.createElement('div')
     div.className = 'plan-task'+(t.done?' done-task':'')
@@ -1200,6 +1218,9 @@ async function sendAI(){
       status.className='ai-status ollama-ok'
       status.textContent='✓ Ollama is running.'
 
+    // FIXME(high): the gemini and openai branches never check res.ok — an invalid
+    // API key returns an error JSON with 200-less status, the reader reads no SSE
+    // data lines, and the user just sees a silently blank reply with no error.
     } else if(provider==='gemini'){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${key}`
       const contents=aiMessages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
