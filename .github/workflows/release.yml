@@ -54,9 +54,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # pacman packaging needs bsdtar, which ubuntu runners don't ship by default
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+
       - name: Build & publish (${{ matrix.platform }})
         run: npx electron-builder ${{ matrix.platform }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # App is intentionally unsigned (no paid Apple cert) — matches local builds.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # Always keep the built installers as downloadable artifacts — used to
+      # backfill an already-published release (where electron-builder refuses
+      # to publish over a non-draft release).
+      - name: Upload installers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.pacman
+            dist/*.blockmap
+            dist/latest*.yml
+          if-no-files-found: ignore
