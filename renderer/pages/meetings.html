@@ -1,4 +1,40 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ═══════════════════════════════════════════════════════════════════════
+  MEETING RECORDS PAGE  (renderer/pages/meetings.html)
+  ═══════════════════════════════════════════════════════════════════════
+  One page, four tabs:
+    • Session Log    — manually logged study sessions (storage key: records)
+    • Screen Record  — desktopCapturer source picker + MediaRecorder → .webm on disk
+    • Meeting Notes  — contenteditable rich-text editor → localStorage + Apple Notes
+    • Lecture Audio  — microphone → MediaRecorder → Whisper (OpenAI/Groq) → transcript
+
+  ── BEFORE YOU EDIT: how pages work in this app ──────────────────────
+  • This fragment is injected by loadPage() in renderer/index.html. loadPage
+    RE-CREATES and RE-EXECUTES every <script> below on EVERY visit, in GLOBAL
+    scope. That is why the whole script is wrapped in an IIFE: without it the
+    top-level `const`/`let` declarations would throw "already declared" on the
+    second visit to this page.
+  • Because the page is ripped out of the DOM on navigation, anything
+    long-lived (setInterval, MediaRecorder, getUserMedia/getDisplayMedia
+    tracks) MUST be released from window._pageCleanup or you leak one more
+    copy per visit. This page starts TWO recorders and TWO intervals, so
+    _pageCleanup (near the bottom) is load-bearing, not optional.
+  • Inline onclick="foo()" in the markup can only reach GLOBALS. That is why
+    showTab, _deleteRecord, _openRec, _deleteRec, _loadNote and _loadTranscript
+    are explicitly hung off `window` — an IIFE-local function of the same name
+    would silently do nothing when clicked.
+  • Storage: csGet/csSet/csGetJSON/csSetJSON are per-account (cs_<user>_<key>).
+    Keys used here: records, subjects, studyPoints, meetingNotes, transcripts.
+    The one exception is the Whisper key, saved with raw localStorage under
+    'transcribe_key' — deliberately NON-prefixed, i.e. shared across accounts,
+    same convention as ai_provider / ai_key_*.
+  • All native work goes through window.api, exposed by preload.js via
+    contextBridge (contextIsolation:true): getSources, setPreferredSource,
+    saveRecording, listRecordings, openRecording, deleteRecording,
+    transcribeAudio, syncToNotes, openExternal.
+  ═══════════════════════════════════════════════════════════════════════
+-->
 <style>
   /* ── Records tab ──────────────────────────────────────────── */
   .filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
@@ -64,6 +100,9 @@
     outline:none; background:#fff;
   }
   .rte-body:focus { border-color:var(--accent); }
+  /* contenteditable has no placeholder attribute, so fake one with :empty::before.
+     Only renders while the node is *truly* empty — the browser's leftover lone <br>
+     defeats it, which is why the save/sync handlers below also test html === '<br>'. */
   .rte-body:empty::before { content:attr(data-placeholder); color:#9ca3af; pointer-events:none; }
   .rte-body h1,.rte-body h2,.rte-body h3 { margin:.4em 0; }
   .rte-body ul,.rte-body ol { padding-left:1.5em; margin:.4em 0; }
@@ -90,6 +129,8 @@
   <div class="page-subtitle">Log sessions, record your screen, and review your notes.</div>
 </div>
 
+<!-- ── Tab bar ── these inline onclicks reach window.showTab (see the IIFE below).
+     Tab id / pane id pairs must stay in sync with the array inside showTab(). ── -->
 <div class="page-tabs">
   <button class="page-tab active" id="tab-records" onclick="showTab('records')">Session Log</button>
   <button class="page-tab"        id="tab-record"  onclick="showTab('record')">Screen Record</button>
@@ -354,8 +395,13 @@
 </div>
 
 <script>
+// IIFE wrapper is mandatory: loadPage() re-executes this whole script in global
+// scope on every visit to the page, and re-declaring these consts would throw.
 (function() {
   /* ── Tab switching ─────────────────────────────────────────── */
+  // Panes are all present in the DOM at once; only display is toggled. The two
+  // list-heavy tabs re-read their data on show rather than at page load, so a
+  // recording/note created on another tab shows up without a page reload.
   function showTab(name) {
     ['records','record','notes','audio'].forEach(t => {
       document.getElementById('pane-'+t).style.display = t===name ? '' : 'none'
@@ -364,9 +410,12 @@
     if (name==='record') loadRecordingsList()
     if (name==='notes')  renderNoteHistory()
   }
-  window.showTab = showTab
+  window.showTab = showTab   // exported: the tab bar's inline onclick can only see globals
 
   /* ── HTML escape ───────────────────────────────────────────── */
+  // Used for every value interpolated into an innerHTML template below. Escapes
+  // quotes too, so it is also safe for values that land inside an attribute or
+  // inside a single-quoted inline onclick argument (e.g. _deleteRecord('…')).
   function esc(s) {
     return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
   }
@@ -375,21 +424,29 @@
   /* ── SESSION LOG TAB ───────────────────────────────────────── */
   /* ── ═══════════════════════════════════════════════════════ ─ */
 
+  // Filter/sort state lives in these module-scoped vars; every mutation ends in
+  // renderAll(), which re-reads from storage. There is no in-memory record cache.
   let sortField='date', sortAsc=false, filterText='', filterSubject='', filterRating=''
+  // Read ONCE at page load and reused by all four tabs' dropdowns. A subject added
+  // on the Subjects page won't appear here until this page is re-entered — that's
+  // acceptable because loadPage() re-runs this script on every visit.
   const subjects = csGetJSON('subjects', [])
 
   // Populate subject selects
   ;[document.getElementById('meetSubjectSel'), document.getElementById('filterSubject')].forEach(sel => {
     subjects.forEach(s => { const o=document.createElement('option'); o.textContent=s; o.value=s; sel.appendChild(o) })
   })
+  // Default the date field to LOCAL today. Deliberately hand-built rather than
+  // toISOString().slice(0,10), which is UTC and shows tomorrow's date after ~5pm PT.
   document.getElementById('meetDate').value = (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
 
+  /* ── Add a manual session record ─────────────────────────── */
   document.getElementById('addRecordBtn').addEventListener('click', () => {
     const date     = document.getElementById('meetDate').value
     const duration = parseInt(document.getElementById('meetDuration').value)
     const subSel   = document.getElementById('meetSubjectSel').value
     const subCustom= document.getElementById('meetSubjectCustom').value.trim()
-    const subject  = subCustom || subSel
+    const subject  = subCustom || subSel   // a typed custom subject always wins over the dropdown
     const rating   = parseInt(document.getElementById('meetRating').value)
     const notes    = document.getElementById('meetNotes').value.trim()
     const errEl    = document.getElementById('meetError')
@@ -398,9 +455,15 @@
     if (!duration||duration<5) return (errEl.textContent='Duration must be ≥ 5 min.')
     errEl.textContent=''
     const records = csGetJSON('records',[])
+    // `source` is the record's provenance and drives both the summary strip and the
+    // Source badge: 'manual' here, 'timer' written by the Timer page, 'recording'
+    // written by saveSummaryBtn below. Read-modify-write of the whole array is fine
+    // at this scale — records are only ever appended or filtered out.
     records.push({id:Date.now().toString(),date,subject,duration,rating,notes,source:'manual'})
     csSetJSON('records',records)
     // Award points for manually logging a session
+    // 1 point per 5 minutes, floor of 1. studyPoints is shared with the gamification
+    // widgets on other pages and is stored as a STRING, hence the parseInt/String dance.
     const logPts = Math.max(1, Math.round(duration / 5))
     csSet('studyPoints', String(parseInt(csGet('studyPoints')||'0') + logPts))
     document.getElementById('meetDuration').value=''
@@ -409,14 +472,18 @@
     renderAll()
   })
 
+  // Global: called from the per-row inline onclick built in renderAll().
   window._deleteRecord = (id) => {
     if (!confirm('Delete this session record?')) return
     csSetJSON('records', csGetJSON('records',[]).filter(r=>r.id!==id))
     renderAll()
   }
 
+  /* ── Sorting & filtering controls ────────────────────────── */
   document.querySelectorAll('th[data-sort]').forEach(th => {
     th.addEventListener('click', () => {
+      // Re-clicking the same column flips direction; switching column resets to
+      // descending (newest / longest first), which is the useful default here.
       sortAsc = sortField===th.dataset.sort ? !sortAsc : false
       sortField = th.dataset.sort
       renderAll()
@@ -433,16 +500,23 @@
     renderAll()
   })
 
+  // Single render entry point for the Session Log tab: re-reads storage, applies the
+  // current filters/sort, and rewrites both the summary strip and the table.
   function renderAll() {
     let records = csGetJSON('records',[])
+    // Gotcha: notes may be undefined on older records, so `r.subject+r.notes` can
+    // produce the literal text "undefined" — searching for "undef" matches them.
     if (filterText)    records=records.filter(r=>(r.subject+r.notes).toLowerCase().includes(filterText))
     if (filterSubject) records=records.filter(r=>r.subject===filterSubject)
+    // rating is stored as a number, the <select> value is a string — parseInt or nothing matches.
     if (filterRating)  records=records.filter(r=>r.rating===parseInt(filterRating))
     records.sort((a,b)=>{
+      // date is an ISO 'YYYY-MM-DD' string, so lexicographic compare == chronological.
       const va=sortField==='duration'?a.duration:a.date
       const vb=sortField==='duration'?b.duration:b.date
       return sortAsc?(va<vb?-1:1):(va>vb?-1:1)
     })
+    // Summary strip intentionally reflects ALL records, not the filtered view.
     const all=csGetJSON('records',[])
     const totalMins=all.reduce((a,r)=>a+r.duration,0)
     const avgRating=all.length?(all.reduce((a,r)=>a+r.rating,0)/all.length).toFixed(1):'—'

@@ -1,20 +1,100 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+
+<!--
+  ════════════════════════════════════════════════════════════════════════════════
+  assessment.html — "Brain Test": a 6-task cognitive self-assessment battery
+  ════════════════════════════════════════════════════════════════════════════════
+
+  WHAT THIS IS
+    A single-page wizard that walks the user through six mini-tasks and then renders
+    a narrative report. The six tasks (and the psychometric instrument each apes):
+      1. CPT        — Continuous Performance Test (sustained attention / impulsivity)
+      2. ASRS       — Adult ADHD Self-Report Scale v1.1 Part A, 6-item screener
+      3. Digit Span — forward + backward recall (working memory)
+      4. VARK       — Visual/Auditory/Read-write/Kinesthetic learning-style probe
+      5. Matrix     — WCST-style rule-switching task (cognitive flexibility)
+      6. NASA-TLX   — subjective workload sliders
+
+  ITS ROLE IN THE APP
+    This page is the *producer* of `cs_<user>_cogProfile` in localStorage (written in
+    buildResults(), see the saveProfile block). plan.html and rl-mode.html are the
+    *consumers* — they read that object to tailor session lengths and study advice.
+    If you change the shape of saveProfile, you must update those readers too.
+
+  ── THINGS YOU MUST KNOW BEFORE EDITING ─────────────────────────────────────────
+
+  * INJECTION MODEL. This file is not a standalone document. loadPage() in
+    renderer/index.html fetches it and splices it into #content, RE-CREATING and
+    RE-EXECUTING every <script> below on EVERY visit, in GLOBAL scope. That is why
+    the main script body is wrapped in an IIFE — without it, every `const` here would
+    collide with the previous visit's declaration and throw on the second navigation.
+
+  * INLINE HANDLERS NEED GLOBALS. All the onclick="..." attributes in this markup are
+    resolved against `window`. Anything reachable from markup (goPhase, startCPT,
+    pickA, dKey, dSubmit, startBackward, pickV, submitVARK, startMatrix, matrixPick,
+    submitNASA, loadPlanInline) is therefore explicitly published as window.<name>.
+    If you refactor a handler into an IIFE local and forget the window.* assignment,
+    the button will silently do nothing — no error, no clue.
+
+  * NO CLEANUP IS REGISTERED. A page that starts an interval or a document-level
+    listener is supposed to register window._pageCleanup so loadPage() can tear it
+    down before swapping pages. This page does NOT, and it starts both (see the
+    FIXMEs in startCPT/cptKey). Every abandoned CPT run leaks another one.
+
+  * BASE URL GOTCHA. Because the markup is injected into renderer/index.html, any
+    relative URL in this file resolves against renderer/, NOT renderer/pages/. This
+    already bites loadPlanInline() at the bottom of the file.
+
+  * SCORING IS A HEURISTIC, NOT A DIAGNOSIS. The "attention risk" number is an
+    invented weighted blend, not a validated instrument. The disclaimers in the
+    welcome and results phases are deliberate — do not remove them.
+-->
 <style>
+/* ── Phase machinery + progress strip ──────────────────────────────
+   All 8 phases are present in the DOM at once; goPhase() just moves the
+   .active class. Nothing is created or destroyed, so any per-phase state
+   lives in the JS vars below, never in the markup. */
 .phase{display:none}.phase.active{display:block;animation:fadeIn .3s ease}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.progress-strip{display:flex;gap:5px;margin-bottom:24px}.progress-step{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s}.progress-step.done{background:var(--accent)}.progress-step.active{background:var(--accent);opacity:.5}.phase-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:var(--accent-light);color:var(--accent);padding:3px 12px;border-radius:99px;margin-bottom:10px}.phase-title{font-size:22px;font-weight:800;color:var(--text-primary);margin-bottom:6px}.phase-desc{font-size:14px;color:var(--text-secondary);line-height:1.6;max-width:520px;margin:0 auto 20px}.phase-header{text-align:center;margin-bottom:24px}
+/* ── Task 1 (CPT): canvas arena + live stat readout ────────────────
+   The arena is the click target and also takes focus (tabindex=0) so the
+   Space key has somewhere sensible to land. user-select:none stops a stray
+   double-click from selecting text mid-test. */
 #cpt-arena{width:100%;height:280px;background:var(--bg-main);border-radius:var(--radius);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;position:relative;overflow:hidden}#cpt-timer{font-size:13px;color:var(--text-secondary);font-weight:600;margin-top:10px;text-align:center}.cpt-stats{display:flex;gap:24px;justify-content:center;margin-top:14px}.cpt-stat{text-align:center}.cpt-stat-val{font-size:24px;font-weight:800;color:var(--text-primary)}.cpt-stat-lbl{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
+/* ── Task 2 (ASRS): 0-4 Likert rows. .sel marks the chosen option ── */
 .likert-q{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}.likert-q:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}.likert-q-text{font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:10px;line-height:1.5}.likert-opts{display:flex;gap:6px}.likert-opt{flex:1;padding:8px 4px;border:1.5px solid var(--border);border-radius:var(--radius-sm);text-align:center;cursor:pointer;background:var(--bg-card);transition:all .12s}.likert-opt:hover{border-color:var(--accent)}.likert-opt.sel{border-color:var(--accent);background:var(--accent-light)}.likert-opt .sc{font-size:16px;font-weight:800;color:var(--text-primary);display:block}.likert-opt .lb{font-size:9px;color:var(--text-secondary)}.likert-opt.sel .sc,.likert-opt.sel .lb{color:var(--accent)}
+/* ── Task 3 (Digit Span): flashing digit + on-screen keypad ────────
+   min-height on #digit-display / #digit-fb reserves the row so the layout
+   doesn't jump as digits and feedback blink in and out. */
 #digit-display{font-size:80px;font-weight:900;color:var(--accent);text-align:center;min-height:100px;display:flex;align-items:center;justify-content:center;letter-spacing:12px}#digit-entry{font-size:28px;font-weight:700;text-align:center;letter-spacing:8px;color:var(--text-primary);min-height:44px;border-bottom:2px solid var(--accent);padding-bottom:4px;margin:12px 0}#digit-fb{text-align:center;font-size:14px;font-weight:700;min-height:22px}.digit-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:14px auto 0}.dkey{padding:14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);font-size:18px;font-weight:700;cursor:pointer;text-align:center;transition:background .1s}.dkey:hover{background:var(--accent-light);border-color:var(--accent)}
+/* ── Task 4 (VARK): scenario text + one-of-four option list ──────── */
 .vark-scenario{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:12px;line-height:1.5}.vark-opts{display:flex;flex-direction:column;gap:8px}.vark-opt{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);cursor:pointer;font-size:13px;color:var(--text-secondary);line-height:1.5;transition:all .12s}.vark-opt:hover{border-color:var(--accent);color:var(--text-primary)}.vark-opt.sel{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600}
+/* ── Task 5 (Matrix): rule banner, stimulus card, two sort targets ──
+   The banner's background transition is what makes the rule-change flash
+   (yellow, then back to accent) readable — see showMTrial(). */
 #matrix-rule-badge{display:inline-block;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:#fff;padding:6px 20px;border-radius:99px;margin-bottom:18px;transition:background .3s}#matrix-card-el{width:150px;height:190px;margin:0 auto 20px;border:2px solid var(--border);border-radius:16px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)}.matrix-syms{display:flex;gap:6px}.matrix-targets{display:flex;gap:16px;justify-content:center}.matrix-tgt{flex:1;max-width:150px;padding:18px 12px;border:2px solid var(--border);border-radius:var(--radius);background:var(--bg-card);cursor:pointer;text-align:center;transition:all .12s}.matrix-tgt:hover{border-color:var(--accent);transform:translateY(-2px)}#matrix-fb{text-align:center;font-size:15px;font-weight:700;min-height:26px;margin-top:10px}
+/* ── Task 6 (NASA-TLX): 0-10 workload sliders ─────────────────────── */
 .tlx-item{margin-bottom:24px}.tlx-lbl{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px}.tlx-desc{font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5}.tlx-slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:var(--border);outline:none}.tlx-slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15)}.tlx-val{text-align:center;font-size:20px;font-weight:800;color:var(--accent);margin-top:4px}.tlx-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--text-secondary)}
+/* ── Results report: stat cards, risk bar, VARK bars ───────────────
+   NOTE: this is only the shared/reusable half of the report styling. The
+   report-specific classes (.report-section, .strength-card, .growth-card,
+   .narrative, .plan-cta …) are injected as a second <style> block from
+   inside buildResults()'s template literal. Look in both places. */
 .res-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}.res-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center}.res-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:6px}.res-card-val{font-size:32px;font-weight:900;color:var(--accent)}.res-card-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}.risk-bar{height:12px;background:var(--border);border-radius:6px;overflow:hidden;margin:12px 0}.risk-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#22c55e,#eab308,#ef4444)}.reco{border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;background:var(--bg-card)}.reco-title{font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:5px}.reco-body{font-size:13px;color:var(--text-secondary);line-height:1.6}.vark-bar-row{margin-bottom:8px}.vark-bar-label{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px}.vark-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden}.vark-bar-fill{height:100%;border-radius:4px}
 </style>
 
+<!-- ── Progress strip ──────────────────────────────────────────────
+     7 steps for the 7 post-welcome phases (cpt … results). The `active`
+     class hard-coded on ps1 below is only the pre-JS paint: updateProg()
+     runs at the bottom of the script and immediately recomputes all 7,
+     leaving none lit while we're still on the welcome phase. -->
 <div class="progress-strip">
   <div class="progress-step active" id="ps1"></div><div class="progress-step" id="ps2"></div><div class="progress-step" id="ps3"></div><div class="progress-step" id="ps4"></div><div class="progress-step" id="ps5"></div><div class="progress-step" id="ps6"></div><div class="progress-step" id="ps7"></div>
 </div>
 
-<!-- WELCOME -->
+<!-- ── WELCOME phase ────────────────────────────────────────────────
+     The only phase that carries `active` in the source — it is the entry
+     point. The disclaimer card is a deliberate product/ethics requirement,
+     not decoration: this battery is not a diagnostic instrument. -->
 <div id="phase-welcome" class="phase active">
   <div class="phase-header">
     <div class="phase-badge">Learning Profile</div>
@@ -41,7 +121,11 @@
   </div>
 </div>
 
-<!-- CPT -->
+<!-- ── CPT phase (Task 1) ───────────────────────────────────────────
+     Two sub-views swapped by inline display: #cpt-pre (the Start button)
+     and #cpt-running (arena + live stats). The canvas is fixed at 460x260
+     while the arena box is 100% wide — drawStim() centres on the CANVAS's
+     coordinates, so the stimulus is centred in the canvas, not the box. -->
 <div id="phase-cpt" class="phase">
   <div class="phase-header">
     <div class="phase-badge">Task 1 of 6 — Attention</div>
@@ -63,7 +147,10 @@
   </div>
 </div>
 
-<!-- ASRS -->
+<!-- ── ASRS phase (Task 2) ──────────────────────────────────────────
+     #asrs-body is filled by buildASRS() at runtime, not authored here.
+     The Continue button starts disabled and is only enabled once all 6
+     items have an answer (see pickA). -->
 <div id="phase-asrs" class="phase">
   <div class="phase-header">
     <div class="phase-badge">Task 2 of 6 — Self-Report</div>
@@ -74,7 +161,13 @@
   <div style="text-align:center;margin-top:18px;"><button class="btn btn-primary" id="asrs-btn" style="font-size:14px;padding:10px 28px;" onclick="submitASRS()" disabled>Continue →</button></div>
 </div>
 
-<!-- DIGIT SPAN -->
+<!-- ── DIGIT SPAN phase (Task 3) ────────────────────────────────────
+     ONE phase div is reused for BOTH the forward and backward runs — the
+     title/desc text is rewritten by startFwd()/startBackward() rather than
+     there being two phases. That is why #ds-title and #ds-desc have ids.
+     Entry is keypad-only (no <input>): it keeps the digits out of any
+     autofill/IME path and makes the "disabled while the sequence plays"
+     state trivial to enforce via setDK(). -->
 <div id="phase-digitspan" class="phase">
   <div class="phase-header">
     <div class="phase-badge" id="ds-badge">Task 3 of 6 — Memory</div>
@@ -99,7 +192,9 @@
   </div>
 </div>
 
-<!-- VARK -->
+<!-- ── VARK phase (Task 4) ──────────────────────────────────────────
+     #vark-body is generated by buildVARK(); Continue unlocks once all 3
+     scenarios are answered. -->
 <div id="phase-vark" class="phase">
   <div class="phase-header">
     <div class="phase-badge">Task 4 of 6 — Learning Style</div>
@@ -110,7 +205,11 @@
   <div style="text-align:center;margin-top:18px;"><button class="btn btn-primary" id="vark-btn" style="font-size:14px;padding:10px 28px;" onclick="submitVARK()" disabled>Continue →</button></div>
 </div>
 
-<!-- MATRIX -->
+<!-- ── MATRIX phase (Task 5) ────────────────────────────────────────
+     Instructions (#matrix-pre) then the task (#matrix-running), swapped by
+     inline display like the CPT. The two targets are static divs whose
+     meaning is rewritten per rule by renderMTgts() — the answer for each
+     target lives in its data-v attribute, which is what matrixPick() reads. -->
 <div id="phase-matrix" class="phase">
   <div class="phase-header">
     <div class="phase-badge">Task 5 of 6 — Flexibility</div>
@@ -138,7 +237,11 @@
   </div>
 </div>
 
-<!-- NASA-TLX -->
+<!-- ── NASA-TLX phase (Task 6) ──────────────────────────────────────
+     The oninput handlers here ONLY mirror the slider value into the label —
+     they do not record anything. The actual values are read once, straight
+     off the inputs, in submitNASA(). The sliders default to 5, so a user who
+     drags nothing still submits a neutral 5/5/5 rather than an empty score. -->
 <div id="phase-nasatlx" class="phase">
   <div class="phase-header">
     <div class="phase-badge">Task 6 of 6 — Stress Check</div>
@@ -168,7 +271,10 @@
   <div style="text-align:center;margin-top:20px;"><button class="btn btn-primary" style="font-size:14px;padding:10px 28px;" onclick="submitNASA()">View My Results →</button></div>
 </div>
 
-<!-- RESULTS -->
+<!-- ── RESULTS phase ───────────────────────────────────────────────
+     Intentionally an empty shell: the whole report is one big template
+     literal built by buildResults(), which runs on submitNASA() BEFORE
+     goPhase('results'). -->
 <div id="phase-results" class="phase">
   <div class="phase-header">
     <div class="phase-badge">Complete</div>
@@ -179,42 +285,137 @@
 </div>
 
 <script>
+// ── IIFE wrapper ─────────────────────────────────────────────────
+// REQUIRED, not stylistic. loadPage() re-creates and re-executes this whole
+// <script> in GLOBAL scope on every visit to the page. Without the closure,
+// `const R` etc. would redeclare on the second visit and throw a SyntaxError,
+// killing the page. Corollary: anything the markup's onclick= needs must be
+// hung off window explicitly (see the window.* assignments throughout).
+// The leading `;` guards against ASI hazards if scripts get concatenated.
 ;(function(){
 'use strict'
+// ── Result accumulator ───────────────────────────────────────────
+// Single mutable object collecting every task's raw output. Deliberately NOT
+// persisted until buildResults() runs — abandoning the battery mid-way (or a
+// reload) discards everything, which is intended: a partial battery would
+// produce a misleading profile.
 const R={cpt:{trials:[],commission:0,omission:0,hits:0,rtSum:0,rtCount:0},asrs:{},ds:{fwd:0,bwd:0},vark:{V:0,A:0,R:0,K:0},matrix:{trials:[],switchCost:0,accuracy:0},tlx:{mental:5,temporal:5,frustration:5}}
+// ── Phase router ─────────────────────────────────────────────────
+// PHASES is ordered and doubles as the progress-strip index source: the
+// index in this array IS the ps<n> step number, which is why 'welcome' sits
+// at 0 (no step) and 'results' at 7 (ps7). Reordering this array silently
+// re-wires the progress strip.
 const PHASES=['welcome','cpt','asrs','digitspan','vark','matrix','nasatlx','results']
 let curPhase='welcome'
+// Scrolls the OUTER .page-content (index.html's scroll container), not window —
+// the app shell scrolls, not the document.
 function goPhase(n){document.getElementById('phase-'+curPhase).classList.remove('active');document.getElementById('phase-'+n).classList.add('active');curPhase=n;updateProg();const pc=document.querySelector('.page-content');if(pc)pc.scrollTo(0,0)}
-window.goPhase=goPhase
+window.goPhase=goPhase  // reachable from onclick="goPhase('cpt')" in the markup
 function updateProg(){const idx=PHASES.indexOf(curPhase);for(let i=1;i<=7;i++){const el=document.getElementById('ps'+i);if(!el)continue;el.className='progress-step';if(i<idx)el.classList.add('done');else if(i===idx)el.classList.add('active')}}
 
 // ── CPT ──────────────────────────────────────────────
+// Continuous Performance Test. Two error types are what this measures:
+//   commission = tapped on a NO_GO  -> failure of inhibition (impulsivity)
+//   omission   = missed a GO        -> failure of sustained attention
+// cptStimulusT doubles as the "a response is currently accepted" flag: it is
+// non-null only while a stimulus is on screen, and cptResp() bails when null.
 let cptTrials=[],cptIdx=0,cptStart=0,cptStimulusT=null,cptReplied=false,cptRunning=false,cptTimerID=null,cptIsiID=null
+// 96 GO : 24 NO_GO (4:1) is the point of the design, not an arbitrary count —
+// the heavy GO majority builds a prepotent "tap" habit, and the rare NO_GO
+// trials measure whether the user can override it. Flatten the ratio and the
+// commission-error signal disappears. Fisher-Yates shuffle then jittered ISI
+// (1000/1500/2000ms) so the rhythm can't be anticipated.
 function buildTrials(){const t=[];for(let i=0;i<96;i++)t.push({type:'GO'});for(let i=0;i<24;i++)t.push({type:'NO_GO',variant:Math.random()<.5?'red':'tri'});for(let i=t.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[t[i],t[j]]=[t[j],t[i]]}const isis=[1000,1500,2000];return t.map((x,i)=>({...x,index:i,isi:isis[Math.floor(Math.random()*3)]}))}
+// FIXME(high): this starts a document-level keydown listener AND a 200ms
+// setInterval, but both are only torn down in cptDone(). Navigating away
+// mid-test (or clicking Start twice) leaks them — and because loadPage()
+// re-executes this script per visit, they accumulate. This page registers no
+// window._pageCleanup, which is where the teardown belongs. See audit.
 window.startCPT=function(){document.getElementById('cpt-pre').style.display='none';document.getElementById('cpt-running').style.display='';cptTrials=buildTrials();cptIdx=0;cptStart=performance.now();cptRunning=true;const ar=document.getElementById('cpt-arena');ar.addEventListener('click',cptResp);document.addEventListener('keydown',cptKey);ar.focus();cptTimerID=setInterval(()=>{const rem=Math.max(0,180000-(performance.now()-cptStart));const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);document.getElementById('cpt-timer').textContent=`${m}:${s.toString().padStart(2,'0')} remaining`;if(rem<=0){clearInterval(cptTimerID);cptDone()}},200);nextCPT()}
+// FIXME(critical): this handler is bound to `document` and unconditionally
+// preventDefault()s Space. If it leaks (see startCPT above), it survives the
+// page swap and swallows the spacebar APP-WIDE — buttons stop activating,
+// text fields stop accepting spaces — with no visible cause. See audit.
 function cptKey(e){if(e.code==='Space'){e.preventDefault();cptResp()}}
+// Shared by the click and Space paths. cptReplied enforces one scored response
+// per trial (mashing the key must not farm extra hits). cptIdx has already been
+// advanced by nextCPT(), hence the -1 to reach the trial actually on screen.
 function cptResp(){if(!cptRunning||!cptStimulusT||cptReplied)return;const rt=performance.now()-cptStimulusT;const trial=cptTrials[cptIdx-1];if(!trial)return;cptReplied=true;if(trial.type==='GO'){R.cpt.hits++;R.cpt.rtSum+=rt;R.cpt.rtCount++;logCPT(trial,'TAP',rt,'HIT');flashAr('#22c55e')}else{R.cpt.commission++;logCPT(trial,'TAP',rt,'COMMISSION_ERROR');flashAr('#ef4444')}updateCStats()}
+// Per-trial audit row. Every trial gets exactly one, from either cptResp()
+// (user acted) or the scoring timeout in nextCPT() (user didn't) — which is
+// what makes R.cpt.trials.length a valid trial counter for the UI and for the
+// totalGo/totalNoGo denominators in buildResults().
 function logCPT(t,a,rt,c){R.cpt.trials.push({trial_index:t.index,stimulus_type:t.type,isi_duration_ms:t.isi,user_action:a,reaction_time_ms:rt?Math.round(rt):null,classification:c})}
 function flashAr(c){const ar=document.getElementById('cpt-arena');ar.style.borderColor=c;setTimeout(()=>ar.style.borderColor='',200)}
+// Drives one trial as a chain of nested setTimeouts:
+//   80ms blank -> draw stimulus -> 400ms -> clear + score -> (isi-400) -> next
+// The test also hard-stops at 180s, so most runs end on the clock, not on the
+// trial list. Every step re-checks cptRunning so an in-flight chain dies once
+// the test is over.
+//
+// FIXME(high): the 400ms mark is BOTH when the stimulus is erased AND when
+// cptStimulusT is nulled — i.e. the response window is only 400ms. Adult mean
+// RT on this task is ~400-500ms, so a normal-speed user's taps are ignored and
+// every GO trial is already scored as an OMISSION_ERROR by the time they act,
+// yielding ~100% omission and a bogus "High" attention risk. The scoring
+// deadline needs to be decoupled from the stimulus-erase time. See audit.
 function nextCPT(){if(!cptRunning)return;if(cptIdx>=cptTrials.length||(performance.now()-cptStart)>=180000){cptDone();return}const trial=cptTrials[cptIdx++];cptStimulusT=null;cptReplied=false;const cv=document.getElementById('cpt-canvas');const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);setTimeout(()=>{if(!cptRunning)return;cptStimulusT=performance.now();drawStim(ctx,trial,cv.width,cv.height);setTimeout(()=>{ctx.clearRect(0,0,cv.width,cv.height);if(!cptReplied){if(trial.type==='GO'){R.cpt.omission++;logCPT(trial,'NONE',null,'OMISSION_ERROR')}else logCPT(trial,'NONE',null,'CORRECT_REJECTION');updateCStats()}cptStimulusT=null;cptIsiID=setTimeout(nextCPT,trial.isi-400)},400)},80)}
+// Three stimuli, chosen so the two NO_GO variants each differ from the GO
+// target along exactly ONE dimension: 'red' = same circle, wrong colour;
+// 'tri' = same green, wrong shape. That forces the user to check both features
+// instead of reacting to "green" or to "circle" alone.
 function drawStim(ctx,t,w,h){const cx=w/2,cy=h/2,r=58;ctx.clearRect(0,0,w,h);if(t.type==='GO'){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#22c55e';ctx.fill()}else if(t.variant==='red'){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill()}else{ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r,cy+r*.7);ctx.lineTo(cx-r,cy+r*.7);ctx.closePath();ctx.fillStyle='#22c55e';ctx.fill()}}
 function updateCStats(){document.getElementById('cv-trials').textContent=R.cpt.trials.length;document.getElementById('cv-hits').textContent=R.cpt.hits;document.getElementById('cv-err').textContent=R.cpt.commission+R.cpt.omission;document.getElementById('cv-rt').textContent=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):'—'}
+// The ONLY teardown path for the CPT's interval + document listener, and it is
+// reachable only by finishing (clock expiry or trial list exhausted). The
+// cptRunning guard makes it idempotent — the 180s timer and nextCPT() can both
+// reach it in the same tick. See the leak FIXME on startCPT.
 function cptDone(){if(!cptRunning)return;cptRunning=false;clearInterval(cptTimerID);clearTimeout(cptIsiID);document.removeEventListener('keydown',cptKey);const ctx=document.getElementById('cpt-canvas').getContext('2d');ctx.clearRect(0,0,460,260);ctx.fillStyle='#4b5563';ctx.font='600 15px system-ui';ctx.textAlign='center';ctx.fillText('Task complete! Well done.',230,130);setTimeout(()=>{goPhase('asrs');buildASRS()},1400)}
 
 // ── ASRS ─────────────────────────────────────────────
+// The 6 items of the ASRS v1.1 Part A screener. `thresh` is that item's
+// published cut-off and is NOT uniform (2 for A1/A2/A5, 3 for A3/A4/A6) —
+// the instrument only counts an item once the answer reaches its own
+// threshold. Don't "tidy" these to a single number; the scoring in
+// buildResults() depends on the per-item value.
 const ASRS=[{id:'A1',q:'How often do you have trouble wrapping up the final details of a project, even after the challenging parts are done?',thresh:2},{id:'A2',q:'How often do you struggle to bring order to things when performing a task that requires careful organization?',thresh:2},{id:'A3',q:'When you have a task that requires a lot of deep mental effort, how often do you avoid, delay, or skip starting it?',thresh:3},{id:'A4',q:'How often do you misplace, lose, or struggle to find items at home or at work (e.g., keys, wallet, phone, study guides)?',thresh:3},{id:'A5',q:'How often are you distracted or thrown off track by activity or noises happening around you?',thresh:2},{id:'A6',q:'How often do you find yourself fidgeting, squirming, or tapping your hands or feet when required to sit still for a long time?',thresh:3}]
 const ALBLS=['Never','Rarely','Sometimes','Often','Very Often']
 let asrsAns={}
+// Renders via innerHTML with inline onclick="pickA(...)" — so pickA MUST stay
+// on window (next line). data-aid groups an item's 5 options so pickA can clear
+// the previous selection with one querySelectorAll.
 function buildASRS(){document.getElementById('asrs-body').innerHTML=ASRS.map(item=>`<div class="likert-q"><div class="likert-q-text">${item.q}</div><div class="likert-opts">${ALBLS.map((l,sc)=>`<div class="likert-opt" onclick="pickA('${item.id}',${sc},this)" data-aid="${item.id}"><span class="sc">${sc}</span><span class="lb">${l}</span></div>`).join('')}</div></div>`).join('')}
+// Answer count (not a "touched" flag) gates the Continue button: re-answering
+// an item overwrites its key, so the length check only reaches 6 when all 6
+// distinct items have a value.
 window.pickA=function(id,sc,el){document.querySelectorAll(`.likert-opt[data-aid="${id}"]`).forEach(e=>e.classList.remove('sel'));el.classList.add('sel');asrsAns[id]=sc;if(Object.keys(asrsAns).length===ASRS.length)document.getElementById('asrs-btn').disabled=false}
 window.submitASRS=function(){R.asrs=asrsAns;goPhase('digitspan');startFwd()}
 
 // ── DIGIT SPAN ────────────────────────────────────────
+// Adaptive staircase, run TWICE through the same phase div: 'fwd' then 'bwd'.
+// Rule: 2 correct at a length -> length++; 2 consecutive wrong -> end that mode.
+// dsBestFwd/dsBestBwd hold the longest length ever recalled correctly, which is
+// the reported span (not dsLen, which may have advanced past what was passed).
+// dsReady is the input gate — false while a sequence is playing, so keystrokes
+// during presentation can't be mistaken for recall.
 let dsMode='fwd',dsLen=3,dsSeq=[],dsInput='',dsReady=false,dsCorrStrk=0,dsWrongStrk=0,dsBestFwd=0,dsBestBwd=0
+// The do/while rejects an immediate repeat of the previous digit. That is a
+// confound control, not cosmetics: a doubled digit ("4 4") chunks into a single
+// item and makes that sequence artificially easier than its length implies.
 function genSeq(n){const s=[];let last=-1;for(let i=0;i<n;i++){let d;do{d=Math.floor(Math.random()*10)}while(d===last);s.push(d);last=d}return s}
+// startFwd / startBackward both reset the full staircase and rewrite the shared
+// phase's title+desc. startBackward must be on window — it's the onclick target
+// of the "Continue to Backward Recall" button that endDSMode() reveals.
 function startFwd(){dsMode='fwd';dsLen=3;dsCorrStrk=0;dsWrongStrk=0;dsBestFwd=0;document.getElementById('ds-title').textContent='Forward Digit Recall';document.getElementById('ds-desc').textContent='Watch the digits appear one by one. Type them back in the same order.';document.getElementById('ds-next-btn').style.display='none';document.getElementById('ds-keypad').style.display='';nextDS()}
 window.startBackward=function(){dsMode='bwd';dsLen=3;dsCorrStrk=0;dsWrongStrk=0;dsBestBwd=0;document.getElementById('ds-title').textContent='Backward Digit Recall';document.getElementById('ds-desc').textContent='Watch/listen to the digits. Type them back in REVERSE order.';document.getElementById('ds-next-btn').style.display='none';document.getElementById('ds-keypad').style.display='';nextDS()}
 function nextDS(){dsInput='';dsReady=false;dsSeq=genSeq(dsLen);document.getElementById('digit-entry').textContent='';document.getElementById('digit-fb').textContent='';document.getElementById('ds-status').textContent='Sequence length: '+dsLen;setDK(true);playSeq(dsSeq,()=>{dsReady=true;setDK(false);document.getElementById('digit-display').textContent='?';document.getElementById('digit-display').style.color='var(--text-secondary)';document.getElementById('digit-fb').textContent='Enter the sequence...';document.getElementById('digit-fb').style.color='var(--text-secondary)'})}
+// Presentation: 800ms on / 200ms off per digit, then a 300ms beat before cb()
+// unlocks input. The blank gap matters — without it two same-position digits
+// would look like one continuous display.
+// In 'bwd' mode digits are ALSO spoken: standard digit-span administration is
+// auditory, and the backward variant is the one that actually taxes the
+// phonological loop. speechSynthesis is feature-guarded because it is a browser
+// API, not an Electron guarantee — if absent, the task degrades to visual-only.
 function playSeq(seq,cb){document.getElementById('digit-display').style.color='var(--accent)';let i=0;function nx(){if(i>=seq.length){document.getElementById('digit-display').textContent='';setTimeout(cb,300);return}document.getElementById('digit-display').textContent=seq[i];if(dsMode==='bwd'&&window.speechSynthesis){const u=new SpeechSynthesisUtterance(seq[i].toString());u.rate=.85;speechSynthesis.speak(u)}i++;setTimeout(()=>{document.getElementById('digit-display').textContent='';setTimeout(nx,200)},800)}nx()}
 function setDK(d){document.querySelectorAll('.dkey').forEach(k=>k.disabled=d)}
 window.dKey=function(v){if(!dsReady)return;if(v==='X')dsInput=dsInput.slice(0,-1);else dsInput+=v;document.getElementById('digit-entry').textContent=dsInput.split('').join(' ')}

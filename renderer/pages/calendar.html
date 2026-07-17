@@ -1,4 +1,49 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════
+  CALENDAR PAGE
+  ══════════════════════════════════════════════════════════════════════════
+  A page fragment (not a standalone document): renderer/index.html's loadPage()
+  fetches this file and injects it into the app shell. There is no <html>/<head>
+  here on purpose.
+
+  What it does
+    • Three views of the user's events — Month / Week / List — plus an
+      "Upcoming (Next 7 Days)" mini list in the sidebar.
+    • An add-event form that parses a pasted meeting URL (Zoom / Google Meet /
+      Teams / generic) and canonicalises it.
+    • A detail modal with "Join & Take Notes", which opens the meeting link in
+      the OS browser and hands the event off to meetings.html.
+
+  Storage contract
+    • Events live under the per-account key 'calEvents' via csGetJSON/csSetJSON
+      (window helpers, real key is cs_<user>_calEvents). Switching accounts
+      switches calendars; there is no shared/global calendar.
+    • Event shape: { id, title, date:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM',
+      link, linkType, linkLabel, repeat }. Dates and times are LOCAL wall-clock
+      strings, never Date objects and never UTC. Times are zero-padded 24h, so
+      plain string comparison (`end <= start`, sort by date+start) is ordering.
+
+  Before you edit — loadPage() gotchas
+    • Every <script> in this file is RE-CREATED and RE-EXECUTED in GLOBAL scope
+      on EVERY visit to the page. The IIFE below exists solely to keep these
+      helpers off `window` and to avoid "already declared" errors on revisit.
+    • Anything you attach to window must therefore be safe to re-assign on every
+      visit (window._calDelete is — it is a plain overwrite).
+    • Inline onclick="..." handlers only resolve against globals. That is the
+      whole reason _calDelete is hung on window while everything else is IIFE
+      local; an IIFE-local function silently does nothing from an inline handler.
+    • This page registers NO window._pageCleanup because it starts no interval
+      and no listener on window/document that outlives the fragment. Every
+      listener is bound to a node inside the injected DOM (discarded on
+      navigation) or to a modal it removes itself. If you add a setInterval or a
+      document-level listener here, you MUST register cleanup or the app leaks
+      one more of them per visit.
+    • The <style> block below is injected into the live document, so its rules
+      are global while this page is mounted. Class names are prefixed (cal-,
+      month-, week-, list-) to avoid colliding with other pages.
+-->
 <style>
   /* ── Layout ───────────────────────────────────────────────── */
   .cal-wrap { display:flex; gap:20px; align-items:flex-start; }
@@ -20,6 +65,9 @@
   .month-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:0; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
   .month-header-cell { background:#f9fafb; padding:8px 4px; text-align:center; font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:.4px; border-bottom:1px solid var(--border); }
   .month-cell { min-height:90px; padding:6px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); cursor:pointer; transition:background .12s; position:relative; vertical-align:top; }
+  /* The 7 .month-header-cell children fill exactly one grid row, so they offset the
+     day cells by a whole week: nth-child(7n) therefore lands on the last column.
+     Adding or removing a header cell silently moves this border to the wrong column. */
   .month-cell:nth-child(7n) { border-right:none; }
   .month-cell:hover { background:#f0fdf7; }
   .month-cell.other-month { background:#f9fafb; }
@@ -29,6 +77,9 @@
   .day-num { font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:4px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
   .day-events { display:flex; flex-direction:column; gap:2px; }
   .event-pill { font-size:10px; font-weight:600; border-radius:4px; padding:2px 5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  /* These modifier names are the event's `linkType` verbatim (see parseLink). The set
+     zoom|meet|teams|other|none must stay in sync with TYPE_ICONS and dotColor() in the
+     script, otherwise a link type renders unstyled/uncoloured rather than failing loudly. */
   .event-pill.zoom    { background:#e8f0ff; color:#1a56db; }
   .event-pill.meet    { background:#fce8ff; color:#7c3aed; }
   .event-pill.teams   { background:#e8f5ff; color:#0369a1; }
@@ -41,6 +92,10 @@
   .week-header-cell { padding:8px 6px; text-align:center; font-size:11px; font-weight:700; color:var(--text-secondary); }
   .week-header-cell.today-col { color:var(--accent); }
   .week-body { display:grid; grid-template-columns:60px repeat(7,1fr); max-height:520px; overflow-y:auto; }
+  /* One row per hour, fixed 40px tall. renderWeek() positions an event block with a
+     percentage `top` derived from its start minutes, so this height is the unit that
+     percentage is measured against — changing it here needs no JS change, but dropping
+     the fixed height entirely breaks the positioning. */
   .week-time-label { font-size:10px; color:var(--text-secondary); padding:4px 6px 0; text-align:right; height:40px; border-bottom:1px solid #f3f4f6; }
   .week-day-col { border-left:1px solid var(--border); border-bottom:1px solid #f3f4f6; height:40px; position:relative; cursor:pointer; transition:background .12s; }
   .week-day-col:hover { background:#f0fdf7; }
@@ -67,16 +122,22 @@
 
   /* ── Sidebar event form ───────────────────────────────────── */
   .form-section-label { font-size:11px; font-weight:700; color:var(--text-secondary); letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px; }
+  /* Hidden until a type modifier is added: each modifier below re-enables display.
+     The JS hides the banner by resetting className back to the bare class name. */
   .url-parse-feedback { font-size:12px; margin-top:5px; padding:6px 10px; border-radius:6px; display:none; }
   .url-parse-feedback.zoom  { background:#e8f0ff; color:#1a56db; display:block; }
   .url-parse-feedback.meet  { background:#fce8ff; color:#7c3aed; display:block; }
   .url-parse-feedback.teams { background:#e8f5ff; color:#0369a1; display:block; }
   .url-parse-feedback.other { background:var(--accent-light); color:var(--accent); display:block; }
   .url-parse-feedback.error { background:#fef2f2; color:#b91c1c; display:block; }
+  /* showErr() toggles .visible on and auto-clears it after 3.5s. */
   .form-error { color:#ef4444; font-size:12px; margin-top:6px; display:none; }
   .form-error.visible { display:block; }
 
   /* ── Event detail modal ───────────────────────────────────── */
+  /* Built by openEventModal() and appended to document.body, i.e. OUTSIDE the injected
+     page fragment — the backdrop must therefore be fixed-position and out-rank the app
+     shell's own chrome. It is also why the modal has to remove itself explicitly. */
   .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:500; display:flex; align-items:center; justify-content:center; }
   .modal { background:#fff; border-radius:var(--radius); padding:28px; width:460px; box-shadow:var(--shadow-md); max-height:90vh; overflow-y:auto; }
   .modal-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; }
@@ -96,6 +157,8 @@
       <div class="page-title">Calendar</div>
       <div class="page-subtitle">Manage your study sessions, classes, and meetings.</div>
     </div>
+    <!-- data-view is the source of truth for the active view: the click handler copies
+         it straight into `currentView`, so these strings must match the render dispatcher. -->
     <div class="view-toggle">
       <button class="view-btn active" data-view="month">Month</button>
       <button class="view-btn" data-view="week">Week</button>
@@ -115,13 +178,16 @@
         <button class="btn btn-ghost cal-nav-btn" id="calNext">›</button>
       </div>
     </div>
+    <!-- Every view renders into this one container by wholesale innerHTML replacement. -->
     <div id="calView"></div>
   </div>
 
   <!-- Right: add event form + upcoming -->
   <div class="cal-sidebar">
 
-    <!-- Add Event Form -->
+    <!-- Add Event Form.
+         Clicking a month cell / week slot writes into these same inputs, so the form
+         doubles as the "what did I just click" readout. addEvent() reads them by id. -->
     <div class="card">
       <div class="form-section-label">Add Event</div>
 
@@ -148,12 +214,18 @@
 
       <div class="input-group" style="margin-top:12px;">
         <label>Meeting Link (Zoom, Google Meet, Teams…)</label>
+        <!-- type="url" is cosmetic only (the field is never inside a <form>, so the
+             browser never validates it); parseLink() is the real gate, and it tolerates
+             a missing scheme by prepending https://. -->
         <input type="url" id="evLink" placeholder="https://zoom.us/j/… or meet.google.com/…" />
         <div class="url-parse-feedback" id="linkFeedback"></div>
       </div>
 
       <div class="input-group" style="margin-top:10px;">
         <label>Repeat</label>
+        <!-- These option values are stored raw on the event as `repeat` and switched on
+             by getExpandedEvents(). A new option here without a matching branch there
+             falls into the `else break` and silently never recurs. -->
         <select id="evRepeat">
           <option value="none">Does not repeat</option>
           <option value="daily">Every day</option>
@@ -177,12 +249,26 @@
 </div>
 
 <script>
+// IIFE: loadPage() re-executes this whole script in global scope on every visit to the
+// page, so nothing below may leak a top-level binding. Only window._calDelete escapes,
+// deliberately — inline onclick= can reach globals and nothing else.
 (function() {
   /* ── Data helpers ─────────────────────────────────────────── */
+  // Per-account storage (real key: cs_<user>_calEvents). Read fresh on every access
+  // rather than cached in a module variable, so an edit from another page is picked up.
   function getEvents() { return csGetJSON('calEvents', []) }
   function saveEvents(e) { csSetJSON('calEvents', e) }
 
   // Expand recurring events for a date range
+  //
+  // Recurrence is stored, never materialised: one stored event + a `repeat` rule becomes
+  // many read-only OCCURRENCES here at render time. Occurrences get a synthetic
+  // `id` of `<parentId>_<date>` and keep the real id in `_parentId`; the `_`-prefixed
+  // fields mark an object as derived and never-to-be-saved. Callers that need the stored
+  // record (delete, modal) must resolve back through _parentId.
+  //
+  // Non-repeating events are passed through untouched regardless of the range — the
+  // from/to bounds only constrain generated occurrences, so callers still filter.
   function getExpandedEvents(fromDate, toDate) {
     const base = getEvents()
     const results = []
@@ -193,8 +279,17 @@
       const start = new Date(ev.date)
       let cur = new Date(start)
       let count = 0
+      // The walk always starts at the event's ORIGINAL date and steps forward one
+      // interval at a time until it reaches `to` — it does not jump to `from` first.
+      // FIXME(high): `count < 200` is a runaway guard, but it counts steps from the
+      // event's start date, not occurrences emitted. A daily event simply stops
+      // appearing ~200 days after it began, silently and forever. See audit.
       while (cur <= to && count < 200) {
         if (cur >= from) {
+          // FIXME(medium): toISOString() converts to UTC first, so `cur` (local midnight)
+          // renders as the PREVIOUS day for any user west of UTC, and shifts by a day
+          // across a DST spring-forward. localDateStr() below exists precisely to avoid
+          // this and should be used here. See audit.
           const dateStr = cur.toISOString().slice(0,10)
           results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}`, _parentId: ev.id, _isRecurring: true })
         }
@@ -203,8 +298,14 @@
         if (ev.repeat === 'daily')    next.setDate(next.getDate() + 1)
         else if (ev.repeat === 'weekly')   next.setDate(next.getDate() + 7)
         else if (ev.repeat === 'biweekly') next.setDate(next.getDate() + 14)
+        // FIXME(high): setMonth() overflows rather than clamping — the 31st of Jan
+        // becomes Mar 2/3, so February is skipped and every later occurrence stays on
+        // the drifted day. "Same date" is not preserved. See audit.
         else if (ev.repeat === 'monthly')  next.setMonth(next.getMonth() + 1)
+        // Unknown repeat value: emit the first occurrence only, never loop forever.
         else break
+        // Belt-and-braces: if an interval failed to advance the date we would spin here
+        // until `count` saves us, emitting 200 copies on the same day.
         if (next.getTime() === cur.getTime()) break
         cur = next; count++
       }
@@ -213,9 +314,21 @@
   }
 
   /* ── URL parser ───────────────────────────────────────────── */
+  // Single source of truth for meeting links. Returns {url, type, label, valid} where
+  // `type` drives BOTH the CSS modifier class and the TYPE_ICONS lookup, and `url` is a
+  // canonicalised form safe to hand to the OS browser.
+  //
+  // Note `valid` is only false for genuinely unparseable input. A recognised provider
+  // with a suspicious-looking id still returns valid:true and merely says so in `label`
+  // — the guiding rule is never to block the user from saving a link we simply do not
+  // understand, since these formats change without notice.
   function parseLink(raw) {
+    // Empty is a legitimate state (an event need not have a link), hence valid:true with
+    // type 'none' rather than an error. Callers distinguish 'none' from 'error'.
     if (!raw || !raw.trim()) return { url: '', type: 'none', label: '', valid: true }
     let url = raw.trim()
+    // Users paste "meet.google.com/abc-defg-hij" far more often than a full URL, and
+    // new URL() would throw on it. Assume https rather than reject.
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url
 
     try {
@@ -223,8 +336,15 @@
       const host = u.hostname.toLowerCase()
 
       // Zoom: zoom.us/j/MEETINGID or zoom.us/my/VANITY
+      // Zoom hands out many host variants (companyname.zoom.us, zoom.com), hence the
+      // substring test rather than an equality check.
       if (host.includes('zoom.us') || host.includes('zoom.com')) {
+        // /j/ = join, /my/ = personal room, /wc/ = web client. Rewrite all three to the
+        // canonical /j/<id> form so the desktop Zoom client is offered the handoff;
+        // u.search is preserved because it carries the ?pwd= passcode.
         const match = u.pathname.match(/\/(j|my|wc)\/([^/?]+)/)
+        // Strip non-digits: a /my/ vanity room has no numeric id, which is why `id` may
+        // legitimately be empty and we fall back to the URL as pasted.
         const id = match ? match[2].replace(/\D/g,'') : null
         const canonical = id
           ? `https://zoom.us/j/${id}${u.search}`
@@ -233,9 +353,14 @@
       }
 
       // Google Meet: meet.google.com/xxx-xxxx-xxx
+      // Exact host match: Meet has exactly one hostname, so a substring test would let
+      // lookalike domains through.
       if (host === 'meet.google.com') {
         const code = u.pathname.replace('/', '').trim()
         const valid = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i.test(code)
+        // Deliberately still valid:true on a malformed code — we only warn in the label.
+        // Google has changed this code shape before and a hard reject would lock users
+        // out of saving a working link.
         return {
           url: `https://meet.google.com/${code}`,
           type: 'meet',
@@ -254,13 +379,23 @@
         return { url, type: 'other', label: `Link · ${u.hostname}`, valid: true }
       }
 
+      // Reached only for an exotic scheme (file:, javascript:, …) that survived the
+      // https:// prefixing above — refuse it rather than store something openExternal()
+      // would later hand to the OS.
       return { url: '', type: 'error', label: 'Invalid URL — must start with https://', valid: false }
     } catch {
+      // new URL() threw: unparseable even after prefixing.
       return { url: '', type: 'error', label: 'Could not parse URL — please check the link.', valid: false }
     }
   }
 
   /* ── Live URL feedback ────────────────────────────────────── */
+  // Re-parses on every keystroke to show the detected provider before the user commits.
+  // Purely advisory — addEvent() re-parses from scratch and does not trust this banner.
+  //
+  // NB: this callback reads TYPE_ICONS, which is declared with `const` near the BOTTOM of
+  // this IIFE. That is safe only because the callback can never fire until the IIFE body
+  // has finished running. Do not "tidy" this by calling it during setup.
   const linkInput = document.getElementById('evLink')
   const linkFeedback = document.getElementById('linkFeedback')
   linkInput.addEventListener('input', () => {
@@ -273,14 +408,30 @@
   })
 
   /* ── HTML escape helper ───────────────────────────────────── */
+  // Every view builds markup as strings and assigns it via innerHTML, so anything derived
+  // from stored data MUST pass through esc(). Event titles and links are user-supplied,
+  // and ids may originate outside this file (e.g. an event imported from an email).
+  //
+  // IMPORTANT: this is an HTML-TEXT/ATTRIBUTE escaper ONLY. It is NOT a JavaScript string
+  // escaper. Inside an inline handler such as onclick="f('${esc(x)}')" the browser
+  // HTML-decodes the attribute BEFORE the JS parser sees it, so esc()'s &#39; turns back
+  // into a bare quote and closes the string. See the FIXMEs in openEventModal/renderList.
   function esc(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
   }
+  // Local-calendar-date formatter. Exists because toISOString() converts to UTC and can
+  // land on the wrong day; use this anywhere a Date must become a stored 'YYYY-MM-DD'.
   function localDateStr(d = new Date()) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   }
 
   /* ── View state ───────────────────────────────────────────── */
+  // The only mutable state on the page. Both are re-initialised on every visit (the whole
+  // script re-runs), so the calendar always reopens on the current month — view choice is
+  // intentionally not persisted.
+  //
+  // `cursor` means different things per view: in month view it is pinned to the 1st and
+  // only its year/month matter; in week view it is any day inside the shown week.
   let currentView = 'month'
   let cursor = new Date()
   cursor.setDate(1)
@@ -290,11 +441,17 @@
       document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'))
       btn.classList.add('active')
       currentView = btn.dataset.view
+      // Month view leaves cursor on the 1st; carrying that into week view would show the
+      // week of the 1st rather than the current week, which reads as a bug to users.
       if (currentView === 'week') cursor = new Date()  // reset to this week
       render()
     })
   })
 
+  // Prev/Today/Next step the cursor by whatever unit the current view shows.
+  // Quirk worth knowing: in LIST view the ±30-day branch still mutates `cursor`, but
+  // renderList() ignores the cursor entirely (it always shows all events), so the arrows
+  // appear to do nothing there.
   document.getElementById('calPrev').addEventListener('click', () => {
     if (currentView === 'month') cursor.setMonth(cursor.getMonth() - 1)
     else if (currentView === 'week') cursor.setDate(cursor.getDate() - 7)
@@ -309,6 +466,8 @@
   })
   document.getElementById('calToday').addEventListener('click', () => {
     cursor = new Date()
+    // Re-pin to the 1st: this invariant is what keeps the setMonth(±1) stepping above
+    // free of the end-of-month overflow that bites getExpandedEvents' monthly rule.
     if (currentView === 'month') cursor.setDate(1)
     render()
   })
@@ -318,8 +477,13 @@
   document.getElementById('evTitle').addEventListener('keydown', e => { if (e.key==='Enter') addEvent() })
 
   // Default date to today
+  // Must be localDateStr(), not toISOString() — otherwise the form can open pre-filled
+  // with yesterday for users behind UTC.
   document.getElementById('evDate').value = localDateStr()
 
+  // Validates, parses the link, appends to storage and re-renders. Returns early via
+  // showErr() on the first problem (showErr returns undefined, so `return showErr(...)`
+  // is just an early-exit idiom, not a meaningful value).
   function addEvent() {
     const title = document.getElementById('evTitle').value.trim()
     const date  = document.getElementById('evDate').value
@@ -333,16 +497,27 @@
     if (!date)  return showErr(errEl, 'Date is required.')
     if (!start) return showErr(errEl, 'Start time is required.')
     if (!end)   return showErr(errEl, 'End time is required.')
+    // String comparison is valid ordering here: <input type="time"> always yields
+    // zero-padded 24h "HH:MM". Consequence: events cannot cross midnight.
     if (end <= start) return showErr(errEl, 'End time must be after start time.')
 
     const parsed = parseLink(rawLink)
+    // Only block on an INVALID link; an empty link is a normal event with no meeting.
     if (rawLink && !parsed.valid) return showErr(errEl, parsed.label)
 
     const repeat = document.getElementById('evRepeat')?.value || 'none'
+    // Read-modify-write against storage rather than an in-memory list: keeps this page
+    // correct when another page has mutated calEvents since the last render.
     const events = getEvents()
     events.push({
+      // Millisecond timestamp as id. Unique enough in practice for hand-entered events,
+      // but note ids are the join key used by every click handler and by _calDelete, and
+      // events created elsewhere may carry ids this file never generated.
       id: Date.now().toString(),
       title, date, start, end,
+      // Denormalised on purpose: the canonical url, its type and its display label are
+      // frozen at save time so rendering never has to re-parse. Changing parseLink()
+      // therefore does NOT retroactively fix already-saved events.
       link: parsed.url,
       linkType: parsed.type,
       linkLabel: parsed.label,
@@ -351,6 +526,8 @@
     saveEvents(events)
 
     // Reset form (keep date)
+    // Date and Repeat are intentionally left as-is: adding several events to the same day
+    // is the common case, so re-typing the date every time would be hostile.
     document.getElementById('evTitle').value = ''
     document.getElementById('evStart').value = ''
     document.getElementById('evEnd').value   = ''

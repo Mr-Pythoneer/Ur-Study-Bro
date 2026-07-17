@@ -1,4 +1,58 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  renderer/index.html — the ONLY real HTML document in the app (the "app shell")
+  ══════════════════════════════════════════════════════════════════════════════
+
+  Everything under renderer/pages/*.html is a *partial*, not a page: this file
+  fetches it and injects it into #content via loadPage(). There is no router,
+  no framework, no bundler. Plain DOM + localStorage.
+
+  WHAT LIVES HERE (and therefore must stay global):
+    • The auth overlay (local accounts, no server) and the app shell / sidebar.
+    • loadPage()   — the injector. See the big comment above it before editing.
+    • window.csKey / csGet / csSet / csGetJSON / csSetJSON — per-account storage.
+    • window.aiChat — the AI entry point every page is expected to call.
+    • window.navigateTo — how a page partial changes pages.
+    • The event notification scheduler and the floating "Quick Ask" AI bubble.
+
+  ══ THINGS THAT WILL BITE YOU ══════════════════════════════════════════════
+
+  1. loadPage() RE-CREATES AND RE-EXECUTES every <script> in a partial on EVERY
+     visit, in GLOBAL scope. So a partial's top-level `const x` would throw
+     "already declared" on the second visit — that is why every page wraps its
+     code in an IIFE. Corollary: an IIFE-local function is NOT reachable from an
+     inline onclick="foo()" (those resolve against window only). Inline handlers
+     need window.foo = ... explicitly.
+
+  2. Any partial that starts an interval, a listener, or a recording MUST set
+     window._pageCleanup — loadPage() calls it once before swapping content.
+     Skip it and you leak one more of everything on every single visit.
+
+  3. STORAGE IS SPLIT ON PURPOSE:
+       csKey/csGet/csSet/...  → cs_<user>_<key>, per-account, wiped on delete.
+       ai_provider, ai_key_*, usb_lang → deliberately NOT prefixed. These are
+       machine-wide settings shared by every account. Don't "fix" them.
+
+  4. window.aiChat -> window.api.askAI -> ipcMain 'ai:chat' ALWAYS resolves to
+     {reply} or {error}. It NEVER throws/rejects. A try/catch around it is not
+     error handling — callers MUST check res.error explicitly.
+
+  5. window.api comes from preload.js via contextBridge (contextIsolation: true).
+     There is no `require`, no Node, no `remote` in here. If it isn't on
+     window.api it doesn't exist in the renderer — add it to preload.js first.
+     Guard with `if (window.api && window.api.x)` — preload can be absent when a
+     partial is opened outside Electron.
+
+  6. The CSP in <head> allows 'unsafe-inline' scripts (loadPage and the inline
+     onclick handlers depend on it) but no remote origins. Never add a CDN
+     <script src>; it will be blocked at runtime, not at build time.
+
+  7. The window is frameless: -webkit-app-region:drag makes a region draggable,
+     and every button inside such a region needs no-drag or it stops clicking.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,6 +64,9 @@
   <link rel="stylesheet" href="styles/main.css" />
   <style>
     /* ── Auth overlay ──────────────────────────────────────────── */
+    /* Covers the whole frameless window before sign-in. It is `drag` so the
+       user can still move the window while signed out; .auth-box re-declares
+       `no-drag` because a drag region eats clicks from its children. */
     #auth-overlay {
       position: fixed; inset: 0;
       background: linear-gradient(135deg, #1e2228 0%, #2e4a3a 100%);
@@ -105,12 +162,19 @@
     }
 
     /* ── Topbar user badge ─────────────────────────────────────── */
+    /* The topbar itself is the window's drag handle (frameless window), so the
+       badge must opt back out with no-drag to stay clickable. `left` is pinned
+       to --sidebar-width so the bar starts where the sidebar ends. */
     .topbar {
       position: fixed; top: 0; right: 0; left: var(--sidebar-width);
       height: 44px; display: flex; align-items: center; justify-content: flex-end;
       padding: 0 24px; z-index: 100;
       -webkit-app-region: drag;
     }
+    /* FIXME(medium): hard-codes a near-white pill background and
+       var(--text-primary) text, but body.dark-mode flips --text-primary to a
+       light colour — so in dark mode the username is light-on-white and
+       effectively invisible. Needs a body.dark-mode .user-badge override. */
     .user-badge {
       display: flex; align-items: center; gap: 8px;
       background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
@@ -170,6 +234,9 @@
     .nav-more-toggle:hover { color: rgba(255,255,255,.5); }
 
     /* ── Collapsed more tools panel ──────────────────────────────── */
+    /* max-height (not height:auto) so the expand can be CSS-animated. 600px is
+       an arbitrary ceiling that must stay ABOVE the real expanded height —
+       adding enough nav items to exceed it will silently clip the list. */
     .more-tools-panel {
       overflow: hidden;
       max-height: 0;
@@ -196,6 +263,9 @@
 <body>
 
 <!-- ══════════════════════ UPDATE BANNER ════════════════════════ -->
+<!-- Driven entirely from the main process (electron-updater) via the
+     window.api.on('update:*') listeners in the last <script> of this file.
+     Starts hidden and is only ever shown by those events. -->
 <div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#2e7d5e;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;align-items:center;gap:12px;-webkit-app-region:no-drag;">
   <span id="updateBannerText">A new version is available — downloading…</span>
   <button id="updateInstallBtn" onclick="window.api.send('update:install')" style="display:none;margin-left:auto;background:#fff;color:#2e7d5e;border:none;border-radius:8px;padding:5px 14px;font-weight:700;cursor:pointer;font-size:12px;">Restart & Install</button>
@@ -203,6 +273,12 @@
 </div>
 
 <!-- ══════════════════ PERMISSIONS WIZARD ════════════════════════ -->
+<!-- First-launch-only macOS permission walkthrough. It cannot *grant* anything:
+     macOS only offers a permission prompt when the API is actually used, so
+     this just deep-links into System Settings and takes the user's word for it
+     ("I've done this"). Nothing here verifies the permission was granted.
+     Shown only when main says firstLaunchCheck() is true; permNext() on the
+     final step calls firstLaunchDone() so it never appears again. -->
 <div id="perm-overlay" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1e2228 0%,#2e4a3a 100%);z-index:99999;display:none;align-items:center;justify-content:center;-webkit-app-region:drag;">
   <div style="background:#fff;border-radius:20px;padding:44px 48px;width:460px;box-shadow:0 24px 60px rgba(0,0,0,.35);-webkit-app-region:no-drag;text-align:center;">
     <div id="perm-step-dots" style="display:flex;justify-content:center;gap:6px;margin-bottom:28px;"></div>
@@ -226,6 +302,10 @@
   .perm-dot.active { background:#0f7b6c; }
 </style>
 <script>
+// ── Permissions wizard: step data ─────────────────────────────────
+// Order matters: the dot indicator renders PERM_STEPS minus the last entry,
+// because the final "You're all set!" card is a confirmation, not a step.
+// A step with settingsUrl === null is treated as that final card by permRender.
 const PERM_STEPS = [
   {
     icon: '🎥',
@@ -257,6 +337,9 @@ const PERM_STEPS = [
 ]
 let _permStep = 0
 
+// ── Permissions wizard: render / navigation ───────────────────────
+// permRender/permOpenSettings/permNext are intentionally globals — the wizard's
+// markup uses inline onclick="permNext()", which only resolves against window.
 function permRender() {
   const step = PERM_STEPS[_permStep]
   document.getElementById('perm-icon').textContent  = step.icon
@@ -300,6 +383,8 @@ function permNext() {
   permRender()
 }
 
+// Swallows everything: a missing/older preload must not block the app from
+// starting — worst case the user just never sees the wizard.
 async function checkFirstLaunch() {
   try {
     if (!window.api || !window.api.firstLaunchCheck) return
@@ -315,6 +400,12 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 </script>
 
 <!-- ══════════════════════ AUTH OVERLAY ══════════════════════════ -->
+<!-- Fully local accounts — there is no server and no network call in this flow.
+     "Signing in" only decides which cs_<user>_* localStorage namespace the app
+     reads. It is a profile picker with a password on it, not a security
+     boundary: anyone with the machine can read localStorage directly.
+     switchAuthTab() maps tabs to panels BY INDEX, so the button order here must
+     stay in sync with the ['signin','create','manage'] array in that function. -->
 <div id="auth-overlay">
   <div class="auth-box">
     <div class="auth-logo"><img src="../assets/icon_1024.png" alt="🐌"></div>
@@ -368,6 +459,11 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 </div>
 
 <!-- ── Assessment prompt modal ──────────────────────────────────── -->
+<!-- Offered once, to brand-new accounts only (see launchApp's isNew branch).
+     Both buttons write csKey('assessmentDone') — 'started' or 'skipped' — and
+     any non-empty value suppresses the prompt forever, which is why "Maybe
+     later" is a permanent no. Kept in the shell rather than in a page partial
+     so it survives loadPage() swapping #content. -->
 <div id="assessmentPromptModal" style="
   position:fixed;inset:0;z-index:20000;
   background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
@@ -400,6 +496,9 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 </style>
 
 <!-- ══════════════════════ MAIN APP ══════════════════════════════ -->
+<!-- Hidden until launchApp() sets display:flex. NOTE the inline style: several
+     places toggle this element with .style.display directly, so it must stay
+     'flex' (not 'block') when shown — the layout is a flex row. -->
 <div id="app-shell" class="app-shell" style="display:none;">
 
   <!-- Topbar -->
@@ -423,6 +522,10 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
       <div class="app-logo" style="font-size:22px;line-height:1;">🐌</div>
       <div class="app-name">Ur Study Bro</div>
     </div>
+    <!-- Every nav button is wired up by ONE delegated listener further down that
+         reads data-page and looks it up in the PAGES map. To add a page: add the
+         partial to renderer/pages/, add an entry to PAGES, add a button with a
+         matching data-page here. No per-button onclick. -->
     <nav class="nav-menu">
 
       <!-- ── Main 3 ── -->
@@ -506,11 +609,15 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 
     </nav>
     <div class="sidebar-footer">
+      <!-- Hard-coded, NOT read from package.json — bump by hand on release. -->
       <div class="version" id="appVersion">v5.2</div>
     </div>
   </aside>
 
   <!-- Content -->
+  <!-- #content is the single mount point every page partial is injected into by
+       loadPage(). Its innerHTML is destroyed on each navigation — never cache a
+       DOM reference into it across a page change. -->
   <main class="content-area">
     <div id="content"></div>
   </main>
@@ -518,6 +625,10 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
 
 <script>
 // ── Donation prompt (shown once after 14 days of use) ────────────
+// Deliberately NOT per-account (no csKey): asking the same human again just
+// because they made a second profile would be obnoxious. Runs at document
+// parse time, so the very first launch only stamps the install date and
+// returns — the 14-day clock starts then, not at first sign-in.
 ;(function() {
   const DONATE_KEY = 'cs_donate_prompted'
   const INSTALL_KEY = 'cs_install_date'
@@ -543,6 +654,8 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
           <button onclick="document.body.removeChild(document.getElementById('donateModal'));localStorage.setItem('${DONATE_KEY}','1')" style="padding:11px;border:1.5px solid #e9e9e7;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#6b7280;font-family:inherit;">Maybe another time</button>
         </div>
       </div>`
+    // Set AFTER innerHTML because the template's own onclick handlers look the
+    // modal back up by this id at click time.
     modal.id = 'donateModal'
     document.body.appendChild(modal)
     modal.addEventListener('click', e => { if (e.target === modal) { document.body.removeChild(modal); localStorage.setItem(DONATE_KEY,'1') }})
@@ -568,6 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 // ── Dark mode ─────────────────────────────────────────────────────
+// Global (not csKey'd) — it's a property of the machine/display, not the
+// account. applyDarkMode() is called at parse time, i.e. BEFORE #dark-mode-btn
+// necessarily matters; the `if (btn)` guard is what makes that safe.
 function applyDarkMode() {
   const on = localStorage.getItem('cs_dark_mode') === 'true'
   document.body.classList.toggle('dark-mode', on)
@@ -578,14 +694,23 @@ function toggleDarkMode() {
   const on = localStorage.getItem('cs_dark_mode') === 'true'
   localStorage.setItem('cs_dark_mode', String(!on))
   applyDarkMode()
+  // FIXME(critical): this writes an INLINE display:none on #user-menu, which
+  // outranks the `.user-menu.open { display:block }` rule forever after. Once a
+  // user toggles dark mode the menu can never reopen — Account Settings and
+  // Sign Out become permanently unreachable. Should call closeUserMenu(), which
+  // removes the .open class instead. See audit.
   document.getElementById('user-menu').style.display = 'none'
 }
 // Apply on load
 applyDarkMode()
 
 // ── Keyboard shortcuts ────────────────────────────────────────────
+// Bound on document once, so it survives page swaps. The display check is the
+// "am I signed in?" test — shortcuts must not fire behind the auth overlay.
 document.addEventListener('keydown', e => {
   if (!document.getElementById('app-shell') || document.getElementById('app-shell').style.display === 'none') return
+  // Cmd+N order is independent of the sidebar's visual order — this list is the
+  // shortcut mapping only, and is not kept in sync with the nav buttons.
   const pages = ['welcome','calendar','rewards','study','meetings','study-kit','ai','social','settings']
   // Cmd+1–9 → nav pages
   if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
@@ -605,12 +730,19 @@ document.addEventListener('keydown', e => {
 })
 
 // ── Crypto helpers ────────────────────────────────────────────────
+// FIXME(medium): single unsalted SHA-256 round, hash stored in plain
+// localStorage, and doCreateAccount() only enforces 4 characters — trivially
+// rainbow-tabled/brute-forced offline. Wants a salted KDF (PBKDF2/scrypt) if
+// this is ever meant to protect anything. See audit.
 async function hashPassword(password) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 // ── Account storage helpers ───────────────────────────────────────
+// 'cs_accounts' is the account *registry* [{username, passwordHash, created}].
+// It is global on purpose (it lists every profile); each account's actual data
+// lives under the cs_<user>_* keys the csKey helpers below build.
 function getAccounts() {
   return JSON.parse(localStorage.getItem('cs_accounts') || '[]')
 }
@@ -619,9 +751,22 @@ function saveAccounts(accounts) {
 }
 
 // ── Per-account data key helper (used by all pages) ───────────────
+// THE storage contract for the whole app. Every page partial is expected to use
+// these rather than touching localStorage directly, so that data is namespaced
+// per profile and promptDeleteAccount() can wipe it by prefix.
+//
+// Deliberate exceptions that stay UNPREFIXED (shared by all accounts):
+//   ai_provider, ai_key_*, ai_model_*, usb_lang, cs_dark_mode,
+//   cs_more_tools_open, cs_accounts, cs_currentUser, cs_install_date.
+//
+// Gotcha: csKey() reads cs_currentUser at CALL time and does not check it — if
+// no one is signed in it happily produces the literal key "cs_null_foo".
+// Anything that can run while signed out must guard with currentUser() first.
 window.csKey = (key) => `cs_${localStorage.getItem('cs_currentUser')}_${key}`
 window.csGet = (key) => localStorage.getItem(window.csKey(key))
 window.csSet = (key, val) => localStorage.setItem(window.csKey(key), val)
+// Note: csGetJSON does NOT catch — corrupt JSON in localStorage throws at the
+// call site rather than silently returning the fallback.
 window.csGetJSON = (key, fallback = []) => JSON.parse(window.csGet(key) || JSON.stringify(fallback))
 window.csSetJSON = (key, val) => window.csSet(key, JSON.stringify(val))
 
@@ -629,6 +774,9 @@ window.csSetJSON = (key, val) => window.csSet(key, JSON.stringify(val))
 function currentUser() { return localStorage.getItem('cs_currentUser') }
 
 // ── Auth tab switching ────────────────────────────────────────────
+// Maps tabs to panels POSITIONALLY: the i-th .auth-tab button is assumed to be
+// ['signin','create','manage'][i], and the panel id is `panel-${tab}`.
+// Reordering or inserting a tab button in the markup silently mis-wires this.
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach((t, i) => {
     t.classList.toggle('active', ['signin','create','manage'][i] === tab)
@@ -639,6 +787,9 @@ function switchAuthTab(tab) {
 }
 
 // ── Sign In ───────────────────────────────────────────────────────
+// Usernames are lower-cased on BOTH sign-in and create, so they are effectively
+// case-insensitive and the cs_<user>_* namespace is always lower-case. Keep the
+// two in sync or accounts become unreachable.
 async function doSignIn() {
   const username = document.getElementById('signin-user').value.trim().toLowerCase()
   const password = document.getElementById('signin-pass').value
@@ -665,6 +816,10 @@ async function doCreateAccount() {
 
   if (!username || !password) return showAuthError(errEl, 'Please fill in all fields.')
   if (username.length < 2) return showAuthError(errEl, 'Username must be at least 2 characters.')
+  // The charset restriction is load-bearing, not cosmetic: usernames are
+  // interpolated into localStorage key prefixes (cs_<user>_...) and into the
+  // renderManageList() HTML template + its onclick='...("${username}")' strings.
+  // Allowing quotes, spaces or '_' -adjacent oddities would break both.
   if (!/^[a-z0-9_]+$/.test(username)) return showAuthError(errEl, 'Username: letters, numbers, _ only.')
   if (password.length < 4) return showAuthError(errEl, 'Password must be at least 4 characters.')
   if (password !== password2) return showAuthError(errEl, 'Passwords do not match.')
@@ -685,12 +840,19 @@ function promptDeleteAccount(username) {
   const accounts = getAccounts().filter(a => a.username !== username)
   saveAccounts(accounts)
   // Wipe account data keys
+  // FIXME(high): prefix match, but '_' is a legal username character — deleting
+  // "alice" also matches "cs_alice_b_*" and silently destroys account
+  // "alice_b"'s entire dataset, which is still listed and still signed-in-able.
+  // Needs an exact <user> segment match. See audit.
   Object.keys(localStorage)
     .filter(k => k.startsWith(`cs_${username}_`))
     .forEach(k => localStorage.removeItem(k))
   renderManageList()
 }
 
+// Builds rows by string interpolation, including inline onclick="fn('${...}')".
+// Only safe because doCreateAccount() restricts usernames to [a-z0-9_] — that
+// validation is the escaping. If you ever loosen the charset, escape here.
 function renderManageList() {
   const accounts = getAccounts()
   const list = document.getElementById('manage-list')
@@ -713,6 +875,8 @@ function renderManageList() {
 }
 
 // Quick sign-in from manage tab (shows password prompt)
+// Intentionally does NOT sign in — it only prefills the username and focuses
+// the password field, so the manage tab can never be used to bypass the check.
 function quickSignIn(username) {
   switchAuthTab('signin')
   document.getElementById('signin-user').value = username
@@ -727,6 +891,9 @@ function showAuthError(el, msg) {
 }
 
 // ── Launch app after auth ─────────────────────────────────────────
+// The single entry point into the signed-in app — both doSignIn() and
+// doCreateAccount() end here. cs_currentUser MUST be written first: everything
+// after it (csKey, loadPage, the scheduler, the bonus) reads it.
 function launchApp(username, isNew = false) {
   localStorage.setItem('cs_currentUser', username)
   document.getElementById('auth-overlay').classList.add('hidden')
@@ -757,6 +924,9 @@ function hideAssessmentPrompt() {
   document.getElementById('assessmentPromptBox').style.transform = 'scale(.94)'
 }
 
+// Idempotent per calendar day via csKey('lastLoginBonus'), so signing out and
+// back in can't farm points. NOTE: toISOString() is UTC, so the "day" rolls
+// over at UTC midnight, not the user's local midnight.
 function grantDailyLoginBonus() {
   const today = new Date().toISOString().slice(0, 10)
   const lastKey = csKey('lastLoginBonus')
@@ -774,13 +944,21 @@ function grantDailyLoginBonus() {
 }
 
 // ── Sign Out ──────────────────────────────────────────────────────
+// FIXME(high): blows away #content below without ever calling
+// window._pageCleanup() — unlike loadPage(), which always does. The active
+// page's intervals/listeners survive, and an in-progress screen/mic recording
+// keeps capturing with its UI gone and its output unreachable. Must run the
+// same cleanup handshake loadPage() does. See audit.
 function doSignOut() {
   stopScheduler()
+  // Cleared so the next account doesn't inherit "already notified" event ids.
   _notifiedEvents.clear()
   localStorage.removeItem('cs_currentUser')
   document.getElementById('auth-overlay').classList.remove('hidden')
   document.getElementById('app-shell').style.display = 'none'
   document.getElementById('content').innerHTML = ''
+  // Blank the auth fields so the next person at this machine doesn't find the
+  // previous user's credentials sitting in the form.
   ;['signin-user','signin-pass','create-user','create-pass','create-pass2']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value = '' })
   switchAuthTab('signin')
@@ -788,15 +966,23 @@ function doSignOut() {
 }
 
 // ── User menu ─────────────────────────────────────────────────────
+// Visibility is driven purely by the .open class (see .user-menu CSS). Never
+// set .style.display on this element — an inline style wins over the class and
+// wedges the menu shut permanently (that is the toggleDarkMode bug above).
 function toggleUserMenu() {
   document.getElementById('user-menu').classList.toggle('open')
 }
 function closeUserMenu() {
   document.getElementById('user-menu').classList.remove('open')
 }
+// Click-outside-to-close. Bubbles to document, so it also fires for the badge's
+// own click — hence excluding both the badge and the menu itself, otherwise the
+// toggle would immediately be undone by this handler.
 document.addEventListener('click', e => {
   if (!e.target.closest('.user-badge') && !e.target.closest('.user-menu')) closeUserMenu()
 })
+// Doesn't go through navigateTo(): it must also close the menu, and it syncs
+// the sidebar highlight by hand.
 function goToSettings() {
   closeUserMenu()
   loadPage('settings')
@@ -813,6 +999,8 @@ document.addEventListener('keydown', e => {
 })
 
 // ── Page navigation ───────────────────────────────────────────────
+// The whole routing table. A data-page value with no entry here makes
+// loadPage() fetch `undefined` — add the page to BOTH this map and the sidebar.
 const PAGES = {
   welcome: 'pages/welcome.html',
   calendar: 'pages/calendar.html',
@@ -831,12 +1019,32 @@ const PAGES = {
   'settings':   'pages/settings.html',
 }
 
+// Monotonic navigation token. loadPage() is async (fetch + a deliberate 80ms
+// fade), so two fast clicks can interleave; each run captures the token and
+// bails if a newer navigation started, preventing a slow page from painting
+// over the one the user actually wants.
 let _navVersion = 0
 
+// ═════════════════════════════════════════════════════════════════════
+// loadPage() — THE page injector. Read this before touching any partial.
+//
+// Fetches renderer/pages/<x>.html and splices it into #content. Because the
+// partial's <script> tags are RE-CREATED here, they re-execute in GLOBAL scope
+// on EVERY visit. Consequences a contributor must internalise:
+//   • A partial's top-level `const`/`let`/`class` would collide on revisit —
+//     so every partial wraps its body in an IIFE.
+//   • An IIFE-local function is invisible to inline onclick="foo()"; those only
+//     see window. Assign window.foo = ... for anything an inline handler calls.
+//   • State does NOT persist across visits. Persist via csGet/csSet.
+//   • Intervals/listeners/recorders started by a partial outlive the DOM swap.
+//     Register window._pageCleanup, or you leak one per visit, forever.
+// ═════════════════════════════════════════════════════════════════════
 async function loadPage(name) {
   const version = ++_navVersion
 
   // Give any running page a chance to clean up (e.g. clear timer intervals)
+  // Nulled immediately after: the outgoing page's cleanup must never run twice,
+  // and the incoming page re-registers its own.
   if (typeof window._pageCleanup === 'function') {
     window._pageCleanup()
     window._pageCleanup = null
@@ -851,6 +1059,9 @@ async function loadPage(name) {
   </div>`
   content.style.opacity = '1'
 
+  // fetch() on a file:// / app:// relative path — no network, no cache-busting
+  // needed, and no error handling: a missing partial rejects and leaves the
+  // spinner spinning.
   const res = await fetch(PAGES[name])
   const html = await res.text()
 
@@ -861,14 +1072,21 @@ async function loadPage(name) {
   content.style.transition = 'opacity .15s'
   content.style.opacity = '0'
 
+  // Must match the .15s fade-out above, or content swaps mid-animation.
   await new Promise(r => setTimeout(r, 80))
   if (version !== _navVersion) return
 
   // Parse with DOMParser to safely handle large scripts and inline SVG strings
+  // (DOMParser is inert — nothing in the partial executes at this point. The
+  // re-injection steps further down are what actually run it, in order.)
   const doc = new DOMParser().parseFromString(html, 'text/html')
   content.innerHTML = ''
 
   // DOMParser hoists <style> tags into doc.head — pull them back into content first
+  // (a partial has no <head> of its own; the parser invents one and moves any
+  // leading <style> there, so they'd be lost if we only copied doc.body).
+  // NOTE: a partial's styles are global once injected and are only removed when
+  // #content is cleared — scope selectors so they don't bleed into other pages.
   Array.from(doc.head.querySelectorAll('style')).forEach(node => {
     const s = document.createElement('style')
     s.textContent = node.textContent
@@ -888,6 +1106,11 @@ async function loadPage(name) {
   })
 
   // Re-inject <script> blocks so they execute (importNode doesn't run scripts)
+  // Cloned/imported <script> nodes are permanently marked "already started" by
+  // the HTML spec, so the only way to run them is to build a FRESH element and
+  // copy the text across. This is why partial code re-runs in global scope, and
+  // why external <script src> in a partial would also need this treatment (and
+  // would be blocked by the CSP anyway). Order is document order, synchronous.
   content.querySelectorAll('script').forEach(old => {
     const s = document.createElement('script')
     s.textContent = old.textContent
@@ -901,6 +1124,10 @@ async function loadPage(name) {
   })
 }
 
+// ── Sidebar nav wiring ────────────────────────────────────────────
+// Bound once at parse time over the STATIC sidebar markup. Nav items are never
+// re-rendered, so a one-shot querySelectorAll is enough — but a nav button
+// added dynamically later would not be wired up by this.
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
@@ -918,6 +1145,9 @@ document.querySelectorAll('.nav-item').forEach(btn => {
 })
 
 // expose for page partials to navigate
+// The ONLY supported way for a partial to change pages — it also fixes up the
+// sidebar highlight, which a bare loadPage() call would leave stale. Must be on
+// window: partials' inline onclick handlers call it.
 window.navigateTo = (page) => {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page))
   loadPage(page)
@@ -925,6 +1155,17 @@ window.navigateTo = (page) => {
 
 // ── Global AI helper — all pages call this instead of askAI directly ──
 // Automatically injects the correct model for Ollama
+//
+// Exists so provider/key/model selection lives in exactly ONE place: pages pass
+// only {systemPrompt, messages, ...} and stay ignorant of which backend is set.
+//
+// ⚠ CONTRACT: this resolves to {reply} or {error} and NEVER throws — the main
+// process catches everything and returns {error}. try/catch around aiChat is
+// useless; callers MUST do `if (res.error) ...` before touching res.reply.
+//
+// Ollama is special-cased because it is local and keyless: apiKey comes out ''
+// (falsy) on purpose, and the model must always be sent explicitly since there
+// is no server-side default.
 window.aiChat = async function(payload) {
   const provider = localStorage.getItem('ai_provider') || 'gemini'
   const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
@@ -936,6 +1177,11 @@ window.aiChat = async function(payload) {
 
 // ── Open external links via shell (Electron) ──────────────────────
 // Intercepts any <a target="_blank"> clicks inside #content
+// Without this, an http(s) link would navigate the app window itself away from
+// index.html — with no chrome, no back button, and no way back. Delegated on
+// #content so it keeps working across every page swap; partials therefore just
+// write plain <a href="https://..."> and get shell.openExternal for free.
+// (Links outside #content — e.g. the donate modal — are NOT covered.)
 document.getElementById('content').addEventListener('click', e => {
   const a = e.target.closest('a[href]')
   if (!a) return
@@ -949,9 +1195,17 @@ document.getElementById('content').addEventListener('click', e => {
 })
 
 // ── Background event notification scheduler ───────────────────────
+// Lives in the shell, not in calendar.html, so reminders keep firing no matter
+// which page is open (and while none is). Owned by launchApp/doSignOut, NOT by
+// window._pageCleanup — page navigation must not stop it.
+//
+// Session-scoped, so it is also lost on quit: nothing fires while the app is
+// closed, and the Set is cleared on sign-out so a fresh session re-arms.
 const _notifiedEvents = new Set()  // event IDs fired this session
 let _schedulerInterval = null
 
+// Guarded against double-start: launchApp() can be reached more than once
+// without an intervening sign-out.
 function startScheduler() {
   if (_schedulerInterval) return
   _schedulerInterval = setInterval(checkUpcomingEvents, 30_000)
@@ -964,8 +1218,14 @@ function stopScheduler() {
 }
 
 function checkUpcomingEvents() {
+  // Required: the interval can outlive a sign-out race, and csGetJSON would
+  // otherwise read the bogus "cs_null_calEvents" key.
   if (!currentUser()) return
 
+  // FIXME(medium): reads the RAW stored calEvents. Recurring events are stored
+  // once, as a single row with a recurrence rule and the ORIGINAL date — the
+  // calendar page expands them for display, this does not. So a repeating event
+  // only ever notifies for its first occurrence. Needs the same expansion. See audit.
   const events = csGetJSON('calEvents', [])
   const now = new Date()
 
@@ -973,10 +1233,14 @@ function checkUpcomingEvents() {
     if (_notifiedEvents.has(ev.id)) return
     if (!ev.date || !ev.start) return
 
+    // No timezone suffix ⇒ parsed as LOCAL time, which is what the user typed.
     const evDate = new Date(`${ev.date}T${ev.start}:00`)
     const minsAway = (evDate - now) / 60_000
 
     // Notify when the event is between 4.5 and 5.5 minutes away
+    // A 1-minute window, wider than the 30s tick, so the poll cannot step over
+    // it. The _notifiedEvents guard is what stops the double-fire that the
+    // overlap would otherwise cause. Narrowing this below ~30s drops reminders.
     if (minsAway >= 4.5 && minsAway <= 5.5) {
       _notifiedEvents.add(ev.id)
       fireNotification(ev)
@@ -1008,6 +1272,10 @@ function fmt12Time(t) {
 </script>
 
 <!-- ── Floating AI Agent ───────────────────────────────────────── -->
+<!-- The always-on "Quick Ask" snail bubble. It sits OUTSIDE #app-shell so it is
+     never wiped by loadPage(), and its script is a plain IIFE that runs once at
+     startup (not per page) — it keeps its own chat history in memory, separate
+     from the full AI page. Cmd+Space clicks #ai-bubble; keep that id stable. -->
 <style>
   #ai-bubble {
     position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -1093,6 +1361,9 @@ function fmt12Time(t) {
 </div>
 
 <script>
+// ── Quick Ask bubble: behaviour ───────────────────────────────────
+// IIFE with no window exports on purpose: nothing outside needs to call in, and
+// the markup above uses addEventListener rather than inline onclick.
 (function () {
   const bubble   = document.getElementById('ai-bubble')
   const panel    = document.getElementById('ai-panel')
@@ -1103,6 +1374,8 @@ function fmt12Time(t) {
   const provLbl  = document.getElementById('ai-provider-label')
 
   let open = false
+  // In-memory only, and NOT reset by doSignOut() — the bubble's transcript and
+  // context carry over to whoever signs in next on this machine.
   let history = []
 
   function togglePanel() {
@@ -1112,6 +1385,10 @@ function fmt12Time(t) {
   }
 
   function updateProviderLabel() {
+    // FIXME(high): defaults to 'ollama' while send() below defaults the same
+    // read to 'gemini' — with ai_provider unset the panel advertises "Local AI
+    // (Ollama)" and then refuses to send, citing a missing Gemini key. The two
+    // defaults must agree. See audit.
     const p = localStorage.getItem('ai_provider') || 'ollama'
     const key = localStorage.getItem('ai_key_' + p)
     provLbl.textContent = p === 'ollama' ? 'Local AI (Ollama)' : key ? `Using ${p}` : 'No API key — visit AI Tutor'
@@ -1133,6 +1410,11 @@ function fmt12Time(t) {
     const text = input.value.trim()
     if (!text) return
 
+    // FIXME(high): hard-gates on an API key, but Ollama is local and never has
+    // one — so with provider=ollama the bubble is 100% unusable and always
+    // answers "No API key found." The key check must be skipped for ollama.
+    // (Related: this defaults to 'gemini' where updateProviderLabel() defaults
+    // to 'ollama'.) See audit.
     const provider = localStorage.getItem('ai_provider') || 'gemini'
     const apiKey   = localStorage.getItem('ai_key_' + provider)
     if (!apiKey) {
@@ -1148,6 +1430,9 @@ function fmt12Time(t) {
     const typing = addMsg('bot', 'Thinking…', true)
 
     try {
+      // Calls window.api.askAI directly rather than window.aiChat, so it does
+      // NOT get aiChat's per-provider model injection — hence model:null.
+      // The try/catch is decorative: askAI never rejects (see aiChat contract).
       const res = await window.api.askAI({
         provider, apiKey,
         model: null,
@@ -1155,10 +1440,17 @@ function fmt12Time(t) {
         messages: history
       })
       typing.remove()
+      // FIXME(high): never checks res.error. askAI resolves to {error} instead
+      // of throwing, so on any failure res.reply is undefined → botText is ''
+      // → the user gets a blank bubble with no explanation, AND an empty
+      // assistant turn is pushed into history, corrupting every later request.
+      // Must branch on res.error before this point. See audit.
       const botText = (res.reply || '').trim()
       addMsg('bot', botText)
       history.push({ role: 'assistant', content: botText })
       // keep history bounded
+      // Crude token-cost cap: drops the oldest turns, so the bubble forgets the
+      // start of a long conversation rather than growing the request forever.
       if (history.length > 20) history = history.slice(-20)
     } catch (e) {
       typing.remove()
@@ -1179,6 +1471,11 @@ function fmt12Time(t) {
 <script>
 // ── GitHub release update checker ─────────────────────────────────
 // ── Auto-updater IPC listeners ────────────────────────────────────
+// Purely a view over main's electron-updater events (fed from GitHub releases);
+// the renderer never checks for or downloads anything itself. Fires regardless
+// of sign-in state — the banner is fixed-position above the auth overlay too.
+// The whole block is skipped if preload is absent, so this file still opens in
+// a plain browser for UI work.
 if (window.api && window.api.on) {
   const banner     = document.getElementById('updateBanner')
   const textEl     = document.getElementById('updateBannerText')
@@ -1200,6 +1497,8 @@ if (window.api && window.api.on) {
     textEl.textContent = `✅ Update ready to install — restart to apply`
     installBtn.textContent = 'Restart & Update'
     installBtn.style.display = 'inline-block'
+    // Redundant with the inline onclick in the markup, but harmless — .onclick
+    // assignment replaces rather than stacks, so it can't double-fire.
     installBtn.onclick = () => window.api.send('update:install')
     banner.style.display = 'flex'
   })

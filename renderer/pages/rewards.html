@@ -1,4 +1,40 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+
+<!-- ══════════════════════════════════════════════════════════════════
+     rewards.html — the "Rewards" page. Two tabs live in this one file:
+
+       1. Points Shop    — spend Study Points on user-defined rewards,
+                           plus a Wishlist that turns a real $ price into
+                           a point cost (see aiAssignPoints()).
+       2. Stats & Badges — streak, 30-day heatmap, subject breakdown,
+                           ~70 badges, and an HTML "Export Report".
+
+     Study Points are the app-wide currency. study.html, study-kit.html,
+     meetings.html and index.html all CREDIT cs_<user>_studyPoints; this page
+     is the main place points are SPENT. rl-mode.html deliberately mirrors the
+     getPoints/setPoints helpers below (see its comment) — keep the two in sync.
+
+     ─── BEFORE YOU EDIT: how pages are loaded ────────────────────────
+     renderer/pages/*.html are injected by loadPage() in renderer/index.html,
+     which RE-CREATES and RE-EXECUTES every <script> on EVERY visit, in GLOBAL
+     scope. That is why the main script body is wrapped in an IIFE: without it
+     `const BADGES` would throw "already declared" on the second visit.
+     Two consequences you must respect:
+       • Inline onclick="foo()" in the markup only resolves against GLOBALS.
+         IIFE-local functions silently do nothing from an inline handler —
+         which is why showTab, _deleteReward, _unlockReward, _deleteWishlist,
+         _wishlistToShop and exportReport are all explicitly hung off `window`.
+       • A page that starts an interval or a document-level listener MUST
+         register window._pageCleanup or it leaks one more every visit. This
+         page starts none (every listener is bound to an element that dies
+         with the page), so it deliberately defines no _pageCleanup.
+
+     ─── Storage ──────────────────────────────────────────────────────
+     window.csKey/csGet/csSet/csGetJSON/csSetJSON are PER-ACCOUNT: they
+     namespace to cs_<user>_<key>. The two raw localStorage.getItem() reads in
+     computeStats() (social_feed_count, social_goals_completed) are NOT
+     namespaced — that is a bug flagged inline, not a convention.
+     ══════════════════════════════════════════════════════════════════ -->
 <style>
   /* ── Tabs ──────────────────────────────────────────────────── */
   .page-tabs { display:flex; gap:4px; background:#f3f4f6; border-radius:10px; padding:4px; margin-bottom:20px; }
@@ -46,6 +82,9 @@
 .heatmap-grid { display:flex; flex-wrap:wrap; gap:4px; margin-top:10px; }
 .hm-day { width:18px; height:18px; border-radius:3px; background:var(--border); position:relative; cursor:default; transition:transform .1s; }
 .hm-day:hover { transform:scale(1.3); z-index:1; }
+/* The 0..4 scale below IS the whole heatmap ramp: renderStreak() clamps the
+   session count with Math.min(4, …), so 5+ sessions all render as level 4.
+   Adding a level here means bumping that clamp too. */
 .hm-day[data-count="0"] { background:#e9e9e7; }
 .hm-day[data-count="1"] { background:#b7e3d8; }
 .hm-day[data-count="2"] { background:#6ee7b7; }
@@ -112,6 +151,11 @@
   }
   .reward-delete-btn:hover { opacity:1; }
 
+  /* Celebration toast for unlocks and streak bonuses. It is appended to
+     document.body (NOT to the page container) and removed by a 1900ms
+     setTimeout in JS. The animation below finishes at 1.4s + .4s = 1.8s, so it
+     is invisible before removal — keep the JS timeout above that total or the
+     toast will pop back into view for a frame before disappearing. */
   .unlock-flash {
     position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
     background:#1e3a2f; color:#6ee7b7; border-radius:16px;
@@ -185,6 +229,7 @@
   <div class="page-subtitle">Every Pomodoro earns points — spend them on yourself.</div>
 </div>
 
+<!-- Tab bar. showTab() is inline-onclick, so it MUST stay on window (see header). -->
 <div class="page-tabs">
   <button class="page-tab active" id="tab-shop"  onclick="showTab('shop')">Points Shop</button>
   <button class="page-tab"        id="tab-stats" onclick="showTab('stats')">Stats &amp; Badges</button>
@@ -193,7 +238,7 @@
 <!-- ══════ TAB: POINTS SHOP ══════════════════════════════════════ -->
 <div id="pane-shop">
 
-  <!-- Balance hero -->
+  <!-- Balance hero. #heroPoints / #heroSub are filled by renderShop(). -->
   <div class="points-hero">
     <div>
       <div class="points-hero-balance">
@@ -202,6 +247,8 @@
       </div>
       <div class="points-sub" id="heroSub">Complete Pomodoros to earn points</div>
     </div>
+    <!-- Static copy: the actual earn rate is implemented in study.html, not here.
+         If you change the award there, change this sentence too. -->
     <div class="points-earn-tip">
       <strong>+10 pts</strong> for every 25-min Pomodoro finished<br>
       Define your own rewards below and unlock them<br>
@@ -212,7 +259,9 @@
   <div class="shop-layout">
     <div class="shop-main">
 
-      <!-- Wishlist -->
+      <!-- Wishlist: real-world item + $ price in, point cost out (aiAssignPoints).
+           #wlPreview updates live on every keystroke; nothing is stored until
+           "Add →". "Add to Shop" later promotes an entry into the shop grid. -->
       <div class="card" style="margin-bottom:16px;">
         <div class="card-title">Wishlist — Work for Real Things</div>
         <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Enter an item and its real price — we'll auto-calculate the points needed. Add it to your shop when ready.</div>
@@ -264,7 +313,7 @@
         <div id="rewardCreateErr" style="color:#ef4444;font-size:12px;margin-top:6px;"></div>
       </div>
 
-      <!-- Shop grid -->
+      <!-- Shop grid — populated by renderShop(); empty in the served markup. -->
       <div class="card-title" style="padding:0 0 10px;">Your Rewards</div>
       <div class="shop-grid" id="shopGrid"></div>
 
@@ -310,6 +359,8 @@
     </div>
   </div>
 
+  <!-- exportReport() opens a standalone printable report in a new window.
+       Inline onclick ⇒ it must be global; it is defined outside the IIFE below. -->
   <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
     <button class="btn btn-ghost" onclick="exportReport()" style="font-size:13px;gap:6px;">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" width="14" height="14"><path d="M4 14v2a1 1 0 001 1h10a1 1 0 001-1v-2M10 3v10M7 10l3 3 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -332,8 +383,15 @@
 </div>
 
 <script>
+// IIFE: loadPage() re-executes this whole script on every visit to the page, in
+// global scope. Without the wrapper, `const BADGES` / `const CATEGORIES` would
+// throw "Identifier has already been declared" the second time you open Rewards.
+// Anything an inline onclick needs must be re-exported onto `window` explicitly.
 (function() {
   /* ── Tab switching ─────────────────────────────────────────── */
+  // Only the Shop pane renders at boot; the Stats pane renders lazily on first
+  // switch because renderStats() walks every record and evaluates ~70 badge
+  // predicates. It re-renders on every switch so it can never show stale numbers.
   function showTab(name) {
     document.getElementById('pane-shop').style.display  = name==='shop'  ? '' : 'none'
     document.getElementById('pane-stats').style.display = name==='stats' ? '' : 'none'
@@ -344,6 +402,9 @@
   window.showTab = showTab
 
   /* ── Points helpers ────────────────────────────────────────── */
+  // All cs* helpers namespace to cs_<user>_<key>, so every balance, reward and
+  // unlock below is per-account for free. setPoints() floors at 0: the balance is
+  // a plain number in localStorage and must never be allowed to go negative.
   function getPoints()     { return parseInt(csGet('studyPoints') || '0') }
   function setPoints(n)    { csSet('studyPoints', String(Math.max(0, n))) }
 
@@ -353,12 +414,23 @@
   function getHistory()    { return csGetJSON('unlockHistory', []) }
   function setHistory(arr) { csSetJSON('unlockHistory', arr) }
 
+  // Today's date in the user's LOCAL timezone as YYYY-MM-DD. This is the canonical
+  // date format across the app: every record in `records` stores a local date
+  // string built this way. Do NOT reach for toISOString().slice(0,10) as a
+  // shortcut — that yields the UTC day, which is a different day for most of the
+  // evening west of Greenwich. Several date bugs flagged below are exactly that
+  // mistake; new date code should route through this helper.
   function localDateStr()  {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   }
 
   /* ── Shop render ───────────────────────────────────────────── */
+  // Full re-render from localStorage — there is no diffing and no in-memory model.
+  // Every mutation (add/delete/unlock/wishlist-promote) writes storage then calls
+  // this. That matters because the generated buttons below bake the reward's ARRAY
+  // INDEX into their onclick; skip the re-render after a mutation and the stale
+  // indices in the DOM will act on the wrong reward.
   function renderShop() {
     const pts     = getPoints()
     const rewards = getRewards()
@@ -400,6 +472,8 @@
     if (!history.length) {
       histEl.innerHTML = '<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px 0;">No unlocks yet.</div>'
     } else {
+      // .slice() first: reverse() mutates in place, and `history` is the array we
+      // just handed out — reversing it directly would corrupt the stored order.
       histEl.innerHTML = history.slice().reverse().map(h => `
         <div class="history-row">
           <div class="history-icon">${esc(h.icon||'🎁')}</div>
@@ -422,6 +496,8 @@
     if (!cost||cost<1){ err.textContent = 'Point cost must be at least 1.'; return }
     err.textContent = ''
     const rewards = getRewards()
+    // `id` is recorded for future use only — every lookup in this file is by array
+    // index, not by id. Reordering getRewards() would break the rendered handlers.
     rewards.push({ id: Date.now().toString(), icon, name, cost })
     setRewards(rewards)
     document.getElementById('rewardName').value = ''
@@ -434,6 +510,7 @@
   })
 
   /* ── Delete reward ─────────────────────────────────────────── */
+  // On window because the delete ✕ is an inline onclick in renderShop()'s template.
   window._deleteReward = (i) => {
     if (!confirm('Remove this reward?')) return
     const rewards = getRewards()
@@ -443,6 +520,12 @@
   }
 
   /* ── Unlock reward ─────────────────────────────────────────── */
+  // The purchase path. The affordability check is repeated here even though the
+  // button is rendered disabled when you can't afford it — the disabled state is
+  // only as fresh as the last renderShop(), and points can be spent from another
+  // page (rl-mode.html) in the meantime. This re-read is the real guard.
+  // Note the reward is NOT removed from the shop on unlock: rewards are reusable
+  // templates, and the unlock is recorded in history instead.
   window._unlockReward = (i) => {
     const rewards = getRewards()
     const reward  = rewards[i]
@@ -469,11 +552,27 @@
   }
 
   /* ── HTML escape ───────────────────────────────────────────── */
+  // Everything user-supplied (reward names, icons, wishlist items) is interpolated
+  // into innerHTML templates, so it MUST go through esc() first. `s??''` keeps
+  // null/undefined from rendering as the literal text "null".
+  // Note the Subject Breakdown in renderStats() does not use this — see FIXME there.
   function esc(s) {
     return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
   }
 
   /* ── Stats & Badges ────────────────────────────────────────── */
+  // Declarative badge table. `req` is a predicate over the single stats object
+  // built by computeStats() — badges are evaluated on every render and never
+  // persisted, so a badge un-earns itself if its underlying counter is reset.
+  // `cat` drives the grouping headers in renderStats(); adding a new cat string
+  // creates a new section automatically, no other change needed.
+  //
+  // FIXME(medium): roughly 20 of these badges can never unlock, because their
+  // counters (socialPosts, groupGoals, snailClicks, recordings, emailsRead,
+  // wordsWritten, factChecks, notesSynced, flashcards, allTimers, highTestScore,
+  // notifClick, midnightStudy, weekendStudy, ghostMode, perfectDays, earlyBird,
+  // nightOwl, maxDayPoints …) are read in computeStats() but written by no file in
+  // the app. Either emit the counters at the source or drop the badges. See audit.
   const BADGES = [
     // ── Sessions ──────────────────────────────────────────
     { cat:'Sessions', icon:'🌱', name:'First Step',      desc:'Complete your first session',        req:s=>s.sessions>=1   },
@@ -560,12 +659,21 @@
     { cat:'Special',  icon:'🔍', name:'Fact Checker',    desc:'Run the AI fact checker',           req:s=>s.factChecks>=1      },
     { cat:'Special',  icon:'🗃️', name:'Archivist',       desc:'Sync notes to Apple Notes',         req:s=>s.notesSynced>=1     },
     // ── Legendary ─────────────────────────────────────────
+    // Heads-up: "The GOAT" below is described as "All other badges unlocked" but
+    // its predicate only checks sessions/hours/streak. The copy is aspirational,
+    // the check is a cheap proxy — do not trust the desc as a spec.
     { cat:'Legendary',icon:'🌠', name:'All-Nighter',     desc:'Study for 4+ continuous hours',     req:s=>s.maxSingleSession>=4},
     { cat:'Legendary',icon:'🎖️', name:'Centurion',       desc:'100 study points in one day',       req:s=>s.maxDayPoints>=100  },
     { cat:'Legendary',icon:'🥇', name:'The GOAT',        desc:'All other badges unlocked',         req:s=>s.sessions>=100&&s.hours>=50&&s.bestStreak>=30 },
     { cat:'Legendary',icon:'🐌', name:'Ur Study Bro',    desc:'The ultimate dedication badge',     req:s=>s.sessions>=500||s.hours>=250 },
   ]
 
+  // ── Streak ─────────────────────────────────────────────────────
+  // Returns { current, best } in days. `days` is the de-duped, sorted set of local
+  // date strings that have at least one record; string sort is safe because
+  // YYYY-MM-DD sorts lexicographically the same as chronologically.
+  // `current` walks backwards from today; the second loop below re-walks from
+  // YESTERDAY so that a streak still counts before you have studied today.
   function computeStreak() {
     const records = csGetJSON('records', [])
     const days = [...new Set(records.map(r => r.date))].sort()
@@ -575,6 +683,11 @@
     while (days.includes(check)) {
       current++
       const d = new Date(check); d.setDate(d.getDate() - 1)
+      // FIXME(high): this day-stepper round-trips a LOCAL date string through UTC.
+      // `new Date('YYYY-MM-DD')` parses as UTC midnight, and toISOString() reads
+      // back UTC — so on the DST fall-back day the subtraction lands on the wrong
+      // date and the streak silently breaks once a year. Use localDateStr()-style
+      // local formatting instead. Same bug in the loop below and in renderStreak().
       check = d.toISOString().slice(0, 10)
     }
     if (!days.includes(today) && current === 0) {
@@ -586,17 +699,22 @@
         y = dd.toISOString().slice(0, 10)
       }
     }
+    // Longest historical run: step through the sorted days and check whether each
+    // one is exactly the day after its predecessor.
     let best = 0, run = 1
     for (let i = 1; i < days.length; i++) {
       const prev = new Date(days[i-1]); prev.setDate(prev.getDate() + 1)
       if (prev.toISOString().slice(0,10) === days[i]) { run++; if (run > best) best = run }
       else run = 1
     }
-    if (run > best) best = run
-    if (current > best) best = current
+    if (run > best) best = run          // flush the run that was still open at the end
+    if (current > best) best = current  // a 1-day history never enters the loop above
     return { current, best }
   }
 
+  // One-time point bonuses for reaching a best-streak length. Adding an entry here
+  // retroactively pays out to anyone who already passed that length, since the
+  // check below is `best >= days` against all-time best, not a live trigger.
   const STREAK_MILESTONES = [
     { days: 3,  bonus: 25  },
     { days: 7,  bonus: 50  },
@@ -604,12 +722,21 @@
     { days: 30, bonus: 200 },
   ]
 
+  // Mints points as a SIDE EFFECT of rendering the Stats tab — this is the only
+  // place streak bonuses are paid, so they only land once the user visits the tab.
+  // `claimedStreakMilestones` is the idempotency ledger that stops a re-render (or
+  // a re-visit, which re-executes this whole script) from paying out twice.
+  // It is written only after the loop, so a throw mid-loop pays nothing and the
+  // bonus is simply retried on the next render rather than double-granted.
   function checkStreakMilestoneBonuses(best) {
     const claimed = csGetJSON('claimedStreakMilestones', [])
     let awarded = []
     STREAK_MILESTONES.forEach(({ days, bonus }) => {
       if (best >= days && !claimed.includes(days)) {
         claimed.push(days)
+        // Re-read the balance each iteration rather than hoisting it: a first-time
+        // visitor at a 30-day streak claims all four milestones in one pass, and a
+        // hoisted read would make each write clobber the previous bonus.
         const pts = parseInt(csGet('studyPoints') || '0')
         csSet('studyPoints', String(pts + bonus))
         awarded.push({ days, bonus })
@@ -628,6 +755,9 @@
     }
   }
 
+  // Paints the streak hero + the 30-day heatmap. Also the entry point that triggers
+  // milestone payouts, hence the renderShop() call inside checkStreakMilestoneBonuses
+  // (the Shop tab's balance would otherwise be stale behind the freshly-won bonus).
   function renderStreak() {
     const { current, best } = computeStreak()
     document.getElementById('streakCount').textContent = current
@@ -642,10 +772,15 @@
     const records = csGetJSON('records', [])
     const perDay  = {}
     records.forEach(r => { perDay[r.date] = (perDay[r.date]||0) + 1 })
+    // 30-day heatmap, oldest cell first (i counts down so the last cell is today).
     const grid = document.getElementById('heatmapGrid')
     grid.innerHTML = ''
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i)
+      // FIXME(high): keys the cell by the UTC day (toISOString) while `perDay` is
+      // indexed by the LOCAL date on each record. Every evening west of UTC the two
+      // disagree, so the whole window shifts a day and today's sessions vanish from
+      // the grid. Format locally, as localDateStr() does.
       const dateStr = d.toISOString().slice(0, 10)
       const count   = Math.min(4, perDay[dateStr] || 0)
       const cell    = document.createElement('div')
@@ -656,6 +791,12 @@
     }
   }
 
+  // ── Stats aggregation ──────────────────────────────────────────
+  // Builds the ONE object every badge predicate and stat tile reads. Recomputed
+  // from scratch on each Stats render; nothing here is cached or persisted.
+  // The first half derives from `records`; the second half ("Extended stats") just
+  // reads counters that other pages are supposed to maintain — that half is where
+  // the badge system is broken, see the FIXMEs below.
   function computeStats() {
     const records    = csGetJSON('records', [])
     const dailyGoal  = parseFloat(csGet('dailyGoalHours') || '0')
@@ -666,6 +807,8 @@
 
     const perDay = {}
     records.forEach(r => { perDay[r.date] = (perDay[r.date]||0) + 1 })
+    // The 0 seed matters twice: it keeps Math.max() from returning -Infinity on an
+    // empty history, and it is the floor for the "sessions in one day" badges.
     const maxInDay   = Math.max(0, ...Object.values(perDay))
     const uniqueDays = Object.keys(perDay).length
 
@@ -675,8 +818,13 @@
 
     const uniqueSubjects = new Set(records.map(r => r.subject)).size
     const excellentCount = records.filter(r => r.rating === 5).length
+    // Lifetime earnings = what you still hold + everything you have already spent.
+    // (There is no running "earned" counter, so it is reconstructed from the ledger.)
     const totalEarned    = parseInt(csGet('studyPoints')||'0') + getHistory().reduce((a,h)=>a+h.cost,0)
 
+    // 7-day window = today plus the previous 6. Built with local getFullYear/Month/
+    // Date parts (not toISOString) so it lines up with the local dates on records —
+    // this is the correct pattern; the streak/heatmap code above gets it wrong.
     const weekAgo   = new Date(); weekAgo.setDate(weekAgo.getDate() - 6)
     const weekStr   = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth()+1).padStart(2,'0')}-${String(weekAgo.getDate()).padStart(2,'0')}`
     const weekMins  = records.filter(r => r.date >= weekStr).reduce((a,r) => a + r.duration, 0)
@@ -685,13 +833,38 @@
     records.forEach(r => { subjectMins[r.subject] = (subjectMins[r.subject]||0) + r.duration })
 
     // Extended stats for full badge system
+    // ⚠ Everything below is a read of a counter that some OTHER page is expected to
+    // write. There is no schema and no test tying the two ends together, so most of
+    // these are silently dead. If you add a badge, grep for its counter key first
+    // and confirm something actually writes it.
+
+    // FIXME(high): reads 'redeemHistory', but _unlockReward() writes 'unlockHistory'
+    // (see getHistory/setHistory above). Nothing writes 'redeemHistory' anywhere in
+    // the repo, so this is always 0 and the three Rewards badges are unobtainable.
     const redeemed       = (csGetJSON('redeemHistory',[])).length
+    // FIXME(medium): 'social_feed_count' is written by no file — the Showoff badge
+    // is unobtainable. It is also read via raw localStorage, so it is NOT per-account
+    // (no cs_<user>_ prefix): if it were ever written, every account would share it.
     const socialPosts    = parseInt(localStorage.getItem('social_feed_count')||'0')
+    // Raw localStorage, but hand-namespaced with currentUser() — the same thing
+    // csGetJSON() does for you. Prefer the cs* helpers in new code.
     const friends        = JSON.parse(localStorage.getItem(`social_friends_${currentUser()}`)||'[]').length
     const snailClicks    = parseInt(csGet('snailClickCount')||'0')
+    // FIXME(medium): 'assessmentDone' is set to 'started' or 'skipped' by the prompt
+    // in index.html, so this truthiness check awards the "Lab Rat / completed the
+    // assessment" badge to users who SKIPPED it. Check for a completion value.
     const didAssessment  = !!csGet('assessmentDone')
+    // FIXME(medium): nothing in the app ever writes 'done' (only index.html's
+    // 'started'/'skipped'), so fullTest is permanently false and the Transformation
+    // badge is unobtainable. assessment.html must record completion.
     const fullTest       = csGet('assessmentDone') === 'done'
+    // FIXME(high): 'planDone' is an OBJECT keyed by task index ({ idx: timestamp } —
+    // see renderer/pages/plan.html), not an array. `.length` on it is undefined, so
+    // parseInt yields NaN and every `s.planTasks >= n` comparison is false: the three
+    // study-path badges can never unlock. Use Object.keys(...).length.
     const planTasks      = parseInt(csGet('planDone') ? JSON.parse(csGet('planDone')||'[]').length : 0)
+    // FIXME(medium): 'social_goals_completed' is written by no file — the Teammate
+    // badge is unobtainable. Also non-prefixed, so it would be shared across accounts.
     const groupGoals     = parseInt(localStorage.getItem('social_goals_completed')||'0')
     const recordings     = parseInt(csGet('recordingCount')||'0')
     const emailsRead     = parseInt(csGet('emailsRead')||'0')
@@ -700,6 +873,9 @@
     const notesSynced    = parseInt(csGet('notesSynced')||'0')
     const flashcards     = parseInt(csGet('flashcardsReviewed')||'0')
     const gaveFeedback   = !!csGet('feedbackSent')
+    // These three are derived from `records` and therefore actually work, unlike
+    // most of their neighbours. r.duration is in MINUTES; maxSingleSession converts
+    // to hours because the All-Nighter badge is specified in hours.
     const deepWork       = records.filter(r=>r.duration>=60).length
     const marathon       = records.filter(r=>r.duration>=90).length
     const maxSingleSession = records.length ? Math.max(...records.map(r=>r.duration/60)) : 0
@@ -718,10 +894,16 @@
       redeemed, socialPosts, friends, snailClicks, didAssessment, fullTest, planTasks, groupGoals, recordings, emailsRead, wordsWritten, factChecks, notesSynced, flashcards, gaveFeedback, deepWork, marathon, maxSingleSession, allTimers, highTestScore, notifClick, midnightStudy, weekendStudy, ghostMode, perfectDays, earlyBird, nightOwl, maxDayPoints }
   }
 
+  // ── Stats tab render ───────────────────────────────────────────
+  // Called on every switch to the Stats tab (never at boot). renderStreak() runs
+  // first because it is what pays out milestone bonuses, so the Study Points tile
+  // below reflects any bonus won on this very render.
   function renderStats() {
     renderStreak()
     const s = computeStats()
 
+    // Third computeStreak() call of this render (renderStreak + computeStats both
+    // ran it already). Cheap enough at these record counts to not be worth threading.
     const { current: streakNow } = computeStreak()
     document.getElementById('statsGrid').innerHTML = `
       <div class="stat-tile"><div class="stat-value">${s.sessions}</div><div class="stat-label">Total Sessions</div></div>
@@ -729,6 +911,8 @@
       <div class="stat-tile"><div class="stat-value">${streakNow}</div><div class="stat-label">Day Streak</div></div>
       <div class="stat-tile"><div class="stat-value">${getPoints()}</div><div class="stat-label">Study Points</div></div>`
 
+    // Weekly goal card. dailyGoal == 0 means "never configured" rather than "goal of
+    // zero", so the else-branch nudges to Setup instead of rendering a 0-hour target.
     const weekCard = document.getElementById('weeklyCard')
     if (s.dailyGoal > 0) {
       const weekTarget = s.dailyGoal * 7 * 60
@@ -751,9 +935,15 @@
         <button class="btn btn-ghost" style="margin-top:12px;" onclick="window.navigateTo('welcome')">Go to Setup →</button>`
     }
 
+    // Subject bars are scaled against the LARGEST subject (not the total), so the top
+    // subject always fills the bar. `|| 1` avoids a divide-by-zero on an empty list.
     const breakdown = document.getElementById('subjectBreakdown')
     const subjectEntries = Object.entries(s.subjectMins).sort((a,b) => b[1]-a[1])
     const maxMins = subjectEntries[0]?.[1] || 1
+    // FIXME(medium): stored XSS — the `${sub}` in the .subject-bar-label below is a
+    // user-entered subject name interpolated raw into innerHTML with no esc(),
+    // unlike every other user string in this file. A subject containing markup
+    // corrupts the chart and executes. Wrap it in esc() (defined above).
     breakdown.innerHTML = subjectEntries.length
       ? subjectEntries.map(([sub,mins]) => `
           <div class="subject-bar-row">
@@ -763,7 +953,9 @@
           </div>`).join('')
       : '<div style="color:var(--text-secondary);font-size:13px;">No sessions logged yet.</div>'
 
-    // Group by category
+    // Group by category. Section order follows first-appearance order in BADGES,
+    // so reordering that table reorders the UI. Badge fields are interpolated
+    // without esc() — safe only because they are hardcoded above, never user input.
     const cats = [...new Set(BADGES.map(b=>b.cat))]
     const earnedCount = BADGES.filter(b=>b.req(s)).length
     const badgeEl = document.getElementById('badgeGrid')
@@ -791,10 +983,20 @@
   function setWishlist(arr) { csSetJSON('wishlist', arr) }
 
   /* ── AI-style point assignment ─────────────────────────────────
+     NOTE: "AI-style" is literal — this is a keyword lookup table, not a model
+     call. It does not touch window.aiChat / window.api.askAI, so it works
+     offline, costs nothing, and needs no API key. Keep it that way: the wishlist
+     preview runs on every keystroke.
+
      Categories carry a "study-worthiness" multiplier:
      luxury/tech = harder to earn (higher pts/$), food/snacks = easier.
      This mimics AI reasoning: the system weighs the item's value to
      your future self against how much study effort it should take.   */
+  // ORDER IS SIGNIFICANT: aiAssignPoints() takes the FIRST category with a matching
+  // keyword and stops. Overlapping keys resolve top-down — e.g. 'playstation' appears
+  // in both 'Gaming/peripherals' (1.4) and 'Gaming' (1.1), and the earlier entry
+  // always wins. Matching is a naive substring test on the lowercased name, so short
+  // keys can match inside longer words ('pc', 'game'). Put specific rows above broad.
   const CATEGORIES = [
     { keys:['laptop','macbook','computer','pc','desktop','monitor','tablet','ipad'],      mult:1.8, label:'Tech gear' },
     { keys:['phone','iphone','airpods','headphones','earbuds','speaker'],                 mult:1.6, label:'Electronics' },
@@ -810,6 +1012,10 @@
     { keys:['movie','netflix','spotify','disney','hulu','streaming'],                     mult:0.6, label:'Entertainment' },
   ]
 
+  // (name, price$) -> { pts, label, mult }. Unmatched items fall back to mult 1.0.
+  // Pure and deterministic: called both for the live preview and for the real value
+  // stored on "Add →", and the two must agree. The 5-point floor stops a $0.50 snack
+  // from rounding to a free reward.
   function aiAssignPoints(name, price) {
     const lower = name.toLowerCase()
     let match = null
@@ -824,6 +1030,12 @@
     return { pts, label, mult }
   }
 
+  // Wishlist rows show progress of the CURRENT balance toward each item's cost —
+  // it is a projection, not an escrow: points are not reserved, and the same points
+  // count toward every item at once. Nothing is deducted until the item is promoted
+  // to the shop and unlocked there.
+  // Empty list renders nothing at all (no empty-state), by design — the form above
+  // is self-explanatory and an empty card would just add noise.
   function renderWishlist() {
     const pts   = getPoints()
     const items = getWishlist()
@@ -831,7 +1043,7 @@
     if (!items.length) { el.innerHTML = ''; return }
     el.innerHTML = items.map((item, i) => {
       const pct     = Math.min(100, Math.round(pts / item.cost * 100))
-      const canAdd  = true
+      const canAdd  = true   // dead: never read. "Add to Shop" is always enabled.
       return `<div class="wishlist-item">
         <button class="wishlist-delete-btn" onclick="window._deleteWishlist(${i})" title="Remove">✕</button>
         <div class="wishlist-item-icon">${esc(item.icon||'🛍️')}</div>
@@ -887,6 +1099,9 @@
     const list = getWishlist(); list.splice(i, 1); setWishlist(list); renderWishlist()
   }
 
+  // Promote a wishlist entry into the shop. The point cost is COPIED as-is, so an
+  // item keeps the price it was scored at even if CATEGORIES/multipliers change
+  // later. The $ price is intentionally dropped — the shop only deals in points.
   window._wishlistToShop = (i) => {
     const item = getWishlist()[i]
     if (!item) return
@@ -900,11 +1115,26 @@
   }
 
   // Boot on Points Shop tab (default)
+  // Runs on EVERY visit (loadPage re-executes this script). Stats is not rendered
+  // here — showTab('stats') does it lazily. No _pageCleanup is registered because
+  // nothing above outlives the page; add one if you ever start an interval here.
   renderShop()
   renderWishlist()
 })()
 
 // ── Export Report ─────────────────────────────────────────────────
+// Builds a standalone, self-contained HTML report and document.write()s it into a
+// new window, where the user prints it or saves it as PDF. It must stay
+// self-contained (inline <style>, no external assets) because the popup does not
+// inherit this page's stylesheet or the app's CSS variables — that is why the
+// palette below is hardcoded hex rather than var(--accent).
+//
+// Deliberately OUTSIDE the IIFE, so it re-declares cleanly on each page visit and
+// is reachable from the inline onclick. The cost is that it can see none of the
+// IIFE's helpers (esc, computeStreak, computeStats, BADGES) and re-implements the
+// streak, heatmap and stats logic from scratch — the duplication below is the
+// source of both FIXMEs in this function. Fold it into the IIFE and export the
+// helpers if you touch this seriously.
 window.exportReport = function() {
   const records    = csGetJSON('records', [])
   const pts        = parseInt(csGet('studyPoints')||'0')
@@ -917,6 +1147,10 @@ window.exportReport = function() {
 
   // Streak
   const days = [...new Set(records.map(r=>r.date))].sort()
+  // FIXME(high): seeds the walk with the UTC date, but records store LOCAL dates.
+  // Any evening west of UTC the seed is already "tomorrow", `days` never contains
+  // it, the loop body never runs and the report prints a 0-day streak even for a
+  // user on a 100-day run. Seed from the local date (cf. localDateStr() in the IIFE).
   let streak=0, check=new Date().toISOString().slice(0,10)
   while(days.includes(check)){streak++;const d=new Date(check);d.setDate(d.getDate()-1);check=d.toISOString().slice(0,10)}
 
@@ -937,16 +1171,21 @@ window.exportReport = function() {
       <td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.duration}min</td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;">${['','★','★★','★★★','★★★★','★★★★★'][r.rating||0]||'—'}</td></tr>`).join('')
 
-  // Heatmap last 30 days
+  // Heatmap last 30 days — a second, independent copy of renderStreak()'s heatmap
+  // (different colour ramp, inline styles so it survives in the popup).
   const perDay={}; records.forEach(r=>{perDay[r.date]=(perDay[r.date]||0)+1})
   const heatCells = Array.from({length:30},(_,i)=>{
+    // Same UTC-vs-local key mismatch as the on-page heatmap: `ds` is a UTC day but
+    // perDay is keyed by local record dates, so the window can shift by one.
     const d=new Date(); d.setDate(d.getDate()-(29-i)); const ds=d.toISOString().slice(0,10)
     const c=Math.min(4,perDay[ds]||0)
     const colors=['#f0f0f0','#b7e3d8','#7ec9bf','#3daa9d','#0f7b6c']
     return `<div style="width:16px;height:16px;border-radius:3px;background:${colors[c]};display:inline-block;margin:2px;" title="${ds}: ${perDay[ds]||0} sessions"></div>`
   }).join('')
 
-  // Badges earned
+  // Badges earned. Rebuilds a stats object by hand because computeStats() is trapped
+  // in the IIFE; every counter it cannot reach is hardcoded to a zero/false stub,
+  // so the report under-reports badges even when it works.
   const badgeCount = (() => {
     const s = { sessions, hours:parseFloat(totalHours), pomodoros:records.filter(r=>r.source==='timer').length,
       bestStreak:streak, uniqueDays:Object.keys(perDay).length, totalEarned:pts,
@@ -958,9 +1197,18 @@ window.exportReport = function() {
       maxSingleSession:records.length?Math.max(...records.map(r=>r.duration/60)):0,
       allTimers:false, highTestScore:false, notifClick:false, midnightStudy:false,
       weekendStudy:false, ghostMode:0, perfectDays:0, earlyBird:false, nightOwl:false, maxDayPoints:0 }
+    // FIXME(medium): window._BADGES is never assigned anywhere in the repo — the
+    // BADGES table lives inside the IIFE and is never exported. This guard is always
+    // false, so the whole `s` object above is dead and the report always prints
+    // "— badges unlocked". Export BADGES onto window, or move exportReport inside.
     return window._BADGES ? window._BADGES.filter(b=>b.req(s)).length : '—'
   })()
 
+  // The report document. Note the "v5.2.0" in the subtitle is hardcoded here and does
+  // not track package.json — bump it by hand. Careful editing the template literal
+  // below: everything inside the backticks is emitted verbatim, so a comment written
+  // in there ends up in the user's report. Subject/display names are interpolated
+  // unescaped here too (same class of bug as the on-page Subject Breakdown FIXME).
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
 <title>Study Report — ${name}</title>
 <style>
@@ -1010,6 +1258,11 @@ window.exportReport = function() {
 </div>
 </body></html>`
 
+  // document.write into a blank popup, not a Blob/data URL: this keeps the report on
+  // an about:blank origin so its inline <script>-free markup and the Print button
+  // work without Electron's CSP or file:// restrictions getting involved.
+  // close() is required — without it the document stays in a loading state and the
+  // print stylesheet may not apply.
   const win = window.open('', '_blank')
   win.document.write(html)
   win.document.close()

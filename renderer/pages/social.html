@@ -1,4 +1,57 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     SOCIAL PAGE — friends list, 1:1 chat, achievement feed, group goals.
+
+     WHAT IT IS
+     One of the page fragments under renderer/pages/. It is fetched and
+     injected into #content by loadPage() in renderer/index.html when the
+     user clicks the "Social" nav item. It is NEVER opened as a top-level
+     document, so the <!DOCTYPE>/<html>/<head> wrapper below is inert —
+     DOMParser hoists the <style> out of head and loadPage re-appends it.
+
+     TWO BACKENDS, ONE UI
+     Every feature runs in one of two modes, branched on the module-level
+     `db` variable:
+       db !== null  → Firebase Realtime Database, live-synced across users.
+       db === null  → "demo mode": localStorage only, single device, no sync.
+     The user supplies their own Firebase config (see setup box below); it is
+     stored under 'social_firebase_config' and the SDK is loaded from gstatic
+     at runtime. Every write path in this file has a `if (db) … else …` pair —
+     if you add a feature, you must implement BOTH halves or demo mode breaks.
+
+     ══ READ THIS BEFORE EDITING ══════════════════════════════════════════
+     loadPage() RE-CREATES and RE-EXECUTES every <script> in this file, in
+     GLOBAL scope, on EVERY visit to the page. That has three consequences:
+
+     1. This page's <script> is NOT wrapped in an IIFE, unlike every other
+        page in renderer/pages/. It must be. See FIXME(critical) at the top
+        of the script block — top-level `const` re-declaration makes the
+        whole block a SyntaxError from the second visit onward.
+     2. Inline onclick="foo()" in the markup only resolves against globals.
+        Functions here are currently global by accident (top-level function
+        declarations in a re-injected classic script). Once the IIFE lands,
+        every handler reachable from markup must be explicitly assigned to
+        window.* — as startStudyTogether/endStudyTogether already are.
+     3. Nothing here registers window._pageCleanup, so the Firebase
+        .on('value') listeners this page attaches are never detached and
+        stack up on every visit. See the leak FIXMEs below.
+
+     STORAGE KEYS — INCONSISTENT WITH THE REST OF THE APP
+     The app convention is window.csKey/csGet/csSet (namespaced cs_<user>_<key>).
+     This page instead hand-rolls `social_*_${ME}` keys and reads
+     'cs_currentUser' directly. Feed and goals ('social_feed', 'social_goals')
+     are NOT per-account at all — every local account shares one cache. Only
+     the XP/streak reads borrow csKey. Prefer csKey for anything new.
+
+     SECURITY — THIS PAGE RENDERS UNTRUSTED REMOTE DATA
+     Friend names, feed posts and goal titles arrive from Firebase, written by
+     other users, under test-mode rules (public read/write). They are dropped
+     into innerHTML. escHtml() exists at the bottom but is applied unevenly —
+     several fields are raw. Multiple XSS FIXMEs are marked inline. escHtml()
+     is an HTML-context escaper only: it does NOT make a value safe to splice
+     into a single-quoted onclick="…" attribute (JS string context).
+     ══════════════════════════════════════════════════════════════════════ -->
 <!--
   ┌─────────────────────────────────────────────────────────────┐
   │  FIREBASE SETUP (takes 5 minutes, completely free):         │
@@ -15,9 +68,16 @@
 <head>
 <meta charset="UTF-8"/>
 <style>
+  /* ── Global reset ── */
+  /* GOTCHA: this <style> is NOT scoped to the page fragment. loadPage() lifts
+     it out of <head> and appends it to #content, so these `*` and `body` rules
+     apply to the whole app shell for as long as this page is mounted, and are
+     dropped when you navigate away. Keep global selectors to a minimum here;
+     new rules should hang off a page-specific class. */
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9f9f9;color:#111;-webkit-font-smoothing:antialiased;}
 
+  /* ── Page header ── */
   .page-header{padding:28px 28px 0;}
   .page-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#111;}
   .page-sub{font-size:13px;color:#888;margin-top:4px;}
@@ -29,6 +89,8 @@
   #setup-banner a{color:#0f7b6c;font-weight:600;text-decoration:none;}
 
   /* ── Tabs ── */
+  /* Panes are shown/hidden purely via .active; every pane stays in the DOM, so
+     element ids are always resolvable regardless of which tab is on screen. */
   .tabs{display:flex;gap:0;border-bottom:1px solid #e5e5e5;padding:0 28px;margin-top:20px;}
   .tab{padding:10px 18px;font-size:13px;font-weight:600;color:#888;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;}
   .tab.active{color:#0f7b6c;border-bottom-color:#0f7b6c;}
@@ -70,6 +132,9 @@
   .empty-state .empty-icon{font-size:36px;margin-bottom:12px;}
 
   /* ── Chat pane ── */
+  /* The 240px is the combined height of the app shell chrome above this pane
+     (page header + friend-code banner + tab strip + padding). It is hand-tuned,
+     not derived — if you change any of those, re-measure this. */
   #chat-pane{display:flex;flex-direction:column;height:calc(100vh - 240px);background:#fff;border:1px solid #e5e5e5;border-radius:10px;}
   .chat-header{padding:14px 18px;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;gap:10px;}
   .chat-back{background:none;border:none;font-size:18px;cursor:pointer;color:#666;padding:0 4px;}
@@ -107,6 +172,9 @@
   .goal-bar-wrap{background:#f3f4f6;border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px;}
   .goal-bar{height:100%;background:#0f7b6c;border-radius:99px;transition:width .5s;}
   .goal-bar-label{display:flex;justify-content:space-between;font-size:11px;color:#888;}
+  /* NOTE: `gap:-6px` is invalid (gap cannot be negative) and is silently
+     dropped. The avatar overlap actually comes from .goal-avatar's negative
+     margin-right below — that's the knob to turn. */
   .goal-members{display:flex;gap:-6px;margin-top:10px;}
   .goal-avatar{width:26px;height:26px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-right:-6px;}
   .new-goal-form{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:20px;margin-bottom:16px;}
@@ -123,13 +191,22 @@
 </head>
 <body>
 
+<!-- ── Toast host — driven by toast() ── -->
 <div id="notif"></div>
 
+<!-- ── Page header ── -->
 <div class="page-header">
   <div class="page-title">Social</div>
   <div class="page-sub">Chat with friends, share achievements, set group goals</div>
 </div>
 
+<!-- ── Setup banner — "Firebase not connected" ──
+     Visible by default: it carries no .hidden class here, so init()'s
+     `classList.remove('hidden')` on the no-config path is a no-op. The banner
+     is only ever hidden once the Firebase SDK has finished loading over the
+     network (initFirebase → script2.onload). So a configured-but-offline user
+     sees this banner until the gstatic fetch resolves — or forever if it
+     fails. Every onclick here must resolve to a global (see file header). -->
 <div id="setup-banner">
   <span style="font-size:20px;">⚠️</span>
   <div>
@@ -141,7 +218,9 @@
   <button onclick="document.getElementById('setup-banner').classList.add('hidden')" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:#888;">×</button>
 </div>
 
-<!-- Friend code -->
+<!-- ── Friend code — this user's public identity ──
+     #myCode is filled by init() from generateCode(ME). It is the primary key
+     for everything in Firebase (users/, requests/, friends/, chats/). -->
 <div style="padding:0 28px;">
   <div class="code-banner">
     <div>
@@ -153,7 +232,11 @@
   </div>
 </div>
 
-<!-- Tabs -->
+<!-- ── Tab strip ──
+     INVARIANT: switchTab() highlights the active tab by INDEX, against the
+     hard-coded list ['friends','chat','feed','goals']. The DOM order of these
+     four buttons must stay in lockstep with that array, and each id must be
+     `tab-<name>`. Adding or reordering a tab means editing switchTab() too. -->
 <div class="tabs">
   <button class="tab active" onclick="switchTab('friends')">Friends</button>
   <button class="tab" onclick="switchTab('chat')">Chat</button>
@@ -240,7 +323,10 @@
   </div>
 </div>
 
-<!-- Brag modal -->
+<!-- ── Brag modal — compose an achievement post ──
+     Toggled by openBragModal/closeBragModal, which flip inline display between
+     'flex' and 'none'. (The duplicated `display:none` in the style attribute is
+     redundant but harmless — last one wins, and both say none.) -->
 <div id="brag-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9000;display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:28px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
     <div style="font-size:16px;font-weight:800;margin-bottom:16px;">Share Achievement</div>
@@ -264,7 +350,11 @@
   </div>
 </div>
 
-<!-- Firebase Setup Modal -->
+<!-- ── Firebase setup modal — paste-your-own-config onboarding ──
+     The user pastes the raw firebaseConfig JSON from the Firebase console;
+     saveFirebaseConfig() validates it has a databaseURL and stores the RAW
+     STRING under 'social_firebase_config' (a global, non-namespaced key — the
+     backend is a machine-level setting, shared by all local accounts). -->
 <div id="firebase-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:32px;width:500px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);">
     <div style="font-size:18px;font-weight:800;margin-bottom:16px;">🔥 Firebase Setup</div>
@@ -284,7 +374,18 @@
 </div>
 
 <script>
+// FIXME(critical): this script has no IIFE wrapper — every other page in
+// renderer/pages/ has one. loadPage() re-executes this block in GLOBAL scope on
+// every visit, so `const ME` is re-declared and the whole block dies with
+// "Identifier 'ME' has already been declared" from the 2nd visit on: init()
+// never runs, the friend code stays "——" and nothing renders. Wrap in
+// (function(){ … })(), export the markup's onclick targets onto window, and
+// register window._pageCleanup to detach the Firebase listeners. See audit.
+
 // ── Config & state ────────────────────────────────────────────
+// NOTE: reads 'cs_currentUser' directly rather than going through window.csKey/
+// csGet. The `social_*_${ME}` keys below are a parallel, hand-rolled namespace;
+// `social_feed`/`social_goals` are not per-account at all (see file header).
 const ME = (localStorage.getItem('cs_currentUser') || 'you').toLowerCase()
 const MY_CODE = generateCode(ME)
 let friends = JSON.parse(localStorage.getItem(`social_friends_${ME}`) || '[]')
@@ -297,6 +398,16 @@ let db = null // Firebase DB reference (null = demo mode)
 let chatUnsub = null
 
 // ── Friend code generation ────────────────────────────────────
+// Deterministic 5-char code derived from the username — there is no server
+// handing out ids, so two users must be able to compute each other's code from
+// nothing but the name. Consequences a contributor should know:
+//  - Same username on two machines = same code = same Firebase record. The code
+//    is an identifier, not a secret, and nothing authenticates it.
+//  - The alphabet deliberately omits I/O/0/1 so codes survive being read aloud
+//    or copied off a screen.
+//  - Changing this function orphans every existing friendship and chat room.
+// (djb2-style xor-less hash; the `|| (h + 7919)` keeps the loop from collapsing
+// to a repeated character once h divides down to 0.)
 function generateCode(username) {
   let hash = 0
   for (let i = 0; i < username.length; i++) hash = ((hash << 5) - hash) + username.charCodeAt(i)
@@ -323,6 +434,9 @@ function toast(msg, dur=2500) {
 }
 
 // ── Init ──────────────────────────────────────────────────────
+// Called synchronously at the bottom of this script on every page load.
+// Renders from the localStorage cache first so the UI is populated instantly;
+// Firebase connects asynchronously and re-renders over the top when ready.
 function init() {
   document.getElementById('myCode').textContent = MY_CODE
 
@@ -344,6 +458,14 @@ function init() {
 }
 
 // ── Firebase ──────────────────────────────────────────────────
+// The SDK is fetched from gstatic on demand rather than bundled: users who
+// never configure Firebase pay nothing, and the app ships without a vendor blob.
+// The compat (namespaced) builds are used, not the modular v9+ API — hence the
+// `firebase.database()` globals below. Both scripts must load in order:
+// firebase-app-compat defines the `firebase` global that database-compat extends.
+// GOTCHA: initFirebase can be called twice (once from init(), once from
+// saveFirebaseConfig()), which appends a second copy of both <script> tags; the
+// `if (!firebase.apps.length)` guard is what keeps the double init harmless.
 function initFirebase(config) {
   // Dynamically load Firebase SDK
   const script1 = document.createElement('script')
@@ -365,10 +487,23 @@ function initFirebase(config) {
         toast('🔥 Connected to Firebase!')
       } catch(e) { console.error('Firebase connect error', e) }
     }
+    // NOTE: script2 was already appended above, before onload was attached.
+    // Re-appending the same node only moves it within <head> — it does not load
+    // or execute twice — so this line is redundant rather than harmful. The
+    // onload above still fires because external scripts never resolve within
+    // this synchronous task.
     document.head.appendChild(script2)
   }
 }
 
+// Publishes this user's public profile card (name/xp/streak) to users/<code>,
+// which is what renderFriends() reads back for everyone else's status line.
+// onDisconnect() is a server-side hook: Firebase flips status to 'offline' when
+// the socket drops, so a crashed/closed app doesn't linger as "online".
+// NOTE: the `xp` read is `localStorage.getItem(csKey ? window.csKey(...) : 0)` —
+// it tests the BARE `csKey`, not `window.csKey`, unlike the `streak` read on the
+// same line. Bare `csKey` does resolve (window props are globals), so this works
+// today, but the two halves disagree; prefer the `window.csKey` form.
 function registerPresence() {
   if (!db) return
   const ref = db.ref(`users/${MY_CODE}`)
@@ -376,6 +511,10 @@ function registerPresence() {
   ref.child('status').onDisconnect().set('offline')
 }
 
+// Live-mirrors requests/<myCode> into pendingReqs + localStorage.
+// GOTCHA: the `if (newReqs.length)` guard means an empty snapshot is IGNORED,
+// so pendingReqs is never cleared by a remote delete — the local cache only
+// ever grows until acceptRequest/decline mutates it by hand.
 function subscribeToFriendRequests() {
   if (!db) return
   db.ref(`requests/${MY_CODE}`).on('value', snap => {
@@ -390,10 +529,18 @@ function subscribeToFriendRequests() {
 }
 
 // ── Tab switching ─────────────────────────────────────────────
+// INVARIANT: the tab buttons are matched by INDEX against this literal array,
+// so its order must mirror the DOM order of .tab in the markup above.
+// Each pane's id must also be `tab-<name>`.
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['friends','chat','feed','goals'][i] === name))
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
   document.getElementById(`tab-${name}`).classList.add('active')
+  // Re-render on entry so a tab is never showing a stale snapshot.
+  // FIXME(high): in Firebase mode renderFeed()/renderGoals() each attach a
+  // fresh .on('value') listener without detaching the previous one, so every
+  // tab switch permanently stacks another live subscription (and another
+  // re-render per remote change). See the leak FIXMEs in renderFeed/renderGoals.
   if (name === 'feed') renderFeed()
   if (name === 'goals') renderGoals()
   if (name === 'chat') renderConvoList()
@@ -405,10 +552,17 @@ function copyCode() {
 }
 
 // ── Friends ───────────────────────────────────────────────────
+// Avatar colour is derived from the code's first char so a given friend keeps
+// the same colour everywhere (list, chat header, feed) with no stored state.
 const COLORS = ['#0f7b6c','#7c3aed','#d97706','#dc2626','#0ea5e9','#16a34a']
 function colorFor(code) { return COLORS[code.charCodeAt(0) % COLORS.length] }
 function initialsFor(name) { return name.slice(0,2).toUpperCase() }
 
+// Firebase path: requests/<theirCode>/<myCode>. Keying the request by the
+// SENDER's code (rather than push()) makes re-sending idempotent — a second
+// request overwrites the first instead of piling up duplicates.
+// In demo mode there is nobody to ask, so the "friend" is fabricated locally
+// and flagged `demo:true`.
 async function sendFriendRequest() {
   const code = document.getElementById('addFriendInput').value.trim().toUpperCase()
   if (!code || code.length < 4) return toast('Enter a valid friend code')
@@ -430,6 +584,11 @@ async function sendFriendRequest() {
   document.getElementById('addFriendInput').value = ''
 }
 
+// Accepting writes BOTH sides of the friendship (friends/<me>/<them> and
+// friends/<them>/<me>) — the graph is stored denormalised per-user, so a
+// one-sided write leaves the other party without the edge.
+// `req` arrives as a JSON blob spliced into the Accept button's onclick; see
+// the FIXMEs in renderFriends about that.
 function acceptRequest(req) {
   friends.push({ code: req.code, username: req.from, status: 'online' })
   saveFriends()
@@ -458,7 +617,24 @@ function renderFriends() {
   const pSec = document.getElementById('pending-section')
   document.getElementById('friend-count').textContent = friends.length
 
-  // Pending
+  // ── Pending requests ──
+  // Everything interpolated below (r.from, r.code) was written to Firebase by a
+  // STRANGER — anyone who knows your friend code can write requests/<code>
+  // under test-mode rules, and this list renders BEFORE you accept anything.
+  // Three separate defects live in the template literal below:
+  //
+  // FIXME(critical): zero-click stored XSS — `${r.from}` in .friend-name goes
+  //   into innerHTML unescaped. A request from a user named
+  //   `<img src=x onerror=…>` fires the moment the list paints, no click needed.
+  //   escHtml() (bottom of file) is used elsewhere; it is just missing here.
+  // FIXME(medium): `onclick='acceptRequest(${JSON.stringify(r)})'` — JSON.stringify
+  //   does not escape `'`, so a name containing an apostrophe closes the
+  //   single-quoted attribute early: breaks on ordinary names like O'Brien, and
+  //   is an injection point for hostile ones. Pass the code and look `r` up.
+  // FIXME(medium): the Decline handler only rewrites the local array and
+  //   localStorage — it never removes requests/<myCode>/<code> from Firebase, so
+  //   subscribeToFriendRequests() re-adds the request on the next snapshot and
+  //   the declined user reappears forever. Mirror acceptRequest()'s .remove().
   if (pendingReqs.length) {
     pSec.style.display = 'block'
     pList.innerHTML = pendingReqs.map(r => `
@@ -478,13 +654,36 @@ function renderFriends() {
     return
   }
 
-  // If Firebase, fetch live status; otherwise use stored
+  // If Firebase, fetch live status; otherwise use stored.
+  // Each friend's public card (status/xp/streak) is merged OVER the local copy,
+  // so remote fields win and local-only fields (e.g. `demo`) survive.
+  // FIXME(medium): race — this Promise.all closes over the `friends` array as it
+  // was when the fetch started, then REPLACES the whole array on resolve. If the
+  // user hits Remove (or accepts a request) while the fetch is in flight, the
+  // stale snapshot clobbers that edit and saveFriends() persists the resurrected
+  // friend to localStorage. Reconcile per-code against the current array, or
+  // guard with a version counter like loadPage()'s _navVersion.
   if (db) {
     Promise.all(friends.map(f => db.ref(`users/${f.code}`).once('value').then(s => ({ ...f, ...(s.val()||{}) }))))
       .then(updated => { friends = updated; saveFriends(); _renderFriendCards() })
   } else _renderFriendCards()
 }
 
+// Leading underscore = internal; call renderFriends() instead, which refreshes
+// presence first. Split out only so the Firebase and demo paths share markup.
+//
+// `f.username`, `f.status` and `f.code` are remote values merged in by
+// renderFriends() from users/<code>, i.e. written by the other user.
+//
+// FIXME(high): stored XSS — `${f.username}` is interpolated into innerHTML
+//   unescaped in .friend-name and .friend-meta. A friend can rename themselves
+//   to markup and run script in your renderer.
+// FIXME(high): JS-context injection — the same untrusted values are spliced into
+//   single-quoted inline handlers, e.g.
+//   onclick="openChat('${f.code}','${f.username||f.code}',…)". escHtml() would
+//   NOT fix this: it escapes `&<>"` but not `'`, and an apostrophe (or `\`) here
+//   terminates the JS string and appends attacker-controlled code. Fix by
+//   dropping inline onclick for addEventListener + a dataset code lookup.
 function _renderFriendCards() {
   const list = document.getElementById('friends-list')
   list.innerHTML = friends.map(f => {
@@ -508,6 +707,14 @@ function _renderFriendCards() {
 }
 
 // ── Chat ──────────────────────────────────────────────────────
+// Room ids are `[MY_CODE, theirCode].sort().join('_')` — sorting is what makes
+// both participants derive the SAME room id from their own perspective, with no
+// server assigning one. Never build a room id without the .sort().
+//
+// Only one chat is subscribed at a time; chatUnsub holds the detach fn for the
+// current room and MUST be called before opening another (and by closeChat).
+// GOTCHA: navigating away from the page does not call closeChat(), so the last
+// room's listener survives — this is what window._pageCleanup is for.
 function openChat(code, name, status) {
   currentChatFriend = { code, name, status }
   document.getElementById('chat-friend-name').textContent = name
@@ -552,6 +759,10 @@ async function sendMessage() {
 
   const msg = { from: MY_CODE, fromName: ME, text, ts: Date.now() }
 
+  // Firebase path deliberately does NOT re-render or push to `messages` here:
+  // the .on('value') subscription in openChat() echoes the write straight back
+  // and does both. Appending locally as well would double every sent message.
+  // The demo path has no such echo, hence the explicit push/save/render.
   if (db) {
     const roomId = [MY_CODE, currentChatFriend.code].sort().join('_')
     await db.ref(`chats/${roomId}`).push(msg)
@@ -563,6 +774,12 @@ async function sendMessage() {
   }
 }
 
+// Full innerHTML rebuild on every incoming message — fine at this scale, but it
+// is why scrollTop is force-pinned to the bottom at the end (the scroll position
+// is destroyed along with the nodes). Message bodies ARE correctly escaped here
+// via escHtml() — this is the one render path in the file that gets it right.
+// m.fromName reaches markup only through initialsFor(), whose 2-char slice is
+// too short to form a tag; that is luck, not a sanitiser. Don't widen the slice.
 function renderMessages() {
   if (!currentChatFriend) return
   const msgs = messages[currentChatFriend.code] || []
@@ -581,6 +798,13 @@ function renderMessages() {
   container.scrollTop = container.scrollHeight
 }
 
+// Conversation list = every friend (not just ones with history), previewing the
+// last cached message. It reads the local `messages` cache only, so previews for
+// rooms you have not opened this session stay at "No messages yet" until
+// openChat() subscribes and back-fills them.
+// FIXME(high): same unescaped-`f.username` XSS and single-quote onclick
+// breakout as _renderFriendCards() above — the preview text uses escHtml(), but
+// the name beside it does not, and neither does the onclick="openChat('…')".
 function renderConvoList() {
   const list = document.getElementById('convo-list')
   if (!friends.length) { list.innerHTML = '<div style="color:#888;font-size:13px;">Add friends to start chatting.</div>'; return }
@@ -598,9 +822,17 @@ function renderConvoList() {
 }
 
 // ── Feed ──────────────────────────────────────────────────────
+// The feed is GLOBAL, not friends-only: posts go to a single top-level `feed`
+// node and everyone using the same Firebase project sees them. There is no
+// per-friend filtering anywhere in this file.
 function openBragModal() { document.getElementById('brag-modal').style.display = 'flex' }
 function closeBragModal() { document.getElementById('brag-modal').style.display = 'none' }
 
+// Builds `post.stat` as a pre-rendered display STRING (not structured data), so
+// the emoji/label formatting lives here rather than in renderFeed(). That choice
+// is exactly why renderFeed() renders p.stat as raw HTML — see the FIXME there.
+// The XP/streak reads use optional-call (`window.csGet?.(…)`) because this page
+// can load before index.html's helpers exist in some boot orders.
 async function postBrag() {
   const text = document.getElementById('bragText').value.trim()
   if (!text) return toast('Write something first!')
@@ -628,6 +860,21 @@ async function postBrag() {
   toast('Posted! 🎉')
 }
 
+// Intent: when the study page finishes a focus session it writes
+// 'social_auto_brag', and this page auto-posts it to the feed.
+//
+// FIXME(high): this never fires. The `storage` event is only delivered to OTHER
+// documents sharing the origin — never to the window that performed the write.
+// Clever Snail is a single-window Electron app and every page is injected into
+// that same window, so nothing here ever runs and auto-posting is dead code.
+// Use a CustomEvent on window (or a direct call) instead of the storage channel.
+// `origSet` below is also dead — it captures localStorage.setItem and is never
+// read; presumably the remains of a monkey-patch approach that was abandoned.
+//
+// Also note: this registers a window-level listener with no removeEventListener,
+// and loadPage() re-runs this script on every visit — so once the IIFE/cleanup
+// FIXME at the top is fixed, this listener must be torn down in _pageCleanup or
+// it stacks one more copy per visit.
 function listenForSessionComplete() {
   // Watch for focus session completions to auto-post
   const origSet = localStorage.setItem.bind(localStorage)
@@ -648,6 +895,15 @@ async function autoPostSession(data) {
   renderFeed()
 }
 
+// Two entry points into one renderer: `loadFeed` paints an array, and the
+// db/demo branch at the bottom decides where that array comes from.
+//
+// FIXME(critical): stored XSS via `p.stat` — `${p.stat ? `<div …>${p.stat}</div>`}`
+// interpolates a REMOTE field as raw HTML while `p.author` and `p.text` on the
+// two adjacent lines are both escHtml()'d. postBrag() only ever builds `stat`
+// from a fixed set of local strings, which is why this looks safe locally — but
+// any Firebase client can push a post whose `stat` is arbitrary markup, and it
+// executes in every viewer's renderer. Escape it, or render stat structurally.
 function renderFeed() {
   const list = document.getElementById('feed-list')
 
@@ -673,6 +929,13 @@ function renderFeed() {
     }).join('')
   }
 
+  // FIXME(high): listener leak — renderFeed() is called from init(), from
+  // initFirebase(), from postBrag(), from autoPostSession() and from every
+  // switchTab('feed'). Each call attaches ANOTHER .on('value') to the same query
+  // and none is ever .off()'d, so subscriptions grow without bound: after N
+  // visits to the Feed tab a single remote post triggers N re-renders and N
+  // saveFeed() writes. Detach the previous handler (keep the ref like chatUnsub
+  // does) and hang the final teardown off window._pageCleanup.
   if (db) {
     db.ref('feed').orderByChild('ts').limitToLast(30).on('value', snap => {
       const data = snap.val() || {}
@@ -685,6 +948,12 @@ function renderFeed() {
   }
 }
 
+// Reactions are addressed by the post's `id` field (a client Date.now()), not by
+// the Firebase push key, so the whole feed has to be fetched and scanned to find
+// the key before writing. Note `v.id == postId` is deliberately loose: ids come
+// back as numbers from Firebase but as strings from the inline onclick attribute.
+// Not atomic — two simultaneous reactions read the same `cur` and one is lost;
+// a transaction() or ServerValue.increment would fix it.
 async function react(postId, emoji) {
   if (db) {
     const ref = db.ref(`feed`)
@@ -705,6 +974,11 @@ async function react(postId, emoji) {
 }
 
 // ── Goals ─────────────────────────────────────────────────────
+// Shared, time-boxed targets: members each contribute minutes toward one pooled
+// `progress` total. Like the feed, `goals` is a single global node — every user
+// of the Firebase project sees and can join every goal.
+// `expires` is stored as an ABSOLUTE ms timestamp (now + the <select>'s ms
+// value); the dropdown's option values are those durations in ms.
 async function createGoal() {
   const title = document.getElementById('goalTitle').value.trim()
   const target = parseInt(document.getElementById('goalTarget').value)
@@ -723,6 +997,13 @@ async function createGoal() {
   toast('Goal created! Share your friend code so others can join 🎯')
 }
 
+// Expiry is enforced only at render time (`g.expires > Date.now()`) — expired
+// goals are hidden but never deleted, so the `goals` node grows forever.
+//
+// FIXME(high): stored XSS — `${g.creator}` in .goal-meta is a remote,
+// user-chosen name written straight into innerHTML, three lines below
+// `${escHtml(g.title)}` which is escaped. Member names have the same problem via
+// initialsFor() (mitigated only by its 2-char slice). Escape g.creator.
 function renderGoals() {
   const list = document.getElementById('goals-list')
 
@@ -751,6 +1032,11 @@ function renderGoals() {
     }).join('')
   }
 
+  // `_key` caches the Firebase push key alongside each goal (the leading
+  // underscore marks it as local-only metadata, not part of the stored record).
+  // FIXME(medium): same unbounded listener leak as renderFeed() — a new
+  // .on('value') per renderGoals() call, i.e. per switch to the Goals tab, never
+  // detached. See the FIXME in renderFeed().
   if (db) {
     db.ref('goals').on('value', snap => {
       const data = snap.val() || {}
@@ -761,6 +1047,11 @@ function renderGoals() {
   } else showGoals(goals)
 }
 
+// The Firebase branch re-fetches all goals to map the client `id` back to a push
+// key — even though renderGoals() already cached that key as `_key` on each goal.
+// Worth reusing if you touch this. Note also that the db branch does NOT call
+// renderGoals(): the live .on('value') from renderGoals() re-renders on its own,
+// whereas the demo branch has no listener and must repaint explicitly.
 async function joinGoal(id) {
   if (db) {
     const snap = await db.ref('goals').orderByChild('ts').once('value')
@@ -775,6 +1066,11 @@ async function joinGoal(id) {
   toast('Joined goal! 🎯')
 }
 
+// Writes BOTH the pooled `progress` and the member's own tally; they are stored
+// separately and can drift apart if one .set() lands and the other doesn't.
+// Read-modify-write, so concurrent contributions can clobber each other — the
+// same non-atomicity noted on react(). Currently only ever called as +10 from
+// the goal card button.
 async function contributeGoal(id, mins) {
   if (db) {
     const snap = await db.ref('goals').once('value')
@@ -795,6 +1091,13 @@ async function contributeGoal(id, mins) {
 // ── Firebase config modal ─────────────────────────────────────
 function showFirebaseHelp() { document.getElementById('firebase-modal').style.display = 'flex' }
 function closeFirebaseModal() { document.getElementById('firebase-modal').style.display = 'none' }
+// Stores the RAW pasted string (not a re-serialised object) so the user's config
+// round-trips byte-for-byte. databaseURL is the only field checked because it is
+// the one this page actually needs — a config copied from a project without
+// Realtime Database enabled will otherwise fail silently much later.
+// NOTE: does not clear a previously saved bad config, and initFirebase() reports
+// connection failures only via console.error — a wrong-but-valid config leaves
+// the user staring at the setup banner with no explanation.
 function saveFirebaseConfig() {
   const raw = document.getElementById('firebaseConfigInput').value.trim()
   try {

@@ -1,4 +1,39 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     STUDY MODE  —  the app's core screen.
+
+     Five features live in this one fragment:
+       1. Focus / Pomodoro timer (with a 5-minute break overlay)
+       2. Ambient sound generator (synthesised with Web Audio — no asset files)
+       3. Focus Guard — an app allow-list enforced by the main process, which
+          re-focuses this window when a non-allowed app comes to the front
+       4. Session recording → Study Points → reward card
+       5. The crawling snail — a wandering AI helper shown while the timer runs
+
+     ── READ THIS BEFORE EDITING ─────────────────────────────────────────
+     • This page is INJECTED by loadPage() in renderer/index.html. loadPage()
+       RE-CREATES and RE-EXECUTES every <script> below on EVERY visit, in
+       GLOBAL scope. That is why there are three IIFEs (timer/guard, snail,
+       ambient) — without them every `const` here would collide on visit #2.
+     • Anything an IIFE starts — an interval, an event listener, an appended
+       DOM node — must be undone in window._pageCleanup, or one more copy
+       leaks per visit. Several leaks below are known and flagged FIXME.
+     • Inline handlers in the markup (onclick="setAmbient('rain')",
+       onclick="endStudySession()") resolve against window ONLY. That is why
+       those functions are assigned to `window.*` even from inside an IIFE —
+       an IIFE-local function would silently do nothing.
+     • Timer state deliberately lives on window._studyTimerGlobal (aliased `G`)
+       instead of in the IIFE: the timer must keep counting while the user
+       browses other pages, so _pageCleanup intentionally does NOT clear it.
+     • Storage: csGet/csSet/csGetJSON/csSetJSON are PER-ACCOUNT (cs_<user>_<key>).
+       Raw localStorage keys used here — ai_provider, ai_key_*, ai_model_*,
+       studyTogether_session, social_auto_brag — are deliberately global/shared.
+     • window.api comes from preload.js via contextBridge (contextIsolation:true).
+       It is absent outside Electron, hence the `window.api && …` guards.
+     • window.api.askAI ALWAYS resolves to {reply} or {error} — it never throws.
+       Callers must check the fields, not rely on try/catch.
+     ═══════════════════════════════════════════════════════════════════════ -->
 <style>
   /* ── Timer ────────────────────────────────────────────────── */
   .timer-mode-tabs { display:flex; gap:6px; justify-content:center; margin-bottom:12px; flex-wrap:wrap; }
@@ -12,6 +47,10 @@
   .timer-display.break-running { color:#f59e0b; }
   .timer-display.finished { color:#ef4444; }
   .timer-ring { width:260px; height:260px; margin:0 auto; position:relative; }
+  /* rotate(-90deg) makes the ring drain from 12 o'clock instead of 3 o'clock.
+     The ring is animated purely via stroke-dashoffset, so stroke-dasharray must
+     equal the circumference — the markup hardcodes 723, the JS recomputes it as
+     CIRCUMFERENCE (2πr, r=115). Change r and you must change BOTH. */
   .timer-ring svg { transform:rotate(-90deg); width:260px; height:260px; display:block; }
   .timer-ring-bg   { fill:none; stroke:#e5e7eb; stroke-width:10; }
   .timer-ring-fill { fill:none; stroke:var(--accent); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .9s linear; }
@@ -48,6 +87,9 @@
   .no-points-note { font-size:11px; color:#ef4444; font-weight:600; margin-top:6px; }
 
   /* ── Break overlay ────────────────────────────────────────── */
+  /* Full-screen takeover during a Pomodoro break. z-index ladder on this page:
+     7999 snail trail canvas · 8000 break overlay + snail · 8001 snail ask-box ·
+     20000 nudge toast (must outrank the overlay so guard nudges stay visible). */
   .break-overlay {
     position:fixed; inset:0; z-index:8000;
     background:linear-gradient(135deg,#0f4c3a 0%,#1a6b52 40%,#0d3d5c 100%);
@@ -76,6 +118,9 @@
   .guard-status.on .guard-status-dot { animation:pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
+  /* .locked is applied to the grid while the guard is running — the checkboxes
+     stay rendered but renderAppGrid()'s toggle refuses to fire, so the allow-list
+     can't be edited out from under a live guard. This is cosmetic only. */
   .app-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:8px; margin-top:12px; }
   .app-check { display:flex; align-items:center; gap:9px; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:all .15s; font-size:13px; font-weight:500; user-select:none; }
   .app-grid.locked .app-check { cursor:default; opacity:.7; }
@@ -89,6 +134,7 @@
   .custom-app-row { display:flex; gap:8px; margin-top:10px; }
   .custom-app-row input { flex:1; }
 
+  /* ── Nudge toast ──────────────────────────────────────────── */
   .nudge-toast { position:fixed; bottom:84px; right:24px; background:#1e2228; color:#fff; border-radius:12px; padding:14px 20px; font-size:13px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,.3); z-index:20000; display:none; max-width:300px; }
   .nudge-toast.visible { display:block; animation:slideUp .3s ease; }
   @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
@@ -98,7 +144,9 @@
   .ambient-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 </style>
 
-<!-- Break overlay -->
+<!-- ── Break overlay ───────────────────────────────────────────────
+     Hidden by default; startBreak() toggles .visible after a Pomodoro.
+     stroke-dasharray="553" below must equal BREAK_CIRCUMFERENCE (2πr, r=88). -->
 <div class="break-overlay" id="breakOverlay">
   <div style="font-size:32px;margin-bottom:12px;"></div>
   <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;">Break Time!</div>
@@ -125,7 +173,9 @@
   </div>
 </div>
 
-<!-- Nudge toast -->
+<!-- ── Nudge toast ─────────────────────────────────────────────────
+     Single reusable toast node; showNudge() fills + shows it. Used for guard
+     nudges, AI coach replies and Study Point awards alike. -->
 <div class="nudge-toast" id="nudgeToast"></div>
 
 <div class="page-header">
@@ -133,7 +183,10 @@
   <div class="page-subtitle">Focus up. Your partner is counting on you.</div>
 </div>
 
-<!-- ── Study Together Banner ────────────────────────────────────── -->
+<!-- ── Study Together Banner ──────────────────────────────────────
+     Driven by the shared (non-account-prefixed) localStorage key
+     `studyTogether_session`, written by the Social page. Polled every 2s
+     rather than event-driven because the two pages never coexist. -->
 <div id="studyTogetherBanner" style="display:none;background:linear-gradient(135deg,#0a2e28,#0f7b6c);border-radius:var(--radius);padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;color:#fff;">
   <span style="font-size:24px;">🤝</span>
   <div style="flex:1;">
@@ -145,6 +198,10 @@
 
 <!-- ── Timer ───────────────────────────────────────────────────── -->
 <div class="card" style="text-align:center;">
+  <!-- Preset tabs. data-mins drives G.totalSecs; data-type="pomodoro" is what
+       triggers the break overlay + guard auto-start on completion. User-created
+       custom tabs are injected before #addCustomTimerBtn by buildTimerTabs(),
+       so tab ORDER here defines the G.activeTabIndex numbering. -->
   <div class="timer-mode-tabs" id="timerTabs">
     <button class="timer-tab pomodoro" data-mins="25" data-type="pomodoro">Pomodoro 25</button>
     <button class="timer-tab" data-mins="45"  data-type="focus">Focus 45</button>
@@ -185,7 +242,8 @@
   <div id="noPointsNote" style="font-size:11px;color:#ef4444;font-weight:600;margin-top:10px;display:none;">Under 15 min — no Study Points awarded</div>
   <div id="pomodoroHint" style="font-size:12px;color:#ef4444;font-weight:600;margin-top:14px;margin-bottom:4px;text-align:center;">Pomodoro: 25 min focus → 5 min break · Focus Guard auto-enables</div>
 
-  <!-- Ambient sounds -->
+  <!-- Ambient sounds — inline onclick, so setAmbient/setAmbientVolume MUST be
+       on window (see the ambient IIFE at the bottom of this file). -->
   <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
     <span style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;">Ambient</span>
     <button class="ambient-btn" data-sound="off"    onclick="setAmbient('off')"    id="amb-off"    style="background:var(--accent);color:#fff;">Off</button>
@@ -289,7 +347,16 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════════════
+// IIFE 1/3 — Timer, breaks, session recording, rewards, Focus Guard.
+// Wrapped because loadPage() re-executes this whole block in global
+// scope on every visit; without the wrapper the consts below would
+// throw "already declared" the second time the user opens this page.
+// ══════════════════════════════════════════════════════════════════
 (function() {
+  // These must stay in sync with the hardcoded stroke-dasharray attributes
+  // in the SVG markup above (723 / 553) — the CSS transition animates the
+  // dashoffset, so a mismatch makes the ring drain to the wrong place.
   const CIRCUMFERENCE      = 2 * Math.PI * 115   // study ring ≈ 723
   const BREAK_CIRCUMFERENCE = 2 * Math.PI * 88   // break ring ≈ 553
   const BREAK_SECS = 5 * 60
@@ -305,6 +372,12 @@
 
   // ── Global persistent timer state ──────────────────────────────
   // Persists across page navigations so the timer keeps running in background
+  //
+  // The `if (!…)` guard is what makes re-execution idempotent: on visit #2 the
+  // object already exists and is reused, so a running countdown survives. All
+  // mutable timer state MUST live here rather than in the IIFE — an IIFE-local
+  // `let remaining` would reset to 25:00 every time the user came back.
+  // Everything else below (element refs, listeners) is rebound to fresh DOM.
   if (!window._studyTimerGlobal) {
     window._studyTimerGlobal = {
       totalSecs:         25 * 60,
@@ -324,11 +397,23 @@
   const G = window._studyTimerGlobal
 
   // _pageCleanup: do NOT clear interval — timer keeps running in background
+  //
+  // offGuardNudge() is essential: onGuardNudge() is re-registered further down
+  // on every visit, so without this each visit would stack another IPC listener
+  // and one blocked app would fire N duplicate toasts.
+  //
+  // NOTE: this ASSIGNS _pageCleanup, clobbering whatever a previous page left.
+  // The snail IIFE at the bottom deliberately WRAPS this one instead, which
+  // only works because it runs after this block. Keep that ordering.
   window._pageCleanup = () => {
     if (window.api) { window.api.offGuardNudge() }
     // intentionally do NOT clear G.interval or G.breakInterval
   }
 
+  // ── Element refs ───────────────────────────────────────────────
+  // Captured once per visit. Any closure that outlives the visit (e.g. an
+  // interval started here and never cleared) keeps pointing at these now-
+  // detached nodes and will update nothing — see the reattach FIXMEs below.
   const display  = document.getElementById('timerDisplay')
   const status   = document.getElementById('timerStatus')
   const ring     = document.getElementById('ringFill')
@@ -348,6 +433,9 @@
   breakRingFill.style.strokeDasharray = BREAK_CIRCUMFERENCE
 
   /* ── Subject dropdown ────────────────────────────────────── */
+  // csGetJSON is per-account (cs_<user>_subjects); the list is owned by the
+  // Settings page. Empty is normal for a new account — hence the placeholder
+  // <option> in the markup and the 'General Study' fallback in completeSession.
   const subjects = csGetJSON('subjects', [])
   subjects.forEach(s => {
     const o=document.createElement('option'); o.textContent=s; o.value=s
@@ -355,6 +443,14 @@
   })
 
   /* ── Stats ───────────────────────────────────────────────── */
+  // Hand-rolled LOCAL date key (YYYY-MM-DD). Deliberately not toISOString(),
+  // which is UTC and would roll the "day" over at the wrong hour for most
+  // users — silently breaking streaks and today-counters. completeSession()
+  // builds its date string the same way; the two MUST stay identical or the
+  // streak loop in showRewardCard() will never match today's records.
+  //
+  // Captured at page load: a session spanning midnight still books to the day
+  // the page was opened.
   const todayKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
   function getToday()  { return csGetJSON(`today_${todayKey}`,{sessions:0,mins:0,pomodoros:0}) }
   function saveToday(d){ csSetJSON(`today_${todayKey}`,d) }
@@ -370,6 +466,10 @@
   refreshStats()
 
   /* ── Study Together integration ──────────────────────────── */
+  // Polls a shared localStorage key written by the Social page. Deliberately
+  // NOT account-prefixed: the host and guest are different cs_ accounts and
+  // both must see the same session blob. `cs_currentUser` decides which side
+  // of the pair we are, so we can show the OTHER person's name.
   function checkStudyTogetherBanner() {
     const raw = localStorage.getItem('studyTogether_session')
     const banner = document.getElementById('studyTogetherBanner')
@@ -383,14 +483,23 @@
       const partnerName = isHost ? s.guestName : s.hostName
       document.getElementById('stBannerName').textContent = `Studying with ${partnerName} 🤝`
       document.getElementById('stBannerMeta').textContent = s.guestJoined ? 'Both connected — timers synced!' : 'Waiting for friend to join…'
+    // Corrupt JSON in the shared key ⇒ just hide the banner, never throw.
     } catch(e) { banner.style.display = 'none' }
   }
+  // FIXME(medium): this interval handle is never stored and never cleared in
+  // _pageCleanup — every visit to Study Mode leaks another immortal 2s poller
+  // holding a stale `banner` ref. Store the id and clearInterval on cleanup.
   setInterval(checkStudyTogetherBanner, 2000)
   checkStudyTogetherBanner()
 
+  // On window so the inline onclick="endStudySession()" in the banner markup
+  // can find it — an IIFE-local function would silently do nothing.
   window.endStudySession = function() {
     localStorage.removeItem('studyTogether_session')
     document.getElementById('studyTogetherBanner').style.display = 'none'
+    // FIXME(low): `toast` is not declared on this page, so `toast &&` throws a
+    // ReferenceError (guarding an undeclared identifier does NOT make it safe —
+    // only typeof does). Use showNudge() below instead.
     toast && toast('Study Together session ended')
   }
 
@@ -399,6 +508,9 @@
   function updateRing() { ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - G.remaining/G.totalSecs) }
   function setDisplay() { display.textContent=fmt(G.remaining); updateRing() }
 
+  // Rebuilds every visual from G. Called once on load because the DOM is brand
+  // new on each visit while G is not — this is what makes a timer started three
+  // pages ago still look running when you come back.
   function syncUIFromGlobal() {
     // Restore display state from global
     setDisplay()
@@ -442,6 +554,13 @@
       breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
       breakOverlay.classList.add('visible')
       // Reattach break interval if it's running but interval was lost
+      // FIXME(medium): this guard can never fire. _pageCleanup intentionally
+      // does not clear G.breakInterval, so the id stays truthy after navigating
+      // away — while the OLD interval's closure still writes to the previous
+      // visit's detached breakDisplay/breakRingFill. Result: the break overlay
+      // is frozen at the time you left. Same dead-guard bug as the study timer
+      // reattach below. A fix must null the handle on teardown (or key off
+      // wall-clock), not merely re-check it here.
       if (!G.breakInterval && G.inBreak && G.breakRemaining > 0) {
         G.breakInterval = setInterval(() => {
           G.breakRemaining--
@@ -482,6 +601,10 @@
     }
   }
 
+  // The "locked" contract: once the timer is started with the guard on, the
+  // user must not be able to click Stop Guard to escape their own focus
+  // session. Resetting the timer is the only documented way out (resetBtn
+  // clears timerLockedByGuard and calls _stopGuard).
   function syncGuardLockUI() {
     const lockNote = document.getElementById('guardLockNote')
     lockNote.style.display = G.timerLockedByGuard ? 'block' : 'none'
@@ -493,6 +616,12 @@
   function getCustomTimers() { return csGetJSON('customTimers', []) }
   function saveCustomTimers(arr) { csSetJSON('customTimers', arr) }
 
+  // Rebuilds the tab strip: presets (static markup) + saved custom timers,
+  // inserted before the "+ Custom" button. INVARIANT: G.activeTabIndex is a
+  // positional index into `.timer-tab:not(.add-custom-btn)`, not an id — so
+  // the preset order in the markup and the customTimers array order together
+  // define it. Reordering or deleting a custom timer would silently re-point
+  // the selection at a different timer.
   function buildTimerTabs() {
     const tabsContainer = document.getElementById('timerTabs')
     // Remove existing custom tabs (keep presets + add-btn)
@@ -523,6 +652,8 @@
     tabsContainer.querySelectorAll('.timer-tab:not(.add-custom-btn)').forEach((tab, i) => {
       tab.onclick = null
       tab.addEventListener('click', () => {
+        // Switching timers mid-session would corrupt the recorded duration
+        // (completeSession bills G.totalSecs, not elapsed time), so refuse.
         if (G.running || G.inBreak) return
         tabsContainer.querySelectorAll('.timer-tab').forEach(t => t.classList.remove('active'))
         tab.classList.add('active')
@@ -595,6 +726,14 @@
 
   // If the study interval was running but interval object is gone (page reload),
   // reattach it so the timer continues ticking
+  //
+  // FIXME(high): this never fires, so a running timer appears FROZEN forever
+  // after navigating away and back. _pageCleanup deliberately leaves G.interval
+  // set (so the countdown survives), which means `!G.interval` is always false
+  // here — while the surviving interval's closure still writes to the PREVIOUS
+  // visit's `display`/`ring`/`startBtn`, which are now detached nodes. G.remaining
+  // keeps decrementing invisibly; the UI only catches up on a full app reload.
+  // The two guards (`G.running` and `!G.interval`) can never both be true.
   if (G.running && !G.interval) {
     G.interval = setInterval(() => {
       G.remaining--; setDisplay()
@@ -615,6 +754,13 @@
       startBtn.textContent = '▶ Resume'; display.classList.remove('running')
       status.textContent = 'Paused'
     } else {
+      // FIXME(critical): Start does not check whether the previous session
+      // already finished. After a non-Pomodoro timer completes, G.remaining is
+      // still <= 0 and the reward card leaves Start enabled — so clicking it
+      // ticks once, hits `G.remaining <= 0` after 1 second and runs
+      // completeSession() AGAIN: another record row, another Study Points award,
+      // repeatable indefinitely. Should reset to G.totalSecs (or refuse) when
+      // G.remaining <= 0. Points/records are the app's whole scoring system.
       G.running = true; startBtn.textContent = '⏸ Pause'
       display.classList.add('running'); status.textContent = 'Focusing…'
       // Lock guard to timer once timer is started
@@ -623,7 +769,13 @@
         syncGuardLockUI()
       }
       // auto-start guard for pomodoro if apps are checked
+      // (Pomodoro implies "protect me"; other presets leave the guard manual.)
       if (G.isPomodoro && checkedApps.size > 0 && !G.guardActive) _startGuard()
+      // FIXME(high): counts TICKS, not wall-clock. Chromium throttles timers in
+      // backgrounded/occluded windows to ~1/minute, so minimising the app — the
+      // normal case while studying — silently stalls the countdown and a "25 min"
+      // session takes far longer in real time. Should store a target timestamp
+      // and derive remaining from Date.now() on each tick.
       G.interval = setInterval(() => {
         G.remaining--; setDisplay()
         if (G.remaining <= 0) {
@@ -638,6 +790,9 @@
     }
   })
 
+  // Reset is the ONLY escape hatch from a guard-locked session — it is what
+  // clears timerLockedByGuard and stops the guard. Don't gate it behind the
+  // lock or users can get trapped with no way to release Focus Guard.
   resetBtn.addEventListener('click', () => {
     clearInterval(G.interval); G.interval = null; G.running = false
     G.remaining = G.totalSecs
@@ -649,6 +804,16 @@
     setDisplay()
   })
 
+  /* ─────────────────────────────────────────────────────────── */
+  /* ── SESSION COMPLETION & REWARDS ────────────────────────── */
+  /* ─────────────────────────────────────────────────────────── */
+
+  // Runs when the countdown hits zero. Writes the permanent record, updates
+  // today's counters, awards points, then branches: Pomodoro → break overlay,
+  // anything else → reward card.
+  // Records are the shared source of truth read by the Records ('meetings') and
+  // Rewards pages — keep the row shape (id/date/time/subject/duration/rating/
+  // notes/source) stable when editing.
   function completeSession() {
     const subjectSel = document.getElementById('subjectSelect').value
     const customSub  = document.getElementById('customSubject').value.trim()
@@ -663,13 +828,21 @@
     const today=getToday(); today.sessions++; today.mins+=mins
 
     // Award Study Points only for timers >= 15 minutes
+    // Anti-farming rule: without a floor, users could spam 1-minute custom
+    // timers for points. The UI warns about it up front via #noPointsNote and
+    // #customTimerPointsNote — keep all three thresholds (here + those two
+    // checks) in sync if 15 ever changes.
     let earned = 0
     if (G.totalSecs >= 15 * 60) {
       earned = Math.max(1, Math.round(mins / 2.5))
       const prevPts = parseInt(csGet('studyPoints') || '0')
       csSet('studyPoints', String(prevPts + earned))
       showNudge(`+${earned} Study Points earned!`)
-      // Broadcast to Social page for auto-post
+      // Broadcast to Social page for auto-post — a shared (non-prefixed) key
+      // acting as a one-shot mailbox; the Social page consumes and clears it.
+      // try/catch because a quota error here must not lose the session record.
+      // NOTE: `G.label` is never assigned anywhere, so this always falls back
+      // to `${mins} min`. Harmless today, but it's a dead branch.
       try { localStorage.setItem('social_auto_brag', JSON.stringify({ duration: G.label || `${mins} min`, pts: earned })) } catch(e){}
     }
 
@@ -681,6 +854,8 @@
     refreshStats()
     document.getElementById('sessionNotes').value=''
 
+    // Pomodoro goes straight to the break overlay (the reward card would be
+    // hidden behind it anyway); other presets show the reward card inline.
     if (G.isPomodoro) {
       startBreak()
     } else {
@@ -696,6 +871,10 @@
     document.getElementById('rStatSessions').textContent = today.sessions || 0
 
     // Streak (days studied in a row)
+    // Walks backwards from today, stopping at the first day with no record.
+    // Relies on completeSession() having already pushed today's row — if today
+    // were missing the loop would exit immediately and report 0. Reads records
+    // fresh from storage rather than reusing the array above for that reason.
     const records = csGetJSON('records', [])
     let streak = 0
     const daySet = new Set(records.map(r => r.date))
@@ -716,11 +895,17 @@
       document.getElementById('rewardXpBadge').textContent = `+${earned} XP`
       document.getElementById('rewardXpTotal').textContent = `${totalXP} XP total`
       // Fill bar: level = every 100 XP
+      // The setTimeout is not a race workaround — the bar starts at width:0 and
+      // the CSS transition only animates if the width change lands in a LATER
+      // frame than the row becoming visible. Setting it synchronously would snap.
       const pct = (totalXP % 100)
       setTimeout(() => { document.getElementById('rewardXpFill').style.width = pct + '%' }, 100)
     }
 
     // Badge check — first session, 5 sessions, 10 sessions
+    // Exact `===` matches, not `>=`: these fire once, on the session that
+    // crosses the milestone, so the card only celebrates genuinely new badges.
+    // Nothing is persisted — the badge is recomputed from records each time.
     const totalSessions = records.length
     const badgeRow = document.getElementById('rewardBadgeRow')
     badgeRow.innerHTML = ''
@@ -744,7 +929,10 @@
     setTimeout(() => banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100)
   }
 
+  // 'meetings' is the Records page — historical route name, not a typo.
   document.getElementById('viewRecordsBtn').addEventListener('click', ()=>window.navigateTo('meetings'))
+  // Dismiss must hand-reset every field the card mutated: the card node is
+  // reused (not rebuilt), so leftovers would show on the next session.
   document.getElementById('rewardDismissBtn').addEventListener('click', () => {
     banner.classList.remove('visible')
     document.getElementById('rewardXpFill').style.width = '0%'
@@ -759,9 +947,13 @@
 
   function startBreak() {
     // Stop guard during break
+    // A break is explicitly permission to leave the app — leaving the guard
+    // armed would yank focus back the moment the user opened anything else.
     if (G.guardActive) _stopGuard()
 
-    // Native notification
+    // Native notification — the user has almost certainly tabbed away by now,
+    // so the in-window overlay alone wouldn't be seen. window.api is undefined
+    // outside Electron, hence the guard.
     if (window.api && window.api.scheduleNotify) {
       window.api.scheduleNotify({
         title: 'Break Time!',
@@ -796,6 +988,9 @@
     }, 1000)
   }
 
+  // Both "Start Next Pomodoro" and "Skip Break" land here — the only difference
+  // is when it's clicked, so they share one handler. Note it does NOT auto-start
+  // the next timer; it just re-arms it at Ready.
   function endBreak() {
     clearInterval(G.breakInterval); G.breakInterval = null; G.inBreak = false
     breakOverlay.classList.remove('visible')
@@ -814,6 +1009,11 @@
   /* ── FOCUS GUARD ─────────────────────────────────────────── */
   /* ─────────────────────────────────────────────────────────── */
 
+  // App icons are inlined as SVG strings rather than loaded from disk/CDN:
+  // the renderer has no network allowance for remote assets and the real app
+  // bundles no icon files. KEYS MUST MATCH the macOS app name exactly as the
+  // main process reports it (guard nudges + scanApps use the same names) —
+  // an unmatched name silently falls back to GENERIC_LOGO.
   const LOGOS = {
     'Notion': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" rx="6" fill="#fff" stroke="#e5e7eb" stroke-width="1"/><path d="M8 8.8C8 7.8 8.7 7 9.9 6.9l13.2-1c1.5-.1 2.2.7 2.2 1.8v16.5c0 .9-.3 1.7-1.6 1.8L10 27c-1.4.1-2-.6-2-1.8V8.8z" fill="#fff"/><path d="M22 8.5L11 9.3v14.4l11-.8V8.5zM13 11l6.5-.5v1.5L13 12.5V11zm0 3.5l6.5-.4v1.4L13 16v-1.5zm0 3.5l4-.3v1.3l-4 .3v-1.3z" fill="#1a1a1a"/><path d="M9.5 8.5l1.5-.1 9 12V9.5l1.5-.1v16L20 25.5 11 13.5v11.8l-1.5.1V8.5z" fill="#1a1a1a"/></svg>`,
     'Xcode': `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="xc" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1d8cf8"/><stop offset="100%" stop-color="#0052cc"/></linearGradient></defs><rect width="32" height="32" rx="7" fill="url(#xc)"/><path d="M10 22l4.5-6L10 10h3l3 4 3-4h3l-4.5 6 4.5 6h-3l-3-4-3 4h-3z" fill="white"/></svg>`,
@@ -878,6 +1078,10 @@
     {name:'ClassIn'}, {name:'ThinkAcademy'}, {name:'Exam.net'},
   ]
 
+  // Two separate per-account lists, and they mean different things:
+  //   guardCustom  = extra app names the user added/scanned (grid membership)
+  //   guardAllowed = which names are ticked (what is sent to the main process)
+  // A name can be in guardCustom but unticked. Both are written on every toggle.
   let checkedApps = new Set(csGetJSON('guardAllowed',[]))
   let customApps  = csGetJSON('guardCustom',[])
 
@@ -891,15 +1095,25 @@
       const logo = LOGOS[name] || GENERIC_LOGO
       const div = document.createElement('div')
       div.className = `app-check ${checkedApps.has(name)?'checked':''}`
+      // FIXME(medium): `name` is interpolated into innerHTML unescaped. Preset
+      // names are safe constants, but custom names come from user input and from
+      // window.api.scanApps() reading /Applications — an app named e.g.
+      // `<img src=x onerror=…>` executes in the renderer. `logo` must stay raw
+      // HTML (it's SVG markup), so escape `name` only, or build the <span> with
+      // textContent instead of templating the whole row.
       div.innerHTML = `<input type="checkbox" ${checkedApps.has(name)?'checked':''}><div class="app-logo">${logo}</div><span>${name}</span>`
       const cb = div.querySelector('input')
       const toggle = () => {
+        // Allow-list is frozen while the guard runs (see .app-grid.locked).
         if (G.guardActive) return
         cb.checked = !cb.checked
         if (cb.checked) { checkedApps.add(name); div.classList.add('checked') }
         else            { checkedApps.delete(name); div.classList.remove('checked') }
         csSetJSON('guardAllowed', [...checkedApps])
       }
+      // Listener is on the row, not the checkbox, so the whole tile is clickable.
+      // preventDefault() stops the native checkbox toggle from ALSO firing and
+      // cancelling out the manual `cb.checked = !cb.checked` inside toggle().
       div.addEventListener('click', e => { e.preventDefault(); toggle() })
       grid.appendChild(div)
     })
@@ -921,6 +1135,10 @@
     if (e.key==='Enter') document.getElementById('addCustomAppBtn').click()
   })
 
+  // Scan asks the main process to enumerate installed apps and merges in
+  // anything not already known. Case-insensitive against presets (macOS app
+  // names vary in case) but exact against customApps. Scanned apps are added
+  // UNTICKED — discovering an app must never silently widen the allow-list.
   document.getElementById('scanAppsBtn').addEventListener('click', async () => {
     const btn = document.getElementById('scanAppsBtn')
     const scanSt = document.getElementById('scanStatus')
@@ -959,8 +1177,14 @@
   const guardStatusEl  = document.getElementById('guardStatus')
   const guardLabel     = document.getElementById('guardStatusLabel')
 
+  // _startGuard / _stopGuard are the single choke points for guard state —
+  // they're called from the buttons, from the Pomodoro auto-start, from
+  // startBreak() and from resetBtn. Always go through them so G.guardActive,
+  // the main-process guard and the UI can't drift apart.
   function _startGuard() {
     const allowed = [...checkedApps]
+    // No-op outside Electron: the guard needs the main process (and macOS
+    // Accessibility permission) to see and raise windows.
     if (!window.api) return
     if (allowed.length === 0) {
       showNudge('Select at least one allowed app before starting.')
@@ -972,6 +1196,8 @@
     guardLabel.textContent = `On · ${allowed.length} app${allowed.length!==1?'s':''} allowed`
     guardStartBtn.disabled = true
     // Lock guard to timer if timer has been started (running or paused mid-session)
+    // "Paused mid-session" is inferred from remaining < total (there is no
+    // explicit started flag) — pausing must not be an escape hatch either.
     const timerStarted = G.running || (G.remaining < G.totalSecs && G.remaining > 0)
     G.timerLockedByGuard = timerStarted
     guardStopBtn.disabled  = G.timerLockedByGuard
@@ -1004,6 +1230,9 @@
     setTimeout(()=>toast.classList.remove('visible'), 3500)
   }
 
+  // Main process fires this when a non-allowed app takes the front. Registered
+  // fresh on every visit — _pageCleanup's offGuardNudge() is what stops these
+  // from stacking up into duplicate toasts.
   if (window.api && window.api.onGuardNudge) {
     window.api.onGuardNudge(appName => {
       showNudge(`"${appName}" isn't allowed — get back on track!`)
@@ -1011,22 +1240,34 @@
     })
   }
 
+  // Optional AI coach layered on top of the plain toast. The 2-minute cooldown
+  // matters: app-switching fires in bursts, and without it every alt-tab would
+  // bill a model call (and spam the user).
   let _nudgeCooldown = false
   async function _aiNudge(appName) {
     if (_nudgeCooldown || !window.api?.askAI) return
     _nudgeCooldown = true
     setTimeout(() => _nudgeCooldown = false, 120000)
 
+    // Provider settings are deliberately NON-prefixed (global): AI config is
+    // machine-wide, not per study account. Owned by the Settings page.
     const provider = localStorage.getItem('ai_provider') || 'ollama'
     const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
+    // Ollama is local and needs no key; every other provider without one would
+    // just error, so bail quietly and leave the plain toast as the nudge.
     if (provider !== 'ollama' && !apiKey) return
 
     const model = localStorage.getItem('ai_model_' + provider) ||
       (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : provider === 'ollama' ? 'gemma3:4b' : 'gpt-4o-mini')
 
+    // Hand-built cs_<user>_studyGoals key — same scheme csGet() uses; this is
+    // reached for directly because the goals belong to the current account.
     const goals = localStorage.getItem(`cs_${localStorage.getItem('cs_currentUser')}_studyGoals`) || ''
 
     try {
+      // askAI resolves to {reply} or {error} and never throws, so the `if
+      // (res.reply)` below IS the error handling — an {error} result just
+      // leaves the plain toast in place. The try/catch only covers IPC itself.
       const res = await window.api.askAI({
         provider, apiKey, model,
         systemPrompt: 'You are an encouraging study coach. Give a short (1-2 sentence) motivational nudge. Be warm, direct, and specific if goals are provided. No emojis in output.',
@@ -1040,9 +1281,21 @@
 /* ── Crawling Snail ─────────────────────────────────────────────
    Appears when the focus timer is running. Wanders around the
    screen leaving a faint trail. Click it to ask a quick question.
+
+   IIFE 2/3. Note the leading `;` — loadPage() concatenates/re-runs these
+   blocks, and without it the previous statement could swallow this one.
+
+   Everything here is appended to document.body/head rather than living in
+   the page markup so the snail can float over the whole app chrome. That
+   choice is also the source of the leak FIXMEs below: appended nodes are
+   NOT removed when the page is torn down.
 ──────────────────────────────────────────────────────────────── */
 ;(function() {
   // ── Inject styles
+  // FIXME(medium): this <style> is appended to <head> on EVERY visit and never
+  // removed — visit the page ten times and there are ten identical style tags
+  // (plus the canvas/snail/ask-box nodes appended below, and their duplicate
+  // ids). _pageCleanup should remove all four nodes.
   const style = document.createElement('style')
   style.textContent = `
     #focus-snail {
@@ -1111,6 +1364,8 @@
   document.head.appendChild(style)
 
   // ── DOM
+  // Three body-level nodes: the trail canvas (behind), the snail emoji, and the
+  // ask popover. All leak per visit — see the FIXME above.
   const canvas = document.createElement('canvas')
   canvas.id = 'snail-canvas'
   document.body.appendChild(canvas)
@@ -1142,9 +1397,13 @@
     H = canvas.height = window.innerHeight
   }
   resizeCanvas()
+  // Also never removed on teardown — one more listener per visit, each pinned
+  // to a different orphaned canvas.
   window.addEventListener('resize', resizeCanvas)
 
   // ── Snail position + movement
+  // Hardcoded to the app shell's sidebar width in renderer/index.html; if that
+  // layout changes the snail will crawl under the nav.
   const SIDEBAR_W = 220  // avoid sidebar
   let sx = SIDEBAR_W + 100, sy = 300
   let vx = 0.6, vy = 0.3
@@ -1154,6 +1413,9 @@
   let animId = null
   let visible = false
 
+  // `visible` guards re-entry: checkTimer() below calls these every second, so
+  // both must be idempotent — otherwise showSnail would spawn a second rAF loop
+  // per tick and the snail would accelerate.
   function showSnail() {
     if (visible) return
     visible = true
@@ -1188,6 +1450,9 @@
     if (sy > H - PAD)         { sy = H - PAD;         vy = -Math.abs(vy) * (0.8 + Math.random() * 0.4) }
 
     // Gently drift direction every ~3s
+    // 0.008 per frame @60fps ≈ once every ~2s; keeps the path organic rather
+    // than a rigid billiard-ball bounce. Speed is re-normalised to SPEED so the
+    // random walk can't drift the snail faster over time.
     if (Math.random() < 0.008) {
       const angle = Math.atan2(vy, vx) + (Math.random() - 0.5) * 1.2
       vx = Math.cos(angle) * SPEED
@@ -1195,6 +1460,8 @@
     }
 
     // Trail
+    // TRAIL_MAX caps the array AND doubles as the fade denominator below, so
+    // the oldest point is always ~fully transparent right as it's shifted off.
     trail.push({ x: sx, y: sy, age: 0 })
     if (trail.length > TRAIL_MAX) trail.shift()
     trail.forEach(p => p.age++)
@@ -1225,7 +1492,9 @@
   // ── Ask box
   function openAsk() {
     askBox.classList.add('open')
-    // Position near snail but keep on screen
+    // Position near snail but keep on screen — flip to the snail's left if the
+    // box would overflow the right edge, and below it if it'd clip the top.
+    // The #snail-ask CSS has no positioning of its own; it's all set here.
     let bx = sx + 20, by = sy - 160
     if (bx + 290 > W) bx = sx - 300
     if (by < 10) by = sy + 30
@@ -1240,6 +1509,8 @@
     document.getElementById('snail-ask-send').disabled = false
   }
 
+  // stopPropagation so the click doesn't bubble to whatever is underneath the
+  // floating snail (it sits above the whole app).
   snailEl.addEventListener('click', e => { e.stopPropagation(); openAsk() })
   document.getElementById('snailAskClose').addEventListener('click', closeAsk)
 
@@ -1270,6 +1541,8 @@
         systemPrompt: 'You are a friendly, concise study helper. Answer the student\'s question in 2-4 sentences max. Be clear and helpful. No markdown formatting.',
         messages: [{ role: 'user', content: q }]
       })
+      // askAI resolves to {reply} or {error} — it never throws, so an {error}
+      // result lands on the `||` fallback rather than in the catch below.
       reply.textContent = res.reply || '🐌 Hmm, I got confused. Try again!'
     } catch(e) {
       reply.textContent = '🐌 Couldn\'t reach AI — check your Ollama is running!'
@@ -1279,22 +1552,42 @@
   }
 
   // ── Watch G.running
+  // Polled rather than event-driven because the timer IIFE exposes no hook.
+  // FIXME(medium): the snail never appears. `G` is a const INSIDE the timer
+  // IIFE above, so it is not in scope here — `typeof G !== 'undefined'` is
+  // always false and this only ever calls hideSnail(). The whole feature is
+  // dead. Read window._studyTimerGlobal.running instead (that IS the global).
   function checkTimer() {
     if (typeof G !== 'undefined' && G.running) showSnail()
     else hideSnail()
   }
+  // FIXME(medium): handle never stored, never cleared — another immortal 1s
+  // interval per visit. The _pageCleanup wrapper below only HIDES the snail;
+  // it never tears this down (nor the appended nodes or resize listener).
   setInterval(checkTimer, 1000)
 
+  // Wrap rather than assign: the timer IIFE already installed a _pageCleanup
+  // (offGuardNudge) and clobbering it would leak IPC listeners. `orig` is
+  // captured now and chained. stopAmbient is resolved at CALL time from
+  // window.stopAmbient — the ambient IIFE below hasn't run yet at this point.
   window._pageCleanup = (function(orig) {
     return function() { hideSnail(); stopAmbient(); if (orig) orig() }
   })(window._pageCleanup)
 })()
 
 // ── Ambient sounds ────────────────────────────────────────────────
+// IIFE 3/3. Every sound is SYNTHESISED from noise buffers rather than shipped
+// as an audio file: keeps the bundle small and works with no network.
+// Public surface (must be on window — the markup uses inline onclick):
+//   window.setAmbient(name) · window.setAmbientVolume(v) · window.stopAmbient()
 ;(function() {
+  // Module-level singletons: exactly one AudioContext and one playing source at
+  // a time. setAmbient() always stopAmbient()s first, so they never stack.
   let ctx = null, source = null, gainNode = null, currentSound = null
 
   // Web Audio noise generators (no files needed, works offline)
+  // Each returns either a bare source, or {src, extra} when it needs a filter
+  // in the chain — setAmbient() branches on that shape when wiring up gain.
   const SOUNDS = {
     rain:   makeRain,
     cafe:   makeCafe,
@@ -1303,6 +1596,12 @@
     white:  makeWhite,
   }
 
+  // Lazily created: constructing an AudioContext before a user gesture gets it
+  // auto-suspended, so we wait until the first setAmbient() click.
+  // FIXME(low): `ctx` is IIFE-local, so a NEW AudioContext is created on every
+  // visit to this page and the old one is never close()d — browsers cap the
+  // number of live contexts (~6), after which ambient sound stops working
+  // until the app is restarted. Close it in _pageCleanup or hang it off window.
   function getCtx() {
     if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
     return ctx
@@ -1332,6 +1631,10 @@
 
   function makeCafe(ctx) {
     // Café = low-freq rumble + occasional bursts
+    // The b0..b4 cascade is the standard Paul Kellett pink-noise approximation:
+    // five one-pole filters summed. Pink (1/f) noise reads as distant murmur,
+    // where flat white noise would sound like a hiss. Constants are the
+    // published coefficients — don't "tidy" them.
     const bufSize = ctx.sampleRate * 4
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
     const data = buf.getChannelData(0)
@@ -1362,6 +1665,8 @@
 
   function makeWaves(ctx) {
     // Waves = slow-modulated noise
+    // 4-second buffer (vs 2s elsewhere) so the swell has room to breathe before
+    // looping; the loop seam is masked because the noise underneath is random.
     const bufSize = ctx.sampleRate * 4
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
     const data = buf.getChannelData(0)
@@ -1375,6 +1680,8 @@
 
   function stopAmbient() {
     if (source) {
+      // `source` is either a bare BufferSource or the {src, extra} shape — hence
+      // the sniff. try/catch: stop() throws if it was never start()ed.
       try { if (source.src) source.src.stop(); else source.stop() } catch(e){}
       source = null
     }
@@ -1384,6 +1691,8 @@
     if (offBtn) { offBtn.classList.add('active'); offBtn.style.background='var(--accent)'; offBtn.style.color='#fff' }
   }
 
+  // On window: called from inline onclick in the markup (an IIFE-local function
+  // would silently do nothing there).
   window.setAmbient = function(name) {
     stopAmbient()
     document.querySelectorAll('.ambient-btn').forEach(b => { b.classList.remove('active'); b.style.background=''; b.style.color='' })
@@ -1393,6 +1702,9 @@
     if (name === 'off') return
     try {
       const c = getCtx()
+      // Autoplay policy parks the context in 'suspended' until a user gesture;
+      // this call is inside a click handler, which is the only place resume()
+      // is allowed to take effect.
       if (c.state === 'suspended') c.resume()
       gainNode = c.createGain()
       gainNode.gain.value = parseFloat(document.getElementById('ambVolume')?.value || 0.4)
@@ -1420,6 +1732,11 @@
   window.stopAmbient = stopAmbient
 
   // Restore last ambient on load
+  // FIXME(low): dead code — nothing in the app ever WRITES `lastAmbient`, so
+  // `last` is always null and the user's sound choice is silently lost on every
+  // navigation. setAmbient() needs a matching localStorage.setItem (and note it
+  // would have to survive the autoplay policy: a restore with no user gesture
+  // starts suspended).
   const last = localStorage.getItem('lastAmbient')
   if (last && last !== 'off') setTimeout(() => window.setAmbient(last), 500)
 })()

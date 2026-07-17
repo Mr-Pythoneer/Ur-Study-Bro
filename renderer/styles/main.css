@@ -1,4 +1,35 @@
+/* =============================================================================
+ * main.css — the app's ONE global stylesheet.
+ *
+ * Linked once from renderer/index.html and never torn down. Every page under
+ * renderer/pages/*.html is injected into #content by loadPage(), so those pages
+ * inherit these rules for free. Treat every class here as a shared, app-wide
+ * API: renaming one breaks pages that reference it, and nothing fails loudly —
+ * CSS simply stops applying and the component silently reverts to unstyled.
+ *
+ * Three things to know before editing:
+ *
+ * 1. THEMING IS TOKEN-BASED. All colours/shadows are custom properties on :root
+ *    below; `body.dark-mode` re-declares the same names with dark values. Any
+ *    rule written as `var(--foo)` themes itself for free. A rule that hardcodes
+ *    a hex does NOT, and must be repeated by hand in the dark-mode block — which
+ *    is exactly what that long list of `body.dark-mode .foo` selectors is.
+ *    Reach for a token first; add an override only as a last resort.
+ *
+ * 2. THIS IS A FRAMELESS WINDOW (main.js: titleBarStyle 'hiddenInset'). The
+ *    `-webkit-app-region` declarations and the sidebar's top padding are
+ *    load-bearing window chrome, not decoration. See the sidebar section.
+ *
+ * 3. LOAD ORDER. Page <style> blocks arrive via innerHTML *after* this file, so
+ *    on a specificity tie the page wins. Selectors here that must beat a page
+ *    are qualified (e.g. `body.dark-mode .x`) or marked !important.
+ * ========================================================================== */
+
 /* ── Design tokens ─────────────────────────────────────────────── */
+/* Anything colour-bearing you add here needs a dark twin in the `body.dark-mode`
+ * block further down, or dark mode silently keeps the light value.
+ * --sidebar-* are deliberately absolute rather than derived from --bg-*: the
+ * sidebar is dark in BOTH themes, only its shade changes. */
 :root {
   --sidebar-width: 236px;
   --sidebar-bg:    #191919;
@@ -16,11 +47,21 @@
   --shadow-md:     0 4px 14px rgba(0,0,0,.09);
   --radius:        6px;
   --radius-sm:     4px;
+  /* System font first so the app reads as native macOS chrome. 'Inter' is a
+   * fallback only — it is NOT bundled, so never design against its metrics. */
   --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
 }
 
 /* ── Page transition & spinner ────────────────────────────────── */
+/* loadPage() fades #content to opacity 0, swaps innerHTML, then fades back in.
+ * Heads-up: loadPage() also assigns content.style.transition inline (.18s out,
+ * .2s in), and an inline style beats this rule — so this declaration only covers
+ * the very first paint before any navigation. Changing the duration here alone
+ * will appear to do nothing; edit loadPage() in renderer/index.html too. */
 #content { transition: opacity .2s; }
+/* Injected by loadPage() while a page is being fetched. Centring is NOT done
+ * here — loadPage() wraps it in an inline flex box — so this element is unusable
+ * standalone unless you supply your own centring wrapper. */
 .page-spinner {
   width: 32px; height: 32px;
   border: 3px solid var(--border);
@@ -31,6 +72,8 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Empty state ──────────────────────────────────────────────── */
+/* Shared "nothing here yet" block. Pages render this instead of an empty list so
+ * the zero-state looks identical everywhere; markup is .empty-icon + <p>. */
 .empty-state-box {
   display: flex; flex-direction: column; align-items: center;
   padding: 48px 24px; text-align: center;
@@ -40,6 +83,17 @@
 .empty-state-box p { font-size: 14px; line-height: 1.6; max-width: 280px; }
 
 /* ── Dark mode ────────────────────────────────────────────────── */
+/* Driven by toggleDarkMode() in renderer/index.html, which just adds/removes the
+ * `dark-mode` class on <body>. Re-declaring the tokens here outranks :root on
+ * specificity, so every `var(--x)` consumer in the app flips with zero extra
+ * rules. That is the whole design: the token block is the theme.
+ *
+ * Everything AFTER the token block is debt — those components hardcode colours
+ * instead of using tokens, so each needs a hand-written dark twin. If you touch
+ * such a component, converting it to tokens lets you delete its override here.
+ *
+ * Note --text-secondary gets DARKER in dark mode (#9b9a97 -> #6b6b68). That is
+ * intentional: muted text should recede into the dark background, not glow. */
 body.dark-mode {
   --sidebar-bg:    #111111;
   --sidebar-hover: rgba(255,255,255,.07);
@@ -55,6 +109,8 @@ body.dark-mode {
   --shadow-sm:     0 1px 3px rgba(0,0,0,.3);
   --shadow-md:     0 4px 14px rgba(0,0,0,.4);
 }
+/* The auth overlay, topbar and user menu live in renderer/index.html's own
+ * <style> block and hardcode light hexes, hence the hand-written twins below. */
 body.dark-mode .content-area { background: var(--bg-main); }
 body.dark-mode .auth-overlay { background: linear-gradient(135deg, #0d0d0d 0%, #152320 100%); }
 body.dark-mode .auth-box { background: #1e1e1e; border: 1px solid #333; }
@@ -68,13 +124,32 @@ body.dark-mode .user-menu-item { color: #e8e8e6; }
 body.dark-mode .user-menu-item:hover { background: #333; }
 
 /* ── Dark mode: page-level element overrides ──────────────────── */
+/* None of these classes are DEFINED in this file — they belong to the <style>
+ * blocks inside renderer/pages/*.html, which hardcode #fff / #e5e5e5 and so
+ * cannot theme themselves. Their dark variants are centralised here so a page
+ * author only has to write the light theme.
+ *
+ * Gotcha: these selectors are coupled to markup you cannot see from this file.
+ * Rename a class in a page and the selector here goes stale SILENTLY — the
+ * component just stays light-on-dark. Grep renderer/pages before renaming.
+ *
+ * Gotcha: `.goal-card` is defined independently by BOTH welcome.html and
+ * social.html with different rules. The override below hits both. */
 body.dark-mode .code-banner,
 body.dark-mode .friend-card,
 body.dark-mode #chat-pane,
 body.dark-mode .feed-card,
 body.dark-mode .goal-card,
+/* !important here is defensive, not strictly required: `body.dark-mode .x` (0,2,1)
+ * already outranks a page's plain `.x` (0,1,0). It buys headroom against page
+ * rules that reach for higher specificity, and against inline style attributes —
+ * an important declaration is the only thing in a stylesheet that beats those.
+ * Consequence: a page can no longer opt out of the dark background locally. */
 body.dark-mode .new-goal-form { background: var(--bg-card) !important; border-color: var(--border) !important; }
 
+/* #2a2a2a is the recurring "one step above --bg-card" surface used for inset
+ * chrome (toolbars, inputs, hover rows). It is repeated literally rather than
+ * tokenised — if you find yourself adding a fourth use, promote it to a token. */
 body.dark-mode .rte-toolbar,
 body.dark-mode .summary-box { background: #2a2a2a; border-color: var(--border); }
 
@@ -92,10 +167,20 @@ body.dark-mode .view-btn.active { background: var(--bg-card); color: var(--text-
 
 body.dark-mode .page-tab.active { background: var(--bg-card); color: var(--text-primary); }
 
+/* Row hover uses var(--bg-main) in light mode, which reads as a subtle lift off
+ * the white card. In dark mode --bg-main (#1a1a1a) is DARKER than --bg-card
+ * (#222), so reusing it would make the hovered row sink and read as disabled.
+ * #2a2a2a inverts the direction and lifts instead. */
 body.dark-mode .data-table tr:hover td { background: #2a2a2a; }
 
 /* ── Reset ────────────────────────────────────────────────────── */
+/* Deliberately placed AFTER the theme blocks: it only zeroes box metrics and
+ * never touches colour, so ordering against dark mode is irrelevant. */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* overflow:hidden on the document is load-bearing for the frameless window: if
+ * the shell itself could scroll, the custom title bar (the sidebar) would slide
+ * out of view and the traffic lights would float over page content.
+ * .content-area is the app's ONLY scroll container — see below. */
 html, body { height: 100%; overflow: hidden; }
 body { font-family: var(--font); background: var(--bg-main); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
 
@@ -103,6 +188,15 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .app-shell { display: flex; height: 100vh; }
 
 /* ── Sidebar ──────────────────────────────────────────────────── */
+/* -webkit-app-region: drag makes the whole sidebar act as the window's title bar
+ * (main.js runs titleBarStyle 'hiddenInset', so there is no real one).
+ *
+ * INVARIANT: every interactive descendant MUST opt back out with
+ * `-webkit-app-region: no-drag`, or the drag handler swallows its clicks and the
+ * control looks dead while throwing no error. That is why .app-logo, .nav-menu
+ * and .sidebar-footer each repeat no-drag below. Add a clickable child -> add
+ * no-drag. (user-select:none exists for the same reason: dragging a title bar
+ * should never start a text selection.) */
 .sidebar {
   width: var(--sidebar-width);
   background: var(--sidebar-bg);
@@ -111,6 +205,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
   user-select: none;
 }
 
+/* The 52px top padding is not taste — it clears the macOS traffic lights, which
+ * main.js pins at trafficLightPosition { x: 16, y: 16 }. Reduce it and the logo
+ * ends up underneath the close/minimise buttons. Keep the two values in sync. */
 .sidebar-header {
   display: flex; align-items: center; gap: 10px;
   padding: 52px 16px 12px;
@@ -123,6 +220,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 }
 
 /* ── Nav ──────────────────────────────────────────────────────── */
+/* Nav items are <button data-page="..."> wired up in renderer/index.html; the
+ * .active class is applied there, never by :target or similar. flex:1 makes this
+ * block absorb the slack so .sidebar-footer pins to the bottom. */
 .nav-menu {
   display: flex; flex-direction: column;
   padding: 4px 8px; flex: 1; gap: 1px;
@@ -135,6 +235,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
   padding: 14px 8px 4px;
 }
 
+/* font-family is restated on every control in this file (.nav-item, .btn,
+ * .timer-tab, .page-tab, inputs...) because form controls do NOT inherit it from
+ * body — omit it and you silently get the OS default control font. */
 .nav-item {
   display: flex; align-items: center; gap: 9px;
   padding: 6px 8px; border-radius: 4px; border: none;
@@ -156,10 +259,16 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .version { font-size: 11px; color: rgba(255,255,255,.2); letter-spacing: .3px; }
 
 /* ── Content area ─────────────────────────────────────────────── */
+/* The app's only scroll container (html/body are overflow:hidden). Pages that
+ * want a viewport-height child must therefore size against this, not the window
+ * — e.g. social.html's #chat-pane uses calc(100vh - 240px) to back out this
+ * padding plus the header. Change the padding here and those break. */
 .content-area {
   flex: 1; overflow-y: auto; padding: 40px 48px;
   background: var(--bg-main); scroll-behavior: smooth;
 }
+/* The node loadPage() replaces wholesale on every navigation. Anything you put
+ * inside it is destroyed on the next page switch — see window._pageCleanup. */
 #content { max-width: 960px; margin: 0 auto; }
 
 /* ── Page shared ──────────────────────────────────────────────── */
@@ -174,12 +283,19 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
   border: 1px solid var(--border);
   padding: 20px 24px;
 }
+/* Adjacent-sibling spacing rather than a plain margin-bottom, so a lone or last
+ * card never leaves a stray gap at the end of a page. */
 .card + .card { margin-top: 12px; }
 .card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .4px; }
 
+/* auto-fill + minmax lets the column count follow the window width with no JS and
+ * no media queries — the generic wrapper behind .stat-tile / .badge grids. */
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
 
 /* ── Form elements ────────────────────────────────────────────── */
+/* Canonical shape is .input-group > label + input|select. Only those two control
+ * types are styled here — textarea, checkbox and radio are NOT covered and fall
+ * back to native rendering, which is why pages that need them style their own. */
 .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
 .input-group label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; }
 .input-group input,
@@ -189,10 +305,17 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
   font-size: 13px; color: var(--text-primary);
   background: var(--bg-card); outline: none; transition: border-color .15s;
 }
+/* outline:none above kills the native focus ring, so this accent border IS the
+ * only focus affordance — keep any restyle of it visible, or keyboard users lose
+ * track of where they are. */
 .input-group input:focus,
 .input-group select:focus { border-color: var(--accent); }
 
 /* ── Buttons ──────────────────────────────────────────────────── */
+/* .btn is the base; pair it with exactly one variant (.btn-primary or
+ * .btn-ghost) — the base alone has no background and renders invisible.
+ * white-space:nowrap because these sit in flex rows that would otherwise wrap a
+ * two-word label mid-button. */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: var(--radius-sm); border: none;
@@ -223,21 +346,38 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .badge-icon { font-size: 28px; }
 .badge-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .badge-desc { font-size: 11px; color: var(--text-secondary); text-align: center; }
+/* Locked badges stay in the DOM and readable (name + desc visible) — the dimming
+ * is a teaser, not a secret. Do not rely on this to hide anything. */
 .badge.locked { opacity: .35; filter: grayscale(1); }
 
 /* ── Progress bar ─────────────────────────────────────────────── */
+/* 99px is the file's pill idiom (any radius >= half the height rounds fully).
+ * overflow:hidden on the wrap is what clips the fill's square end into the pill;
+ * the fill's own radius alone is not enough at low percentages.
+ * Drive this by setting .progress-bar-fill's inline width — the width
+ * transition below animates it. */
 .progress-bar-wrap { background: var(--border); border-radius: 99px; height: 6px; overflow: hidden; margin-top: 8px; }
 .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s ease; }
 
 /* ── Calendar grid ────────────────────────────────────────────── */
+/* Fixed 7 columns = one weekday each; the row count falls out of the child
+ * count. aspect-ratio:1 on .cal-day keeps cells square at any window width
+ * without JS measurement. */
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 12px; }
 .cal-day-header { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-align: center; padding: 4px 0; text-transform: uppercase; letter-spacing: .4px; }
 .cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 13px; color: var(--text-primary); cursor: default; }
 .cal-day.today { background: var(--accent); color: #fff; font-weight: 700; }
 .cal-day.has-session { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+/* Leading blanks that push day 1 onto the correct weekday. They must still
+ * occupy a grid slot, so the text is hidden with a transparent colour and NOT
+ * with display:none, which would collapse the offset and misalign the month. */
 .cal-day.empty { color: transparent; }
 
 /* ── Table ────────────────────────────────────────────────────── */
+/* border-collapse is required for the single-pixel row rules below to meet
+ * instead of doubling up. Row separators are drawn per-<td> (not on <tr>, which
+ * cannot take a border once collapsed), hence the :last-child reset that strips
+ * the trailing rule so the table does not double the card's own border. */
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .data-table th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .4px; }
 .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
@@ -245,6 +385,8 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .data-table tr:hover td { background: var(--bg-main); }
 
 /* ── Timer widget ─────────────────────────────────────────────── */
+/* tabular-nums is essential, not cosmetic: without it the proportional digits
+ * change width each tick and the whole countdown jitters left and right. */
 .timer-display { font-size: 72px; font-weight: 300; letter-spacing: -3px; color: var(--text-primary); text-align: center; font-variant-numeric: tabular-nums; margin: 20px 0; }
 .timer-controls { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
 .timer-mode-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; }
@@ -256,6 +398,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .timer-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* ── Page tabs (shared across pages) ─────────────────────────── */
+/* In-page tab strip (NOT sidebar navigation — that is .nav-item). Several pages
+ * define their own tab-switching JS against these class names; .active is
+ * applied by the page, so this file only describes the two visual states. */
 .page-tabs {
   display: flex; gap: 0; margin-bottom: 20px;
   border-bottom: 1px solid var(--border);
@@ -264,6 +409,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
   padding: 8px 16px; border: none; background: transparent;
   font-family: var(--font); font-size: 13px; font-weight: 500;
   cursor: pointer; color: var(--text-secondary);
+  /* Every tab carries a transparent 2px underline so activating one shifts no
+   * layout. margin-bottom:-1px lifts the tab over .page-tabs' own 1px bottom
+   * border, letting the active underline sit ON that line rather than below it. */
   border-bottom: 2px solid transparent; margin-bottom: -1px;
   transition: color .15s, border-color .15s;
 }
@@ -271,6 +419,11 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .page-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 
 /* ── btn-icon ─────────────────────────────────────────────────── */
+/* Bare inline action button (× / "Delete") used inside table rows and cards.
+ * Usually emitted by page JS with an inline onclick, so its handler must be a
+ * global (window.foo) — an IIFE-local function silently does nothing there.
+ * Note: unlike .btn this sets no font-family, and buttons do not inherit one, so
+ * text labels here render in the OS default control font rather than --font. */
 .btn-icon {
   background: none; border: none; cursor: pointer;
   font-size: 14px; padding: 2px 6px; border-radius: 4px;
