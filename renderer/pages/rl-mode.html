@@ -1,4 +1,14 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── rl-mode.html — the multi-armed-bandit study quiz ────────────────
+  Loaded by loadPage() (re-runs each visit; note the IIFE + the
+  window._pageCleanup that tears down the keydown listener). Each topic
+  is a bandit "arm"; the agent (UCB1 / ε-greedy / random) picks which to
+  quiz next, rewarding LEARNING GAIN (weak topics pay more) so it hunts
+  your frontier. Questions come from window.api.askAI with an offline
+  fallback. Earns the same Study Points as the rest of the app.
+  See the FIXME race in nextQuestion().
+-->
 <style>
   /* ── Hero ──────────────────────────────────────────────────── */
   .rl-hero {
@@ -502,6 +512,10 @@ Return ONLY this JSON shape:
   // ── Round loop ──────────────────────────────────────────────
   async function nextQuestion() {
     if (destroyed) return
+    // FIXME(high/race): the answer gate opens here, but `current` isn't replaced
+    // until after the `await generate(topic)` below. A keypress during that await
+    // runs answer() against the PREVIOUS question — scoring it twice. Move
+    // `answered = false` to just before renderQuestion(), after current is set.
     answered = false
 
     if (!topics.length) return renderNoTopics()

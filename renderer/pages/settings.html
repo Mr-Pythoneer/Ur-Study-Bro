@@ -1,4 +1,13 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── settings.html — AI provider config, Ollama models, prefs ────────
+  Loaded by loadPage() (re-runs each visit; note the IIFE). Sets the
+  active AI provider/key/model (global ai_provider / ai_key_<p> /
+  ai_model_<p> keys — read by window.aiChat everywhere), pulls Ollama
+  models, and holds per-account toggles + feedback + Clear All Data.
+  See FIXMEs: the auto-guard toggle and feedback key are write-only,
+  and "Clear All Data" doesn't actually end the session.
+-->
 <style>
   .settings-section { margin-bottom: 24px; }
   .settings-section:last-child { margin-bottom: 0; }
@@ -431,6 +440,8 @@
   checkOllama()
 
   // ── Auto-guard toggle ─────────────────────────────────────
+  // FIXME(medium): this toggle is write-only — study.html never reads
+  // cs_<user>_autoGuard when starting a Pomodoro, so flipping it does nothing.
   const autoGuardKey = `cs_${username}_autoGuard`
   const autoGuardVal = localStorage.getItem(autoGuardKey)
   // default true
@@ -445,6 +456,9 @@
   document.getElementById('sendFeedbackBtn').addEventListener('click', () => {
     const text = document.getElementById('feedbackText').value.trim()
     if (!text) return
+    // FIXME(medium): feedback is stored under cs_<user>_feedback, but the rewards
+    // badge check reads a different key (feedbackGiven), so the "gave feedback"
+    // badge never unlocks. Align the two key names.
     const feedbackKey = `cs_${username}_feedback`
     const existing = JSON.parse(localStorage.getItem(feedbackKey) || '[]')
     existing.push({ text, timestamp: new Date().toISOString() })
@@ -461,6 +475,9 @@
     Object.keys(localStorage)
       .filter(k => k.startsWith(`cs_${username}_`))
       .forEach(k => localStorage.removeItem(k))
+    // FIXME(medium): the alert says "signed out", but this only clears the data
+    // keys and navigates to welcome — cs_currentUser is untouched, so the session
+    // is still active. Either actually sign out, or reword the message.
     alert('All data cleared. You have been signed out.')
     window.navigateTo('welcome')
   })

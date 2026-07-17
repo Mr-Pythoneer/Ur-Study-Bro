@@ -1,4 +1,12 @@
 <!-- Copyright (c) 2026 Mr_Pythoneer — MIT License -->
+<!--
+  ── emails.html — IMAP inbox + meeting auto-detect ──────────────────
+  Loaded by loadPage() (re-runs each visit; note the IIFE). Connects an
+  IMAP account via window.api.fetchEmailsIMAP, lists messages, and
+  detects meeting invites to add to the calendar (calEvents, per
+  account). See FIXMEs in addToCal for the UTC-date/local-time mismatch
+  and the type vs linkType field-name mismatch with calendar.html.
+-->
 <style>
   .inbox-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
   .inbox-count { font-size:13px; color:var(--text-secondary); margin-left:auto; }
@@ -294,10 +302,17 @@
     events.push({
       id: 'em_'+email.id,
       title: email.subject,
+      // FIXME(high/date-bug): date is the UTC calendar day (toISOString) but start
+      // is the LOCAL time (toTimeString) — for users in the Americas a late-evening
+      // meeting lands on the wrong (next) day. Use one consistent local basis.
       date: dateObj.toISOString().slice(0,10),
       start: dateObj.toTimeString().slice(0,5),
+      // FIXME(low/date-bug): +1h for end wraps past midnight (e.g. 23:30 -> 00:30)
+      // so a late meeting's end time reads as BEFORE its start.
       end: new Date(dateObj.getTime()+3600000).toTimeString().slice(0,5),
       link: m?.link||'',
+      // FIXME(low): calendar.html reads this as `linkType`, not `type` — imported
+      // meetings lose their zoom/meet/teams icon. Rename to linkType.
       type: m?.link?.includes('zoom')?'zoom':m?.link?.includes('meet.google')?'meet':m?.link?.includes('teams')?'teams':'other',
       notes: `From: ${email.from}`,
       fromEmail: true,

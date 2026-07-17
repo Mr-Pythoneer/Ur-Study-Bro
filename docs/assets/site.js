@@ -1,3 +1,11 @@
+  // ── site.js — shared JS for the marketing website ──────────────────
+  // Loaded (after assets/i18n.js) by every docs/*.html page. Runs on DOM
+  // that varies per page, so EVERY DOM lookup is null-guarded — a page
+  // without #heroDl / #heatmap / #macWarning simply skips that block.
+  // Handles: OS detection, the GitHub-releases-driven download buttons,
+  // the macOS Gatekeeper copy helper, FAQ accordion, and nav active-state.
+  // Note: uses regex lookbehind — breaks on Safari/iOS < 16.4 (see audit).
+
   // Heatmap (only on pages that include the rewards mockup)
   const _hm = document.getElementById('heatmap')
   if (_hm) [0,1,0,2,1,3,2,1,0,1,2,3,4,3,2,1,2,3,4,4,3,2,3,4,3,4,3,4,4,3].forEach(l => {
