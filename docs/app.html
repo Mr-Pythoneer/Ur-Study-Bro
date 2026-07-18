@@ -66,8 +66,10 @@
   .user-sign-out{font-size:11px;color:var(--text-3);cursor:pointer;text-decoration:underline;display:block;text-align:center;margin-top:6px}
 
   /* Content */
-  .content{margin-left:var(--sidebar);flex:1;padding:28px 32px;max-width:900px}
-  .page{display:none}
+  .content{margin-left:var(--sidebar);flex:1;padding:28px 32px}
+  /* Center the page column in the space beside the sidebar instead of letting
+     it hang against the left edge with dead space on the right. */
+  .page{display:none;max-width:900px;margin:0 auto}
   .page.active{display:block}
   .page-title{font-size:22px;font-weight:800;margin-bottom:4px}
   .page-sub{font-size:13px;color:var(--text-3);margin-bottom:24px}
