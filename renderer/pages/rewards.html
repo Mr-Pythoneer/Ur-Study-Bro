@@ -887,16 +887,24 @@
     const deepWork       = records.filter(r=>r.duration>=60).length
     const marathon       = records.filter(r=>r.duration>=90).length
     const maxSingleSession = records.length ? Math.max(...records.map(r=>r.duration/60)) : 0
+    // Derive time-of-day / weekday / points-per-day badges straight from
+    // `records` (each has a local date 'YYYY-MM-DD' and time 'HH:MM'), so they
+    // actually unlock — the old flag keys below were never written by any page.
+    const earlyBird      = records.some(r => r.time && r.time < '08:00')
+    const nightOwl       = records.some(r => r.time && r.time >= '23:00')
+    const midnightStudy  = records.some(r => r.time && r.time < '05:00')  // studied in the small hours
+    const _dows          = new Set(records.map(r => new Date(r.date + 'T12:00:00').getDay()))
+    const weekendStudy   = _dows.has(0) && _dows.has(6)                    // both Sun and Sat
+    const _ptsByDay = {}  // study.html's award formula: >=15 min → max(1, round(min/2.5))
+    records.forEach(r => { if (r.duration >= 15) _ptsByDay[r.date] = (_ptsByDay[r.date]||0) + Math.max(1, Math.round(r.duration/2.5)) })
+    const maxDayPoints   = Object.values(_ptsByDay).reduce((m,v) => Math.max(m,v), 0)
+    // These four still rely on per-action counters written by the source pages
+    // (settings/study/assessment); a page that performs the action must bump them.
     const allTimers      = !!csGet('usedAllTimers')
     const highTestScore  = !!csGet('highTestScore')
     const notifClick     = !!csGet('notifClicked')
-    const midnightStudy  = !!csGet('midnightStudy')
-    const weekendStudy   = !!csGet('weekendStudy')
     const ghostMode      = parseInt(csGet('ghostModeSessions')||'0')
     const perfectDays    = parseInt(csGet('perfectDays')||'0')
-    const earlyBird      = !!csGet('earlyBirdStudy')
-    const nightOwl       = !!csGet('nightOwlStudy')
-    const maxDayPoints   = parseInt(csGet('maxDayPoints')||'0')
 
     return { sessions, hours, totalMins, maxInDay, uniqueDays, goalDays, uniqueSubjects, excellentCount, dailyGoal, weekMins, subjectMins, pomodoros, totalEarned, bestStreak: computeStreak().best,
       redeemed, socialPosts, friends, snailClicks, didAssessment, fullTest, planTasks, groupGoals, recordings, emailsRead, wordsWritten, factChecks, notesSynced, flashcards, gaveFeedback, deepWork, marathon, maxSingleSession, allTimers, highTestScore, notifClick, midnightStudy, weekendStudy, ghostMode, perfectDays, earlyBird, nightOwl, maxDayPoints }
