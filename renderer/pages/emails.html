@@ -4,8 +4,8 @@
   Loaded by loadPage() (re-runs each visit; note the IIFE). Connects an
   IMAP account via window.api.fetchEmailsIMAP, lists messages, and
   detects meeting invites to add to the calendar (calEvents, per
-  account). See FIXMEs in addToCal for the UTC-date/local-time mismatch
-  and the type vs linkType field-name mismatch with calendar.html.
+  account). addToCal stores LOCAL dates/times and emits the
+  linkType/linkLabel fields that calendar.html reads.
 -->
 <style>
   .inbox-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
@@ -289,7 +289,12 @@
     if (events.find(e => e.id === 'em_'+email.id)) return
 
     let dateObj = new Date()
-    if (m.dateStr) { const d = new Date(m.dateStr); if (!isNaN(d)) dateObj = d }
+    if (m.dateStr) {
+      // Parse 'YYYY-MM-DD' into LOCAL components — new Date('YYYY-MM-DD') would force UTC midnight.
+      const ymd = m.dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (ymd) dateObj = new Date(+ymd[1], +ymd[2]-1, +ymd[3])
+      else { const d = new Date(m.dateStr); if (!isNaN(d)) dateObj = d }
+    }
     if (m.timeStr) {
       const tm = m.timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i)
       if (tm) {
@@ -299,21 +304,20 @@
         dateObj.setHours(h, min, 0, 0)
       }
     }
+    // Date and time derive from the same local basis (calendar.html stores LOCAL wall-clock).
+    const localDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    const t = m?.link?.includes('zoom')?'zoom':m?.link?.includes('meet.google')?'meet':m?.link?.includes('teams')?'teams':'other'
     events.push({
       id: 'em_'+email.id,
       title: email.subject,
-      // FIXME(high/date-bug): date is the UTC calendar day (toISOString) but start
-      // is the LOCAL time (toTimeString) — for users in the Americas a late-evening
-      // meeting lands on the wrong (next) day. Use one consistent local basis.
-      date: dateObj.toISOString().slice(0,10),
+      date: localDateStr(dateObj),
       start: dateObj.toTimeString().slice(0,5),
-      // FIXME(low/date-bug): +1h for end wraps past midnight (e.g. 23:30 -> 00:30)
-      // so a late meeting's end time reads as BEFORE its start.
-      end: new Date(dateObj.getTime()+3600000).toTimeString().slice(0,5),
+      // Clamp the end to the same day so a late meeting's end never precedes its start.
+      end: dateObj.getHours() >= 23 ? '23:59' : new Date(dateObj.getTime()+3600000).toTimeString().slice(0,5),
       link: m?.link||'',
-      // FIXME(low): calendar.html reads this as `linkType`, not `type` — imported
-      // meetings lose their zoom/meet/teams icon. Rename to linkType.
-      type: m?.link?.includes('zoom')?'zoom':m?.link?.includes('meet.google')?'meet':m?.link?.includes('teams')?'teams':'other',
+      // calendar.html reads linkType/linkLabel for the icon, colour, and label.
+      linkType: t,
+      linkLabel: t === 'zoom' ? 'Zoom' : t === 'meet' ? 'Google Meet' : t === 'teams' ? 'Microsoft Teams' : 'Meeting Link',
       notes: `From: ${email.from}`,
       fromEmail: true,
     })

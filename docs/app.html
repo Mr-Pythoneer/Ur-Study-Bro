@@ -8,7 +8,7 @@
   with a stray '===='), so keep it defensive.
   AI is origin-aware: Ollama only when served from localhost (browsers
   block a hosted page from reaching localhost:11434), cloud otherwise.
-  See the audit FIXMEs below (timer replay, unescaped renderPlan, etc).
+  Audit issues (timer replay, unescaped renderPlan, UTC dates, etc.) fixed.
 -->
 <html lang="en">
 <head>
@@ -60,8 +60,7 @@
   .nav-item.active svg{opacity:1}
   .nav-lock{font-size:10px;background:#f3f4f6;color:var(--text-3);border-radius:4px;padding:1px 5px;margin-left:auto}
   .sb-bottom{margin-top:auto;padding:14px 12px;border-top:1px solid var(--border)}
-  .user-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .12s}
-  .user-chip:hover{background:#f5f4f1}
+  .user-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px}
   .user-avatar{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
   .user-name{font-size:13px;font-weight:600;color:var(--text)}
   .user-sign-out{font-size:11px;color:var(--text-3);cursor:pointer;text-decoration:underline;display:block;text-align:center;margin-top:6px}
@@ -273,7 +272,7 @@
       </button>
 
       <div class="sb-bottom">
-        <div class="user-chip" onclick="showUserMenu()">
+        <div class="user-chip">
           <div class="user-avatar" id="sbAvatar">U</div>
           <div>
             <div class="user-name" id="sbName">User</div>
@@ -366,7 +365,7 @@
             <div class="done-stat"><div class="done-val" id="doneXP">0</div><div class="done-lbl">XP Earned</div></div>
             <div class="done-stat"><div class="done-val" id="doneStreak">0</div><div class="done-lbl">Day Streak</div></div>
           </div>
-          <button class="btn btn-primary" onclick="document.getElementById('sessionDone').style.display='none'">Keep Studying</button>
+          <button class="btn btn-primary" onclick="resetTimer()">Keep Studying</button>
         </div>
 
         <div class="locked-banner" style="margin-top:16px">
@@ -439,7 +438,7 @@
       </div>
 
       <!-- AI Settings modal -->
-      <div class="ai-settings-modal" id="aiSettingsModal" onclick="if(event.target===this)closeAISettings()">
+      <div class="ai-settings-modal" id="aiSettingsModal" onclick="if(event.target===this)cancelAISettings()">
         <div class="ai-settings-box">
           <h3>⚙️ AI Settings</h3>
           <p>By default the AI uses Ollama running on your machine (same as the desktop app — no API key needed). Switch to a cloud provider below for more power.</p>
@@ -477,7 +476,7 @@
 
           <div style="display:flex;gap:8px;margin-top:18px">
             <button class="btn btn-primary" onclick="closeAISettings()">Save & Close</button>
-            <button class="btn" onclick="closeAISettings()">Cancel</button>
+            <button class="btn" onclick="cancelAISettings()">Cancel</button>
           </div>
         </div>
       </div>
@@ -497,6 +496,10 @@ const csGet = k => localStorage.getItem(csKey(k))
 const csSet = (k,v) => localStorage.setItem(csKey(k),v)
 const csGetJSON = (k,d=[]) => { try{return JSON.parse(csGet(k))||d}catch{return d} }
 const csSetJSON = (k,v) => csSet(k,JSON.stringify(v))
+
+// Local day key (YYYY-MM-DD) — never toISOString(), which is UTC and rolls the
+// day over mid-afternoon for users west of UTC. Records store LOCAL dates.
+const dayKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 
 /* ── Auth ─────────────────────────────────────────────────────── */
 let authMode = 'signin'
@@ -581,7 +584,7 @@ function refreshHome(){
   document.getElementById('hStatXP').textContent = xp
   document.getElementById('hStatStreak').textContent = calcStreak()
   const records = csGetJSON('records',[])
-  const today = new Date().toISOString().slice(0,10)
+  const today = dayKey(new Date())
   document.getElementById('hStatSessions').textContent = records.filter(r=>r.date===today).length
   const tasks = csGetJSON('planTasks',[])
   document.getElementById('hStatTasks').textContent = tasks.filter(t=>t.done).length
@@ -592,7 +595,7 @@ function calcStreak(){
   const daySet = new Set(records.map(r=>r.date))
   let streak=0, d=new Date()
   while(true){
-    const k = d.toISOString().slice(0,10)
+    const k = dayKey(d)
     if(!daySet.has(k)) break
     streak++; d.setDate(d.getDate()-1)
   }
@@ -624,11 +627,6 @@ function updateTimerDisplay(){
   fill.style.strokeDashoffset = CIRC*(1-pct)
 }
 
-// FIXME(critical): after a session ends, T.secs stays at 0 and startBtn resets
-// to "Start". Clicking Start goes to the run branch below and starts an interval
-// that ticks T.secs to -1, so the `if(T.secs<=0)` at :640 fires completeSession()
-// AGAIN every second — farming points/records endlessly. Reset T.secs (call
-// resetTimer) when starting from a finished state.
 function startTimer(){
   if(T.running){ // pause
     clearInterval(T.interval); T.running=false
@@ -636,11 +634,14 @@ function startTimer(){
     document.getElementById('timerStatus').textContent='Paused'
     return
   }
+  // Starting from a finished (or somehow non-positive) clock would immediately
+  // re-fire completeSession() on the next tick — reset to a full session first.
+  if(T.secs<=0) T.secs = T.total
   T.running=true
   document.getElementById('startBtn').textContent='⏸ Pause'
   document.getElementById('timerStatus').textContent='Running'
   T.interval = setInterval(()=>{
-    T.secs--
+    T.secs = Math.max(0, T.secs-1)
     updateTimerDisplay()
     if(T.secs<=0){ clearInterval(T.interval); T.running=false; completeSession() }
   },1000)
@@ -656,11 +657,13 @@ function resetTimer(){
 }
 
 function completeSession(){
+  T.secs = T.total // reset the clock so a later Start can't re-fire this
   document.getElementById('startBtn').textContent='▶ Start'
   document.getElementById('timerStatus').textContent='Done!'
   const mins = Math.round(T.total/60)
-  const today = new Date().toISOString().slice(0,10)
-  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+  const now = new Date()
+  const today = dayKey(now)
+  const time = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
   const subject = document.getElementById('timerSubject').value||'General Study'
   const notes = document.getElementById('timerNotes').value
   const records = csGetJSON('records',[])
@@ -677,8 +680,10 @@ function completeSession(){
   document.getElementById('doneStreak').textContent = calcStreak()
   document.getElementById('sessionDone').style.display='block'
   document.getElementById('sessionDone').scrollIntoView({behavior:'smooth',block:'nearest'})
-  // Try web notification
-  if(Notification.permission==='granted') new Notification('Session complete!',{body:`${mins} min logged. +${earned} XP`})
+  // Try web notification (Notification is absent in some browsers/contexts)
+  if('Notification' in window && Notification.permission==='granted'){
+    try{ new Notification('Session complete!',{body:`${mins} min logged. +${earned} XP`}) }catch{}
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -701,7 +706,7 @@ function renderRewards(){
   const records = csGetJSON('records',[])
   const xp = parseInt(csGet('studyPoints')||'0')
   const streak = calcStreak()
-  const today = new Date().toISOString().slice(0,10)
+  const today = dayKey(new Date())
   const todaySessions = records.filter(r=>r.date===today).length
 
   // Stat cards
@@ -721,7 +726,7 @@ function renderRewards(){
   hm.innerHTML=''
   for(let i=29;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i)
-    const k=d.toISOString().slice(0,10)
+    const k=dayKey(d)
     const count=records.filter(r=>r.date===k).length
     const cls = count===0?'':count===1?'h1':count===2?'h2':count===3?'h3':'h4'
     const el=document.createElement('div')
@@ -769,18 +774,18 @@ function renderPlan(){
     <div id="taskList"></div>`
 
   const list = document.getElementById('taskList')
-  // FIXME(medium/xss): t.title/t.subject/t.type come from AI-generated study
-  // tasks and are interpolated raw into innerHTML below — escape them.
+  // t.title/t.subject/t.type derive from user goal text (via generatePlan) and
+  // are AI/user-influenced, so escape them before injecting into innerHTML.
   tasks.forEach((t,i)=>{
     const div = document.createElement('div')
     div.className = 'plan-task'+(t.done?' done-task':'')
     div.innerHTML = `
       <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${i})">
       <div class="plan-task-text">
-        <div>${t.title}</div>
-        <div class="plan-task-sub">${t.subject||''} · ${t.type||'Task'}</div>
+        <div>${escHtml(t.title)}</div>
+        <div class="plan-task-sub">${escHtml(t.subject||'')} · ${escHtml(t.type||'Task')}</div>
       </div>
-      <div class="plan-task-pts">+${t.pts||10} XP</div>`
+      <div class="plan-task-pts">+${Number(t.pts)||10} XP</div>`
     list.appendChild(div)
   })
 }
@@ -855,6 +860,7 @@ const PHASES = [
 ]
 
 let phaseIdx=0, answers={}, reactionTimes=[], reactionState='waiting', reactionStart=0, reactionCount=0
+let reactionTimer=null, reactionRound=0 // handle + identity so a stale go-green timer can't fire
 let patternSet=0
 
 function renderAssessment(){
@@ -940,6 +946,7 @@ function nextPhase(){
 }
 
 function setupReaction(){
+  clearTimeout(reactionTimer); reactionRound++ // kill any timer inherited from a prior visit
   reactionState='waiting'; reactionTimes=[]; reactionCount=0
 }
 
@@ -950,13 +957,17 @@ function reactionClick(){
     arena.textContent='Wait for green…'
     reactionState='pending'
     const delay = 1000+Math.random()*2000
-    setTimeout(()=>{
-      if(reactionState!=='pending') return
+    clearTimeout(reactionTimer)
+    const round = ++reactionRound
+    reactionTimer = setTimeout(()=>{
+      // Only the current round's timer may turn the arena green.
+      if(reactionState!=='pending' || round!==reactionRound) return
       arena.style.background='#d1fae5'; arena.style.borderColor='#10b981'; arena.style.color='#065f46'
       arena.textContent='NOW! Click!'
       reactionState='go'; reactionStart=Date.now()
     },delay)
   } else if(reactionState==='go'){
+    clearTimeout(reactionTimer)
     const rt = Date.now()-reactionStart
     reactionTimes.push(rt); reactionCount++
     msg.textContent = `Click ${reactionCount}/5 — ${rt}ms`
@@ -973,7 +984,8 @@ function reactionClick(){
     reactionState='waiting'
     arena.textContent='Click again when ready'
   } else if(reactionState==='pending'){
-    // Clicked too early
+    // Clicked too early — cancel and invalidate the pending go-green timer
+    clearTimeout(reactionTimer); reactionRound++
     arena.style.background='#fef2f2'; arena.style.borderColor='#ef4444'; arena.style.color='#ef4444'
     arena.textContent='Too early! Click to try again.'
     msg.textContent='Don\'t click until it turns green!'
@@ -1069,10 +1081,23 @@ function loadAISettings(){
   if(p==='ollama') probeOllama()
 }
 
-function openAISettings(){ document.getElementById('aiSettingsModal').classList.add('open') }
+let _provSnapshot = null
+function openAISettings(){
+  _provSnapshot = defaultProvider() // so Cancel can restore it
+  document.getElementById('aiSettingsModal').classList.add('open')
+}
 function closeAISettings(){
   document.getElementById('aiSettingsModal').classList.remove('open')
   localStorage.setItem('ai_provider', document.getElementById('aiProvider').value)
+  updateAIHeader()
+}
+// Cancel/backdrop: discard the provider change instead of committing it.
+function cancelAISettings(){
+  if(_provSnapshot!=null){
+    document.getElementById('aiProvider').value = _provSnapshot
+    onProviderChange()
+  }
+  document.getElementById('aiSettingsModal').classList.remove('open')
   updateAIHeader()
 }
 
@@ -1218,9 +1243,6 @@ async function sendAI(){
       status.className='ai-status ollama-ok'
       status.textContent='✓ Ollama is running.'
 
-    // FIXME(high): the gemini and openai branches never check res.ok — an invalid
-    // API key returns an error JSON with 200-less status, the reader reads no SSE
-    // data lines, and the user just sees a silently blank reply with no error.
     } else if(provider==='gemini'){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${key}`
       const contents=aiMessages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
@@ -1228,6 +1250,8 @@ async function sendAI(){
         system_instruction:{parts:[{text:systemPrompt}]},
         contents, generationConfig:{maxOutputTokens:1024}
       })})
+      // A bad key returns a JSON error body, not SSE — surface it instead of streaming nothing.
+      if(!res.ok){ const t=await res.text(); let m; try{m=JSON.parse(t).error?.message}catch{} throw new Error(m||`HTTP ${res.status}`) }
       const reader=res.body.getReader(); const dec=new TextDecoder(); let buf=''
       while(true){
         const {done,value}=await reader.read(); if(done) break
@@ -1245,6 +1269,8 @@ async function sendAI(){
         model:'gpt-4o-mini', stream:true,
         messages:[{role:'system',content:systemPrompt},...aiMessages], max_tokens:1024
       })})
+      // A bad key returns a JSON error body, not SSE — surface it instead of streaming nothing.
+      if(!res.ok){ const t=await res.text(); let m; try{m=JSON.parse(t).error?.message}catch{} throw new Error(m||`HTTP ${res.status}`) }
       const reader=res.body.getReader(); const dec=new TextDecoder(); let buf=''
       while(true){
         const {done,value}=await reader.read(); if(done) break
@@ -1266,6 +1292,9 @@ async function sendAI(){
       reply=data.content?.[0]?.text||data.error?.message||'Error'
     }
 
+    // An empty reply means the stream carried no content (e.g. an error body that
+    // parsed to no tokens) — don't render a blank bubble or poison the history.
+    if(!reply) throw new Error('Empty response from '+provider)
     bubble.innerHTML = escHtml(reply)
     aiMessages.push({role:'assistant',content:reply})
 

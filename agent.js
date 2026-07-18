@@ -71,23 +71,29 @@ function open_application({ name }) {
 
 function list_installed_apps() {
   // Lets the model discover exact app names before calling open_application.
-  // FIXME(high): /System/Applications is missing, so every stock Apple app
-  // (Calculator, Notes, Safari, Mail…) is absent from this list — the model
-  // trusts it and tells the user they aren't installed, even though
-  // open_application would have launched them. See audit.
-  const dirs = ['/Applications', path.join(os.homedir(), 'Applications')]
-  // Set, not array: the same .app can sit in both dirs and must appear once.
+  // Since macOS Catalina, Apple's bundled apps (Calculator, Notes, Safari,
+  // Mail…) live under /System/Applications, and utilities under the Utilities
+  // subfolders — all of these must be scanned or the model will wrongly report
+  // stock apps as not installed even though open_application launches them.
+  const dirs = [
+    '/Applications',
+    '/Applications/Utilities',
+    '/System/Applications',
+    '/System/Applications/Utilities',
+    path.join(os.homedir(), 'Applications'),
+  ]
+  // Set, not array: the same .app can sit in more than one dir and must appear once.
   const found = new Set()
   for (const dir of dirs) {
-    // ~/Applications does not exist on most Macs — skip rather than throw.
+    // A given dir (e.g. ~/Applications) does not exist on most Macs — skip
+    // rather than throw.
     if (!fs.existsSync(dir)) continue
     for (const f of fs.readdirSync(dir)) {
       if (f.endsWith('.app')) found.add(f.replace(/\.app$/, ''))
     }
   }
-  // Non-recursive: this only sees top-level .app bundles, not ones nested in
-  // subfolders (e.g. /Applications/Utilities/*). Sorted so the prompt the model
-  // sees is stable between calls rather than in readdir order.
+  // Sorted so the prompt the model sees is stable between calls rather than in
+  // readdir order.
   return { apps: [...found].sort((a, b) => a.localeCompare(b)) }
 }
 

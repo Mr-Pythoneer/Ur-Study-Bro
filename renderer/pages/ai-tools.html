@@ -209,7 +209,7 @@
     const provider = localStorage.getItem('ai_provider') || 'ollama'
     const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
     const model    = localStorage.getItem('ai_model_' + provider) ||
-      (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : provider === 'ollama' ? 'llama3.2' : 'gpt-4o-mini')
+      (provider === 'gemini' ? 'gemini-2.0-flash' : provider === 'anthropic' ? 'claude-haiku-4-5-20251001' : provider === 'ollama' ? 'gemma3:4b' : 'gpt-4o-mini')
     return { provider, apiKey, model }
   }
 
@@ -234,10 +234,8 @@
 
   async function callAI(systemPrompt, userContent) {
     const { provider, apiKey, model } = getApiCfg()
-    // FIXME(high): Ollama (the default provider) has no apiKey, so this throws
-    // 'no_key' and all three tools are dead out of the box. Only require a key
-    // for cloud providers: if (provider !== 'ollama' && !apiKey) throw ...
-    if (!apiKey) throw new Error('no_key')
+    // Ollama runs locally and needs no key; only cloud providers require one.
+    if (provider !== 'ollama' && !apiKey) throw new Error('no_key')
     const res = await window.api.askAI({ provider, apiKey, model, systemPrompt, messages:[{ role:'user', content:userContent }] })
     if (res.error) throw new Error(res.error)
     return res.reply
@@ -285,13 +283,12 @@
   function renderGrade(d) {
     document.getElementById('gradePlaceholder').style.display='none'
     document.getElementById('gradeResultCard').style.display=''
-    // FIXME(high/xss): d.percent and d.on_task_score below are interpolated raw
-    // while every sibling field uses esc(). They come from AI JSON output — a
-    // crafted response injects HTML. Wrap them in esc() like the rest.
+    // d.percent / d.on_task_score come from AI JSON output; coerce to numbers so
+    // no HTML from a crafted response can reach innerHTML (sibling fields use esc()).
     document.getElementById('gradeBadges').innerHTML=`
       <div class="grade-badge ${gradeClass(d.grade)}"><div class="badge-val">${esc(d.grade||'?')}</div><div class="badge-lbl">Estimated Grade</div></div>
-      <div class="grade-badge" style="background:#f3f4f6;color:var(--text-primary);"><div class="badge-val">${d.percent||'?'}%</div><div class="badge-lbl">Score</div></div>
-      <div class="grade-badge" style="background:#ede9fe;color:#5b21b6;"><div class="badge-val">${d.on_task_score||'?'}%</div><div class="badge-lbl">On-Task</div></div>`
+      <div class="grade-badge" style="background:#f3f4f6;color:var(--text-primary);"><div class="badge-val">${Number.isFinite(+d.percent) ? +d.percent : '?'}%</div><div class="badge-lbl">Score</div></div>
+      <div class="grade-badge" style="background:#ede9fe;color:#5b21b6;"><div class="badge-val">${Number.isFinite(+d.on_task_score) ? +d.on_task_score : '?'}%</div><div class="badge-lbl">On-Task</div></div>`
     document.getElementById('gradeDetail').innerHTML=`
       <p style="margin-bottom:12px;"><strong>${esc(d.summary||'')}</strong></p>
       ${d.on_task_analysis?`<p style="margin-bottom:14px;padding:10px 14px;background:#f0fdf4;border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;">${esc(d.on_task_analysis)}</p>`:''}

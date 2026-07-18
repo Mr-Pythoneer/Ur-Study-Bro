@@ -625,6 +625,7 @@
   let recSeconds     = 0
   let lastSavedFilepath = null
   let lastSessionMeta = null
+  let pendingMeta = null   // DOM values snapshotted at recording START (see startRecording)
 
   const startBtn  = document.getElementById('recStartBtn')
   const stopBtn   = document.getElementById('recStopBtn')
@@ -652,8 +653,23 @@
       preview.srcObject = recStream
       preview.classList.add('visible')
 
+      // If the captured window/screen ends externally (e.g. the Zoom window closes),
+      // Chromium auto-stops the recorder; run the same teardown the Stop button does
+      // so the timer/indicator/buttons don't keep claiming a recording is in progress.
+      recStream.getVideoTracks()[0]?.addEventListener('ended', () => stopRecording())
+
       const kbps = parseInt(bitrateSlider.value)
       recordedChunks = []
+      // Snapshot every DOM-derived value NOW, at recording start. finalizeRecording
+      // runs from the MediaRecorder 'stop' event, which can fire AFTER the page has
+      // been torn down on navigation — at which point these inputs no longer exist.
+      pendingMeta = {
+        subject: document.getElementById('recSubjectCustom').value.trim()
+              || document.getElementById('recSubjectSel').value
+              || 'Session',
+        notes: document.getElementById('recNotes').value.trim(),
+        kbps,
+      }
       mediaRecorder = new MediaRecorder(recStream, {
         mimeType: 'video/webm;codecs=vp9',
         videoBitsPerSecond: kbps * 1000,
@@ -695,22 +711,22 @@
   }
 
   async function finalizeRecording() {
-    const blob = new Blob(recordedChunks, {type:'video/webm'})
-    const buffer = await blob.arrayBuffer()
-
-    const subject = document.getElementById('recSubjectCustom').value.trim()
-               || document.getElementById('recSubjectSel').value
-               || 'Session'
-    const notes   = document.getElementById('recNotes').value.trim()
-    const duration = recSeconds
-    const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)
-    const filename = `${ts}_${subject.replace(/[^a-z0-9]/gi,'_').slice(0,30)}.webm`
-
+    // Read from the snapshot taken at recording start, NOT the DOM — the page may
+    // already be gone (navigated away without pressing Stop). The whole body is in
+    // try/catch so an OOM/RangeError on a huge recording surfaces as an alert
+    // instead of a silent unhandled rejection.
     try {
+      const {subject, notes, kbps} = pendingMeta || {subject:'Session', notes:'', kbps:800}
+      const blob = new Blob(recordedChunks, {type:'video/webm'})
+      const buffer = await blob.arrayBuffer()
+      recordedChunks = []   // file is what we persist; release the buffered chunks now
+      const duration = recSeconds
+      const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)
+      const filename = `${ts}_${subject.replace(/[^a-z0-9]/gi,'_').slice(0,30)}.webm`
       const {filepath, size} = await window.api.saveRecording(new Uint8Array(buffer), filename)
       lastSavedFilepath = filepath
       lastSessionMeta = {subject, notes, duration, size}
-      buildSummary(subject, notes, duration, size, filepath)
+      buildSummary(subject, notes, duration, size, filepath, kbps)
       loadRecordingsList()
     } catch(e) {
       alert('Error saving recording: '+e.message)
@@ -718,10 +734,14 @@
   }
 
   /* ── Auto-generate summary ───────────────────────────────── */
-  function buildSummary(subject, notes, durationSecs, fileSizeBytes, filepath) {
+  function buildSummary(subject, notes, durationSecs, fileSizeBytes, filepath, kbps) {
+    // Guard: the page may have been torn down while the recording finalized, in
+    // which case these nodes are gone — the .webm is already safely on disk.
+    const contentEl = document.getElementById('summaryContent')
+    const cardEl    = document.getElementById('summaryCard')
+    if (!contentEl || !cardEl) return
     const mins     = Math.round(durationSecs/60)
     const sizeMB   = (fileSizeBytes/1024/1024).toFixed(1)
-    const kbps     = parseInt(bitrateSlider.value)
     const rawMB    = Math.round(kbps*3*durationSecs/8/1024*10)/10
     const saved    = rawMB>fileSizeBytes/1024/1024 ? `(saved ~${Math.round((rawMB-fileSizeBytes/1024/1024))}MB vs high-quality)` : ''
     const lines = [
@@ -734,8 +754,8 @@
       ``,
       `📂 Saved to:  ${filepath}`,
     ]
-    document.getElementById('summaryContent').textContent = lines.join('\n')
-    document.getElementById('summaryCard').style.display = ''
+    contentEl.textContent = lines.join('\n')
+    cardEl.style.display = ''
   }
 
   document.getElementById('saveSummaryBtn').addEventListener('click', () => {
@@ -762,6 +782,7 @@
   /* ── Recordings file list ────────────────────────────────── */
   async function loadRecordingsList() {
     const list = document.getElementById('recFileList')
+    if (!list) return   // page may be gone if this ran from a post-teardown finalize
     try {
       const recs = await window.api.listRecordings()
       if (!recs.length) { list.innerHTML='<div style="color:var(--text-secondary);font-size:13px;text-align:center;padding:20px 0;">No recordings yet.</div>'; return }
@@ -804,6 +825,8 @@
 
   let audioRecorder = null, audioChunks = [], audioStream = null
   let audioTimerInterval = null, audioSeconds = 0
+  let pendingAudioMeta = null   // provider/key snapshotted at recording START
+  let pendingAudio = null       // {bytes, provider, duration} retained so a failed/key-less transcription can be retried
 
   const audioStartBtn = document.getElementById('audioStartBtn')
   const audioStopBtn  = document.getElementById('audioStopBtn')
@@ -814,11 +837,22 @@
   const transcribeKeyEl = document.getElementById('transcribeKey')
   transcribeKeyEl.value = localStorage.getItem('transcribe_key') || ''
   transcribeKeyEl.addEventListener('change', () => localStorage.setItem('transcribe_key', transcribeKeyEl.value))
+  // Don't let the user record audio they can't transcribe: gate Start on a key
+  // being present. (Recorded audio is also persisted to disk in finalizeAudio.)
+  function updateAudioStartEnabled() {
+    if (audioRecorder && audioRecorder.state !== 'inactive') return  // mid-recording: leave disabled
+    audioStartBtn.disabled = !transcribeKeyEl.value.trim()
+  }
+  transcribeKeyEl.addEventListener('input', updateAudioStartEnabled)
+  updateAudioStartEnabled()
 
   audioStartBtn.addEventListener('click', async () => {
     try {
       audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       audioChunks = []
+      // Snapshot provider + key NOW; finalizeAudio runs from the 'stop' event, which
+      // may fire after the page (and #transcribeProvider) is gone on navigation.
+      pendingAudioMeta = { provider: document.getElementById('transcribeProvider').value, apiKey: transcribeKeyEl.value.trim() }
       audioRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' })
       audioRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data) }
       audioRecorder.onstop = finalizeAudio
@@ -841,51 +875,102 @@
     if (audioRecorder && audioRecorder.state !== 'inactive') audioRecorder.stop()
     if (audioStream) audioStream.getTracks().forEach(t => t.stop())
     clearInterval(audioTimerInterval)
-    audioStartBtn.disabled = false
     audioStopBtn.disabled  = true
     audioIndicator.style.display = 'none'
+    updateAudioStartEnabled()
   })
 
   async function finalizeAudio() {
+    // Read provider from the START-time snapshot, not the DOM (page may be gone).
+    const meta = pendingAudioMeta || { provider:'openai', apiKey:'' }
     const blob   = new Blob(audioChunks, { type: 'audio/webm' })
     const buffer = await blob.arrayBuffer()
-    const apiKey = transcribeKeyEl.value.trim()
-    const provider = document.getElementById('transcribeProvider').value
+    audioChunks = []
+    const bytes = new Uint8Array(buffer)
+    const duration = audioSeconds
+
+    // Persist the raw audio to disk FIRST so a missing key / failed transcription
+    // can never destroy the recording (unlike before, when it lived only in memory).
+    const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)
+    try { await window.api.saveRecording(bytes, `${ts}_lecture.webm`) } catch(e) { /* still try to transcribe */ }
+
+    await runTranscription(bytes, meta.provider, meta.apiKey, duration)
+  }
+
+  // Transcribe (or re-transcribe) an audio buffer. Every DOM lookup is null-guarded
+  // so it still completes — and still writes csSetJSON('transcripts', …) — if the
+  // page has been torn down. Retains `bytes` in pendingAudio on any failure path so
+  // the user can Retry after fixing their key.
+  async function runTranscription(bytes, provider, apiKey, duration) {
+    const card     = document.getElementById('transcriptCard')
+    const statusEl = document.getElementById('transcriptStatus')
+    const outEl    = document.getElementById('transcriptOutput')
 
     if (!apiKey) {
-      alert('Enter your OpenAI or Groq API key first.')
+      pendingAudio = { bytes, provider, duration }
+      if (card) card.style.display = ''
+      if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Audio saved. Enter your OpenAI or Groq API key, then click Retry transcription.' }
+      if (!card && !statusEl) alert('Enter your OpenAI or Groq API key first.')
+      showRetryBtn()
       return
     }
 
-    const card = document.getElementById('transcriptCard')
-    const statusEl = document.getElementById('transcriptStatus')
-    card.style.display = ''
-    statusEl.style.display = 'block'
-    statusEl.textContent = 'Transcribing… this may take a moment.'
-    document.getElementById('transcriptOutput').textContent = ''
+    if (card) card.style.display = ''
+    if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = 'Transcribing… this may take a moment.' }
+    if (outEl) outEl.textContent = ''
 
     try {
-      const res = await window.api.transcribeAudio({
-        audioBuffer: Array.from(new Uint8Array(buffer)),
-        provider,
-        apiKey,
-      })
-      statusEl.style.display = 'none'
-      if (res.error) { statusEl.textContent = res.error; statusEl.style.display='block'; return }
+      // Pass the Uint8Array straight through — structured clone serializes TypedArrays
+      // as raw bytes, avoiding the ~10x blowup of Array.from(...) (one JS number/byte).
+      const res = await window.api.transcribeAudio({ audioBuffer: bytes, provider, apiKey })
+      if (statusEl) statusEl.style.display = 'none'
+      if (res.error) {
+        pendingAudio = { bytes, provider, duration }
+        if (statusEl) { statusEl.textContent = res.error; statusEl.style.display = 'block' }
+        showRetryBtn()
+        return
+      }
+      pendingAudio = null
+      hideRetryBtn()
 
       const text = res.transcript || ''
-      document.getElementById('transcriptOutput').textContent = text
+      if (outEl) outEl.textContent = text
 
       // Save to transcript history
       const history = csGetJSON('transcripts', [])
       const dateStr = new Date().toISOString().slice(0,10)
-      history.unshift({ id: Date.now().toString(), date: dateStr, duration: audioSeconds, text })
+      history.unshift({ id: Date.now().toString(), date: dateStr, duration, text })
       csSetJSON('transcripts', history.slice(0,20))
       renderTranscriptList()
     } catch(e) {
-      statusEl.textContent = e.message
-      statusEl.style.display = 'block'
+      pendingAudio = { bytes, provider, duration }
+      if (statusEl) { statusEl.textContent = e.message; statusEl.style.display = 'block' }
+      showRetryBtn()
     }
+  }
+
+  // Retry button lives next to the transcript status; created lazily.
+  function showRetryBtn() {
+    const statusEl = document.getElementById('transcriptStatus')
+    if (!statusEl) return
+    let btn = document.getElementById('retryTranscribeBtn')
+    if (!btn) {
+      btn = document.createElement('button')
+      btn.id = 'retryTranscribeBtn'
+      btn.className = 'btn btn-primary'
+      btn.style.cssText = 'font-size:12px;padding:6px 14px;margin-top:8px;'
+      btn.textContent = 'Retry transcription'
+      btn.addEventListener('click', () => {
+        if (!pendingAudio) return
+        runTranscription(pendingAudio.bytes, pendingAudio.provider, transcribeKeyEl.value.trim(), pendingAudio.duration)
+      })
+      statusEl.insertAdjacentElement('afterend', btn)
+    }
+    btn.style.display = ''
+  }
+  function hideRetryBtn() {
+    const btn = document.getElementById('retryTranscribeBtn')
+    if (btn) btn.style.display = 'none'
   }
 
   document.getElementById('sendToNotesBtn').addEventListener('click', () => {
@@ -894,7 +979,10 @@
     const notes = csGetJSON('meetingNotes', [])
     const dateStr = new Date().toISOString().slice(0,10)
     const title = `Lecture Transcript — ${dateStr}`
-    notes.push({ title, subject: '', html: `<h2>${title}</h2><p>${text.replace(/\n/g,'</p><p>')}</p>`, date: dateStr, synced: false })
+    // Escape the verbatim Whisper response before it becomes note HTML — _loadNote
+    // assigns note.html straight to innerHTML, so raw '<...>' would corrupt/execute.
+    const safe = escHtml(text)
+    notes.push({ title, subject: '', html: `<h2>${escHtml(title)}</h2><p>${safe.replace(/\n/g,'</p><p>')}</p>`, date: dateStr, synced: false })
     csSetJSON('meetingNotes', notes)
     showTab('notes')
     renderNoteHistory()

@@ -36,10 +36,10 @@
     If you refactor a handler into an IIFE local and forget the window.* assignment,
     the button will silently do nothing — no error, no clue.
 
-  * NO CLEANUP IS REGISTERED. A page that starts an interval or a document-level
-    listener is supposed to register window._pageCleanup so loadPage() can tear it
-    down before swapping pages. This page does NOT, and it starts both (see the
-    FIXMEs in startCPT/cptKey). Every abandoned CPT run leaks another one.
+  * CLEANUP IS REGISTERED. The CPT starts an interval and a document-level keydown
+    listener, so this page registers window._pageCleanup (see just after cptDone)
+    for loadPage() to tear both down before swapping pages. Without it, abandoning
+    a CPT run mid-test would leak the interval and leave Space swallowed app-wide.
 
   * BASE URL GOTCHA. Because the markup is injected into renderer/index.html, any
     relative URL in this file resolves against renderer/, NOT renderer/pages/. This
@@ -326,17 +326,16 @@ let cptTrials=[],cptIdx=0,cptStart=0,cptStimulusT=null,cptReplied=false,cptRunni
 // commission-error signal disappears. Fisher-Yates shuffle then jittered ISI
 // (1000/1500/2000ms) so the rhythm can't be anticipated.
 function buildTrials(){const t=[];for(let i=0;i<96;i++)t.push({type:'GO'});for(let i=0;i<24;i++)t.push({type:'NO_GO',variant:Math.random()<.5?'red':'tri'});for(let i=t.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[t[i],t[j]]=[t[j],t[i]]}const isis=[1000,1500,2000];return t.map((x,i)=>({...x,index:i,isi:isis[Math.floor(Math.random()*3)]}))}
-// FIXME(high): this starts a document-level keydown listener AND a 200ms
-// setInterval, but both are only torn down in cptDone(). Navigating away
-// mid-test (or clicking Start twice) leaks them — and because loadPage()
-// re-executes this script per visit, they accumulate. This page registers no
-// window._pageCleanup, which is where the teardown belongs. See audit.
-window.startCPT=function(){document.getElementById('cpt-pre').style.display='none';document.getElementById('cpt-running').style.display='';cptTrials=buildTrials();cptIdx=0;cptStart=performance.now();cptRunning=true;const ar=document.getElementById('cpt-arena');ar.addEventListener('click',cptResp);document.addEventListener('keydown',cptKey);ar.focus();cptTimerID=setInterval(()=>{const rem=Math.max(0,180000-(performance.now()-cptStart));const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);document.getElementById('cpt-timer').textContent=`${m}:${s.toString().padStart(2,'0')} remaining`;if(rem<=0){clearInterval(cptTimerID);cptDone()}},200);nextCPT()}
-// FIXME(critical): this handler is bound to `document` and unconditionally
-// preventDefault()s Space. If it leaks (see startCPT above), it survives the
-// page swap and swallows the spacebar APP-WIDE — buttons stop activating,
-// text fields stop accepting spaces — with no visible cause. See audit.
-function cptKey(e){if(e.code==='Space'){e.preventDefault();cptResp()}}
+// Starts a document-level keydown listener AND a 200ms setInterval. Both are
+// torn down in cptDone() (normal finish) and, crucially, in window._pageCleanup
+// below (navigating away mid-test), which loadPage() invokes before swapping the
+// page — so nothing leaks across visits. The interval null-checks #cpt-timer so
+// it can still reach its own clearInterval even if the element is gone.
+window.startCPT=function(){document.getElementById('cpt-pre').style.display='none';document.getElementById('cpt-running').style.display='';cptTrials=buildTrials();cptIdx=0;cptStart=performance.now();cptRunning=true;const ar=document.getElementById('cpt-arena');ar.addEventListener('click',cptResp);document.addEventListener('keydown',cptKey);ar.focus();cptTimerID=setInterval(()=>{const rem=Math.max(0,180000-(performance.now()-cptStart));const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);const tel=document.getElementById('cpt-timer');if(tel)tel.textContent=`${m}:${s.toString().padStart(2,'0')} remaining`;if(rem<=0){clearInterval(cptTimerID);cptDone()}},200);nextCPT()}
+// Bound to `document` so Space works anywhere on the page. The `!cptRunning`
+// guard means that even if this listener somehow survives (it shouldn't — see
+// cleanup), it no longer swallows Space app-wide once the test has ended.
+function cptKey(e){if(!cptRunning)return;if(e.code==='Space'){e.preventDefault();cptResp()}}
 // Shared by the click and Space paths. cptReplied enforces one scored response
 // per trial (mashing the key must not farm extra hits). cptIdx has already been
 // advanced by nextCPT(), hence the -1 to reach the trial actually on screen.
@@ -353,24 +352,29 @@ function flashAr(c){const ar=document.getElementById('cpt-arena');ar.style.borde
 // trial list. Every step re-checks cptRunning so an in-flight chain dies once
 // the test is over.
 //
-// FIXME(high): the 400ms mark is BOTH when the stimulus is erased AND when
-// cptStimulusT is nulled — i.e. the response window is only 400ms. Adult mean
-// RT on this task is ~400-500ms, so a normal-speed user's taps are ignored and
-// every GO trial is already scored as an OMISSION_ERROR by the time they act,
-// yielding ~100% omission and a bogus "High" attention risk. The scoring
-// deadline needs to be decoupled from the stimulus-erase time. See audit.
-function nextCPT(){if(!cptRunning)return;if(cptIdx>=cptTrials.length||(performance.now()-cptStart)>=180000){cptDone();return}const trial=cptTrials[cptIdx++];cptStimulusT=null;cptReplied=false;const cv=document.getElementById('cpt-canvas');const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);setTimeout(()=>{if(!cptRunning)return;cptStimulusT=performance.now();drawStim(ctx,trial,cv.width,cv.height);setTimeout(()=>{ctx.clearRect(0,0,cv.width,cv.height);if(!cptReplied){if(trial.type==='GO'){R.cpt.omission++;logCPT(trial,'NONE',null,'OMISSION_ERROR')}else logCPT(trial,'NONE',null,'CORRECT_REJECTION');updateCStats()}cptStimulusT=null;cptIsiID=setTimeout(nextCPT,trial.isi-400)},400)},80)}
+// Stimulus display (400ms) is decoupled from the response window. The stimulus
+// is erased at 400ms, but cptStimulusT stays live and the trial stays scoreable
+// through the whole post-stimulus ISI — so a normal-speed tap (~400-500ms) still
+// registers as a hit. Omission/correct-rejection scoring is deferred to the end
+// of the ISI, right before the next trial. This avoids the ~100% omission /
+// bogus "High" attention risk that a 400ms-only window produced.
+function nextCPT(){if(!cptRunning)return;if(cptIdx>=cptTrials.length||(performance.now()-cptStart)>=180000){cptDone();return}const trial=cptTrials[cptIdx++];cptStimulusT=null;cptReplied=false;const cv=document.getElementById('cpt-canvas');const ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);setTimeout(()=>{if(!cptRunning)return;cptStimulusT=performance.now();drawStim(ctx,trial,cv.width,cv.height);setTimeout(()=>{if(!cptRunning)return;ctx.clearRect(0,0,cv.width,cv.height);cptIsiID=setTimeout(()=>{if(!cptRunning)return;if(!cptReplied){if(trial.type==='GO'){R.cpt.omission++;logCPT(trial,'NONE',null,'OMISSION_ERROR')}else logCPT(trial,'NONE',null,'CORRECT_REJECTION');updateCStats()}cptStimulusT=null;nextCPT()},trial.isi-400)},400)},80)}
 // Three stimuli, chosen so the two NO_GO variants each differ from the GO
 // target along exactly ONE dimension: 'red' = same circle, wrong colour;
 // 'tri' = same green, wrong shape. That forces the user to check both features
 // instead of reacting to "green" or to "circle" alone.
 function drawStim(ctx,t,w,h){const cx=w/2,cy=h/2,r=58;ctx.clearRect(0,0,w,h);if(t.type==='GO'){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#22c55e';ctx.fill()}else if(t.variant==='red'){ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle='#ef4444';ctx.fill()}else{ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx+r,cy+r*.7);ctx.lineTo(cx-r,cy+r*.7);ctx.closePath();ctx.fillStyle='#22c55e';ctx.fill()}}
 function updateCStats(){document.getElementById('cv-trials').textContent=R.cpt.trials.length;document.getElementById('cv-hits').textContent=R.cpt.hits;document.getElementById('cv-err').textContent=R.cpt.commission+R.cpt.omission;document.getElementById('cv-rt').textContent=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):'—'}
-// The ONLY teardown path for the CPT's interval + document listener, and it is
-// reachable only by finishing (clock expiry or trial list exhausted). The
-// cptRunning guard makes it idempotent — the 180s timer and nextCPT() can both
-// reach it in the same tick. See the leak FIXME on startCPT.
+// The finish path for the CPT's interval + document listener, reached only by
+// completing (clock expiry or trial list exhausted); window._pageCleanup handles
+// the abandon-mid-test path. The cptRunning guard makes it idempotent — the 180s
+// timer and nextCPT() can both reach it in the same tick.
 function cptDone(){if(!cptRunning)return;cptRunning=false;clearInterval(cptTimerID);clearTimeout(cptIsiID);document.removeEventListener('keydown',cptKey);const ctx=document.getElementById('cpt-canvas').getContext('2d');ctx.clearRect(0,0,460,260);ctx.fillStyle='#4b5563';ctx.font='600 15px system-ui';ctx.textAlign='center';ctx.fillText('Task complete! Well done.',230,130);setTimeout(()=>{goPhase('asrs');buildASRS()},1400)}
+// Teardown hook loadPage() calls before swapping this page out. Registered here
+// (this page previously registered none) so an abandoned CPT run can't leave a
+// document keydown listener or a 200ms interval running app-wide. Idempotent and
+// safe to call whether or not the CPT was ever started.
+window._pageCleanup=()=>{cptRunning=false;clearInterval(cptTimerID);clearTimeout(cptIsiID);document.removeEventListener('keydown',cptKey)}
 
 // ── ASRS ─────────────────────────────────────────────
 // The 6 items of the ASRS v1.1 Part A screener. `thresh` is that item's
@@ -431,14 +435,14 @@ window.submitVARK=function(){Object.values(varkAns).forEach(s=>R.vark[s]++);goPh
 
 // ── MATRIX ───────────────────────────────────────────
 const MRULES=['COLOR','SHAPE']
-let mRound=0,mRuleIdx=0,mCard=null,mWaiting=false,mRTs=[],mLastSwitch=0,mRoundStart=0
+let mRound=0,mRuleIdx=0,mCard=null,mWaiting=false,mRTs=[],mLastSwitch=-99,mRoundStart=0
 function genCard(){return{color:['cyan','magenta'][Math.floor(Math.random()*2)],shape:['star','diamond'][Math.floor(Math.random()*2)],count:[1,2,3][Math.floor(Math.random()*3)]}}
-window.startMatrix=function(){mRound=0;mRuleIdx=0;mRTs=[];mLastSwitch=0;mWaiting=false;document.getElementById('matrix-pre').style.display='none';document.getElementById('matrix-running').style.display='';showMTrial()}
+window.startMatrix=function(){mRound=0;mRuleIdx=0;mRTs=[];mLastSwitch=-99;mWaiting=false;document.getElementById('matrix-pre').style.display='none';document.getElementById('matrix-running').style.display='';showMTrial()}
 function showMTrial(){if(mRound>=30){finishMatrix();return}if(mRound>0&&mRound%5===0){mRuleIdx=(mRuleIdx+1)%MRULES.length;mLastSwitch=mRound;const b=document.getElementById('matrix-rule-badge');b.style.background='#eab308';setTimeout(()=>b.style.background='var(--accent)',600)}const rule=MRULES[mRuleIdx];document.getElementById('matrix-rule-badge').textContent='SORT BY '+rule;document.getElementById('m-round').textContent=mRound+1;mCard=genCard();renderMCard(mCard);renderMTgts(rule);document.getElementById('matrix-fb').textContent='';mRoundStart=performance.now();mWaiting=true}
 function renderMCard(c){const cm={cyan:'#00bcd4',magenta:'#e91e63'};const sym=c.shape==='star'?'★':'◆';document.getElementById('matrix-syms').innerHTML=Array(c.count).fill(`<span style="color:${cm[c.color]};font-size:${c.count===1?'44px':'32px'}">${sym}</span>`).join('')}
 function renderMTgts(rule){const a=document.getElementById('mtgt-a'),b=document.getElementById('mtgt-b');if(rule==='COLOR'){a.innerHTML='<div style="font-size:28px;color:#00bcd4">■</div><div style="font-size:12px;font-weight:700;color:#00bcd4">CYAN</div>';b.innerHTML='<div style="font-size:28px;color:#e91e63">■</div><div style="font-size:12px;font-weight:700;color:#e91e63">MAGENTA</div>';a.dataset.v='cyan';b.dataset.v='magenta'}else{a.innerHTML='<div style="font-size:28px">★</div><div style="font-size:12px;font-weight:700;color:var(--text-secondary)">STAR</div>';b.innerHTML='<div style="font-size:28px">◆</div><div style="font-size:12px;font-weight:700;color:var(--text-secondary)">DIAMOND</div>';a.dataset.v='star';b.dataset.v='diamond'}}
 window.matrixPick=function(side){if(!mWaiting)return;mWaiting=false;const rt=performance.now()-mRoundStart;const rule=MRULES[mRuleIdx];const chosen=document.getElementById('mtgt-'+side).dataset.v;const correct=chosen===mCard[rule.toLowerCase()];const postSwitch=mRound-mLastSwitch<2;mRTs.push({round:mRound,rule,rt,correct,postSwitch});const fb=document.getElementById('matrix-fb');if(correct){fb.textContent='✓ Correct';fb.style.color='#22c55e'}else{fb.textContent='✗ It was '+mCard[rule.toLowerCase()];fb.style.color='#ef4444'}mRound++;setTimeout(showMTrial,550)}
-function finishMatrix(){const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;const post=mRTs.filter(t=>t.postSwitch&&t.correct).map(t=>t.rt);const steady=mRTs.filter(t=>!t.postSwitch&&t.correct).map(t=>t.rt);R.matrix.switchCost=Math.round(avg(post)-avg(steady));R.matrix.accuracy=Math.round(mRTs.filter(t=>t.correct).length/mRTs.length*100);R.matrix.trials=mRTs;goPhase('nasatlx')}
+function finishMatrix(){const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;const post=mRTs.filter(t=>t.postSwitch&&t.correct).map(t=>t.rt);const steady=mRTs.filter(t=>!t.postSwitch&&t.correct).map(t=>t.rt);R.matrix.switchCost=(post.length&&steady.length)?Math.round(avg(post)-avg(steady)):null;R.matrix.accuracy=Math.round(mRTs.filter(t=>t.correct).length/mRTs.length*100);R.matrix.trials=mRTs;goPhase('nasatlx')}
 
 // ── NASA-TLX ─────────────────────────────────────────
 window.submitNASA=function(){R.tlx={mental:+document.getElementById('tlx-m').value,temporal:+document.getElementById('tlx-t').value,frustration:+document.getElementById('tlx-f').value};buildResults();goPhase('results')}
@@ -452,12 +456,18 @@ function buildResults(){
   let asrsNorm=0;ASRS.forEach(item=>{const sc=R.asrs[item.id]||0;if(sc>=item.thresh)asrsNorm+=sc})
   const risk=Math.min(100,Math.round((R.cpt.commission/totalNoGo)*35+(R.cpt.omission/totalGo)*35+(asrsNorm/24)*30))
   let rl,rc;if(risk<25){rl='Low';rc='#22c55e'}else if(risk<50){rl='Moderate';rc='#eab308'}else if(risk<75){rl='Elevated';rc='#f97316'}else{rl='High';rc='#ef4444'}
-  const avgRT=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):0
+  const avgRT=R.cpt.rtCount?Math.round(R.cpt.rtSum/R.cpt.rtCount):null
   const commPct=Math.round(R.cpt.commission/totalNoGo*100)
   const omitPct=Math.round(R.cpt.omission/totalGo*100)
   const VN={V:'Visual',A:'Auditory',R:'Read/Write',K:'Kinesthetic'},VC={V:'#6366f1',A:'#f59e0b',R:'#10b981',K:'#ec4899'}
   const vt=R.vark.V+R.vark.A+R.vark.R+R.vark.K||1
-  const vd=Object.entries(R.vark).sort((a,b)=>b[1]-a[1])[0][0]
+  // Ties (very common — 3 scenarios, 4 modalities) must NOT silently resolve to
+  // the first key in V>A>R>K order. vd is null on any tie -> rendered "Multimodal".
+  const vmax=Math.max(...Object.values(R.vark))
+  const vtop=Object.keys(R.vark).filter(k=>R.vark[k]===vmax)
+  const vd=vtop.length===1?vtop[0]:null
+  const vdName=vd?VN[vd]:'Multimodal'
+  const vdColor=vd?VC[vd]:'#6366f1'
   const wmAvg=(R.ds.fwd+R.ds.bwd)/2
   const sessionLen=risk>=50?20:risk>=25?35:50
   const breakLen=risk>=50?5:10
@@ -466,7 +476,7 @@ function buildResults(){
   const attentionNarrative=(()=>{
     const cStr=commPct<=8?'strong impulse control — you rarely responded when you shouldn\'t have':`a commission error rate of ${commPct}%, suggesting your brain\'s braking system is working against you — it\'s hard to hold back once the motor response starts`
     const oStr=omitPct<=10?'excellent sustained attention — you caught nearly every target':`an omission rate of ${omitPct}%, meaning your attention drifted and missed targets, especially during the later minutes of the task`
-    const rtStr=avgRT<280?`Your reaction time of ${avgRT}ms is exceptionally fast — well above average reflexive speed.`:avgRT<450?`Your average reaction time of ${avgRT}ms sits in the healthy range.`:`Your reaction time of ${avgRT}ms is on the slower end, which may reflect deliberate caution or mental fatigue.`
+    const rtStr=avgRT==null?`Your reaction time couldn't be measured this run — no in-window responses were recorded, so speed isn't scored.`:avgRT<280?`Your reaction time of ${avgRT}ms is exceptionally fast — well above average reflexive speed.`:avgRT<450?`Your average reaction time of ${avgRT}ms sits in the healthy range.`:`Your reaction time of ${avgRT}ms is on the slower end, which may reflect deliberate caution or mental fatigue.`
     return `Your CPT performance shows ${cStr}, and ${oStr}. ${rtStr} ${risk>=50?'Together, these patterns are consistent with attention difficulties that can make long study sessions feel impossible without the right structure.':'These results suggest your attention regulation is working well under controlled conditions.'}`
   })()
 
@@ -478,15 +488,15 @@ function buildResults(){
   })()
 
   const flexNarrative=(()=>{
-    const sc=R.matrix.switchCost
+    const sc=R.matrix.switchCost==null?null:Math.max(0,R.matrix.switchCost)
     const acc=R.matrix.accuracy
-    const scStr=sc<50?'near-zero switching cost — your brain adapts to rule changes almost instantly, with no meaningful slowdown':sc<150?`a moderate switching cost of +${sc}ms — a small but real slowdown in the first rounds after each rule change`:`a high switching cost of +${sc}ms — rule changes cause significant disruption before you recalibrate`
+    const scStr=sc==null?'a switching cost that couldn\'t be reliably measured this run (too few correct trials before and after rule changes)':sc<50?'near-zero switching cost — your brain adapts to rule changes almost instantly, with no meaningful slowdown':sc<150?`a moderate switching cost of +${sc}ms — a small but real slowdown in the first rounds after each rule change`:`a high switching cost of +${sc}ms — rule changes cause significant disruption before you recalibrate`
     return `Your matrix task shows ${scStr}, with an overall accuracy of ${acc}%. ${R.tlx.frustration>=7?'Your NASA-TLX frustration rating was high, suggesting cognitive load tasks put significant emotional strain on you — this is important to design around.':R.tlx.frustration<=3?'Your low frustration rating suggests you handled cognitive pressure well.':'Your frustration level was moderate — not a bottleneck, but worth monitoring in long study sessions.'}`
   })()
 
   const varkNarrative=(()=>{
     const nm={V:'You are a Visual learner — your brain encodes information most powerfully through spatial layouts, color, and imagery. Text walls are your enemy; structured diagrams are your superpower.',A:'You are an Auditory learner — meaning you encode best through sound, rhythm, and dialogue. Silent reading is less efficient for you than listening, discussing, or explaining.',R:'You are a Read/Write learner — you encode best through the written word. Taking notes, rewriting summaries, and reading actively are your natural strengths.',K:'You are a Kinesthetic learner — you learn by doing, not by watching or reading. Practice problems, physical notes, and applied simulations lock information in far better than passive study.'}
-    return nm[vd]
+    return vd?nm[vd]:'Your answers were split evenly across modalities — you\'re a Multimodal learner. No single channel dominates, so you can encode material through several at once; the strongest strategy is to combine visual, auditory, written, and hands-on methods rather than committing to just one.'
   })()
 
   // ── Strengths ────────────────────────────────────────
@@ -495,8 +505,8 @@ function buildResults(){
   if(R.ds.fwd>=7)strengths.push({icon:'🧠',t:'Above-Average Working Memory',b:`A forward span of ${R.ds.fwd} digits exceeds the population average. You can hold more in mind simultaneously than most people.`})
   if(omitPct<=10)strengths.push({icon:'👁️',t:'Sustained Attention',b:`You missed only ${R.cpt.omission} of ${totalGo} targets — demonstrating solid focus across the full 3-minute test.`})
   if(R.matrix.accuracy>=80)strengths.push({icon:'🎯',t:'High Sorting Accuracy',b:`${R.matrix.accuracy}% accuracy on the rule-switching matrix. You make good decisions even when conditions change.`})
-  if(R.matrix.switchCost<100)strengths.push({icon:'⚡',t:'Fast Cognitive Flexibility',b:`Your switching cost of +${R.matrix.switchCost}ms is very low — you adapt to new rules quickly without significant slowdown.`})
-  if(avgRT<320)strengths.push({icon:'🏎️',t:'Fast Reaction Speed',b:`${avgRT}ms average reaction time puts you in the top tier of reflexive processing speed.`})
+  if(R.matrix.switchCost!=null&&R.matrix.switchCost<100)strengths.push({icon:'⚡',t:'Fast Cognitive Flexibility',b:`Your switching cost of ${R.matrix.switchCost>0?'+':''}${R.matrix.switchCost}ms is very low — you adapt to new rules quickly without significant slowdown.`})
+  if(avgRT!=null&&avgRT<320)strengths.push({icon:'🏎️',t:'Fast Reaction Speed',b:`${avgRT}ms average reaction time puts you in the top tier of reflexive processing speed.`})
   if(strengths.length===0)strengths.push({icon:'💪',t:'Consistent Effort',b:'You completed all six tasks and generated a complete cognitive profile — that persistence itself is a strength.'})
 
   // ── Growth areas ─────────────────────────────────────
@@ -513,7 +523,7 @@ function buildResults(){
     {icon:'⏱️',t:'Session Length',b:`${sessionLen} minutes of focused work, then a ${breakLen}-minute break. ${risk>=50?'Shorter sessions match your attention profile — more frequent resets are better than one long grind.':'You can sustain focus for longer windows — use that to build momentum.'}`},
     {icon:'🌿',t:'Environment',b:R.tlx.mental>=7?'Minimalist setup is critical. Single monitor, phone in another room, apps blocked. Any visual complexity competes with your available cognitive bandwidth.':'A clean, consistent study space reinforces focus. Ambient noise at low levels (coffee shop sounds, lo-fi) can actually improve your performance.'},
     {icon:'📋',t:'Task Sequencing',b:R.matrix.switchCost>150?'Group tasks by subject — never alternate between subjects in the same session. Start with the hardest material first while your cognitive resources are fresh.':'You can handle moderate subject-switching. Use "subject blocks" of 45-60 minutes rather than strict single-topic sessions.'},
-    {icon:'🔁',t:'Review Strategy',b:`Your ${VN[vd]} learning profile means your reviews should be ${vd==='V'?'diagram-based — re-draw concepts from memory before looking at notes':vd==='A'?'verbal — explain concepts aloud to yourself or a study partner after each session':vd==='R'?'writing-heavy — write summaries without looking at notes, then compare':'active — solve practice problems or teach the concept to someone else'}.`},
+    {icon:'🔁',t:'Review Strategy',b:`Your ${vdName} learning profile means your reviews should be ${vd==null?'varied — rotate between re-drawing diagrams, explaining aloud, writing summaries, and solving practice problems, since no single channel dominates':vd==='V'?'diagram-based — re-draw concepts from memory before looking at notes':vd==='A'?'verbal — explain concepts aloud to yourself or a study partner after each session':vd==='R'?'writing-heavy — write summaries without looking at notes, then compare':'active — solve practice problems or teach the concept to someone else'}.`},
     {icon:'⚠️',t:'Warning Signs to Watch',b:'Stop and take a real break when you: make 3+ errors in a row, re-read the same sentence more than twice, or feel your jaw tightening. These are your brain\'s overload signals — pushing through them makes learning worse, not better.'},
   ]
 
@@ -550,9 +560,9 @@ function buildResults(){
       </div>
     </div>
     <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;">
-      <span class="data-pill">⚡ ${avgRT}ms avg RT</span>
+      <span class="data-pill">⚡ ${avgRT==null?'—':avgRT+'ms'} avg RT</span>
       <span class="data-pill">🔢 ${R.ds.fwd} fwd / ${R.ds.bwd} bwd span</span>
-      <span class="data-pill">${VN[vd]} learner</span>
+      <span class="data-pill">${vdName} learner</span>
       <span class="data-pill">🎯 ${R.matrix.accuracy}% matrix accuracy</span>
       <span class="data-pill">⏱️ ${sessionLen}min optimal session</span>
     </div>
@@ -566,7 +576,7 @@ function buildResults(){
       <div class="res-card"><div class="res-card-title">Commission</div><div class="res-card-val" style="color:#ef4444">${R.cpt.commission}</div><div class="res-card-sub">${commPct}% rate</div></div>
       <div class="res-card"><div class="res-card-title">Omission</div><div class="res-card-val" style="color:#f97316">${R.cpt.omission}</div><div class="res-card-sub">${omitPct}% rate</div></div>
       <div class="res-card"><div class="res-card-title">Hits</div><div class="res-card-val" style="color:#22c55e">${R.cpt.hits}</div><div class="res-card-sub">of ${totalGo}</div></div>
-      <div class="res-card"><div class="res-card-title">Avg RT</div><div class="res-card-val">${avgRT}<span style="font-size:12px">ms</span></div><div class="res-card-sub">${avgRT<300?'Fast':avgRT<450?'Average':'Slow'}</div></div>
+      <div class="res-card"><div class="res-card-title">Avg RT</div><div class="res-card-val">${avgRT==null?'—':`${avgRT}<span style="font-size:12px">ms</span>`}</div><div class="res-card-sub">${avgRT==null?'Not measured':avgRT<300?'Fast':avgRT<450?'Average':'Slow'}</div></div>
     </div>
     <div style="margin-top:14px;">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:6px;">Attention Risk Score</div>
@@ -601,9 +611,9 @@ function buildResults(){
     <div class="report-section-title">📚 Learning Style Analysis</div>
     <p class="narrative">${varkNarrative}</p>
     <div style="margin-top:14px;">${Object.entries(VN).map(([k,name])=>`<div class="vark-bar-row"><div class="vark-bar-label"><span style="font-weight:700;color:${VC[k]}">${name}</span><span style="font-size:11px;color:var(--text-secondary)">${Math.round(R.vark[k]/vt*100)}%</span></div><div class="vark-bar"><div class="vark-bar-fill" style="width:${Math.round(R.vark[k]/vt*100)}%;background:${VC[k]}"></div></div></div>`).join('')}</div>
-    <div style="margin-top:14px;background:${VC[vd]}18;border:1px solid ${VC[vd]}44;border-radius:var(--radius-sm);padding:12px;">
-      <div style="font-size:12px;font-weight:700;color:${VC[vd]};margin-bottom:4px;">Best study methods for you:</div>
-      <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">${vd==='V'?'Mind maps · Color-coded notes · Flowcharts · Diagrams · Video content with visuals · Spatial organization':vd==='A'?'Lecture replays · Discussion groups · Record & replay notes · Verbal explanation · Podcasts · Study with a partner':vd==='R'?'Written summaries · Flashcards · Detailed notes · Annotated reading · Essay practice · Written Q&A':'Practice problems · Labs · Whiteboard sessions · Teach-back · Physical models · Applied simulations'}</div>
+    <div style="margin-top:14px;background:${vdColor}18;border:1px solid ${vdColor}44;border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:12px;font-weight:700;color:${vdColor};margin-bottom:4px;">Best study methods for you:</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">${vd==null?'Mix channels: mind maps + diagrams · discussion & verbal explanation · written summaries & flashcards · practice problems & teach-back — rotate them, since no single style dominates':vd==='V'?'Mind maps · Color-coded notes · Flowcharts · Diagrams · Video content with visuals · Spatial organization':vd==='A'?'Lecture replays · Discussion groups · Record & replay notes · Verbal explanation · Podcasts · Study with a partner':vd==='R'?'Written summaries · Flashcards · Detailed notes · Annotated reading · Essay practice · Written Q&A':'Practice problems · Labs · Whiteboard sessions · Teach-back · Physical models · Applied simulations'}</div>
     </div>
   </div>
 
@@ -612,7 +622,7 @@ function buildResults(){
     <div class="report-section-title">🔄 Cognitive Flexibility</div>
     <p class="narrative">${flexNarrative}</p>
     <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;">
-      <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Switching Cost</div><div class="res-card-val" style="color:${R.matrix.switchCost>200?'#ef4444':R.matrix.switchCost>100?'#eab308':'#22c55e'}">${R.matrix.switchCost>0?'+':''}${R.matrix.switchCost}<span style="font-size:12px">ms</span></div><div class="res-card-sub">${R.matrix.switchCost<50?'Excellent':R.matrix.switchCost<150?'Average':'High cost'}</div></div>
+      <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Switching Cost</div><div class="res-card-val" style="color:${R.matrix.switchCost==null?'var(--text-secondary)':R.matrix.switchCost>200?'#ef4444':R.matrix.switchCost>100?'#eab308':'#22c55e'}">${R.matrix.switchCost==null?'N/A':`${R.matrix.switchCost>0?'+':''}${R.matrix.switchCost}<span style="font-size:12px">ms</span>`}</div><div class="res-card-sub">${R.matrix.switchCost==null?'Not measured':R.matrix.switchCost<50?'Excellent':R.matrix.switchCost<150?'Average':'High cost'}</div></div>
       <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Matrix Accuracy</div><div class="res-card-val">${R.matrix.accuracy}<span style="font-size:12px">%</span></div><div class="res-card-sub">${R.matrix.accuracy>=85?'Excellent':R.matrix.accuracy>=70?'Good':'Needs work'}</div></div>
       <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Mental Load</div><div class="res-card-val" style="color:${R.tlx.mental>=7?'#ef4444':R.tlx.mental>=4?'#eab308':'#22c55e'}">${R.tlx.mental}/10</div><div class="res-card-sub">Self-rated</div></div>
       <div class="res-card" style="flex:1;min-width:80px;"><div class="res-card-title">Frustration</div><div class="res-card-val" style="color:${R.tlx.frustration>=7?'#ef4444':R.tlx.frustration>=4?'#eab308':'#22c55e'}">${R.tlx.frustration}/10</div><div class="res-card-sub">Self-rated</div></div>
@@ -656,7 +666,11 @@ async function loadPlanInline() {
   btn.disabled = true
   btn.textContent = 'Loading your plan...'
   try {
-    const res = await fetch('plan.html')
+    // Relative URLs resolve against renderer/ (this markup is injected into
+    // renderer/index.html), so the path must include the pages/ prefix — the
+    // same key index.html's PAGES map uses. fetch('plan.html') hit a 404.
+    const res = await fetch('pages/plan.html')
+    if (!res.ok) throw new Error('HTTP ' + res.status)
     const html = await res.text()
 
     // Extract <style> tags
@@ -686,7 +700,7 @@ async function loadPlanInline() {
     container.scrollIntoView({ behavior: 'smooth', block: 'start' })
   } catch(e) {
     btn.disabled = false
-    btn.textContent = 'Make My Study Plan →'
+    btn.textContent = '⚠️ Couldn\'t load plan — tap to retry'
     console.error('inline plan failed:', e)
   }
 }

@@ -272,42 +272,65 @@
   function getExpandedEvents(fromDate, toDate) {
     const base = getEvents()
     const results = []
-    const from = new Date(fromDate), to = new Date(toDate)
+    // Parse the window bounds at LOCAL noon, not UTC midnight, so day comparisons can't be
+    // shifted across a timezone offset or a DST transition.
+    const from = new Date(fromDate + 'T12:00:00'), to = new Date(toDate + 'T12:00:00')
     base.forEach(ev => {
       if (!ev.repeat || ev.repeat === 'none') { results.push(ev); return }
-      // Generate occurrences
-      const start = new Date(ev.date)
-      let cur = new Date(start)
+      // Anchor at LOCAL noon: noon is immune to the +/-1h DST shift that would move a
+      // midnight anchor onto the wrong calendar day.
+      const start = new Date(ev.date + 'T12:00:00')
       let count = 0
-      // The walk always starts at the event's ORIGINAL date and steps forward one
-      // interval at a time until it reaches `to` — it does not jump to `from` first.
-      // FIXME(high): `count < 200` is a runaway guard, but it counts steps from the
-      // event's start date, not occurrences emitted. A daily event simply stops
-      // appearing ~200 days after it began, silently and forever. See audit.
-      while (cur <= to && count < 200) {
-        if (cur >= from) {
-          // FIXME(medium): toISOString() converts to UTC first, so `cur` (local midnight)
-          // renders as the PREVIOUS day for any user west of UTC, and shifts by a day
-          // across a DST spring-forward. localDateStr() below exists precisely to avoid
-          // this and should be used here. See audit.
-          const dateStr = cur.toISOString().slice(0,10)
-          results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}`, _parentId: ev.id, _isRecurring: true })
+      if (ev.repeat === 'monthly') {
+        // Keep the ORIGINAL day-of-month and clamp per target month, so "same date" events
+        // never overflow (Jan 31 -> Feb 28, not drift into March) and never drift off day.
+        const anchorDay = start.getDate()
+        const startY = start.getFullYear(), startM = start.getMonth()
+        // Fast-forward whole months to just before `from` instead of walking from the
+        // creation date, so the 200 cap bounds occurrences inside the window, not history.
+        const monthsToFrom = (from.getFullYear() - startY) * 12 + (from.getMonth() - startM)
+        let k = monthsToFrom > 1 ? monthsToFrom - 1 : 0
+        while (count < 200) {
+          const lastDay = new Date(startY, startM + k + 1, 0).getDate()
+          const cur = new Date(startY, startM + k, Math.min(anchorDay, lastDay), 12, 0, 0)
+          if (cur > to) break
+          if (cur >= from) {
+            const dateStr = localDateStr(cur)
+            results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}`, _parentId: ev.id, _isRecurring: true })
+          }
+          k++; count++
         }
-        // Advance by recurrence interval
-        const next = new Date(cur)
-        if (ev.repeat === 'daily')    next.setDate(next.getDate() + 1)
-        else if (ev.repeat === 'weekly')   next.setDate(next.getDate() + 7)
-        else if (ev.repeat === 'biweekly') next.setDate(next.getDate() + 14)
-        // FIXME(high): setMonth() overflows rather than clamping — the 31st of Jan
-        // becomes Mar 2/3, so February is skipped and every later occurrence stays on
-        // the drifted day. "Same date" is not preserved. See audit.
-        else if (ev.repeat === 'monthly')  next.setMonth(next.getMonth() + 1)
-        // Unknown repeat value: emit the first occurrence only, never loop forever.
-        else break
-        // Belt-and-braces: if an interval failed to advance the date we would spin here
-        // until `count` saves us, emitting 200 copies on the same day.
-        if (next.getTime() === cur.getTime()) break
-        cur = next; count++
+      } else {
+        // daily / weekly / biweekly are a fixed number of days apart.
+        const stepDays = ev.repeat === 'daily' ? 1 : ev.repeat === 'weekly' ? 7 : ev.repeat === 'biweekly' ? 14 : 0
+        // Unknown repeat value: emit only the first occurrence (if in range), never loop.
+        if (!stepDays) {
+          if (start >= from && start <= to) {
+            const dateStr = localDateStr(start)
+            results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}`, _parentId: ev.id, _isRecurring: true })
+          }
+          return
+        }
+        let cur = new Date(start)
+        // Fast-forward the cursor to just before `from` by arithmetic rather than stepping
+        // from the start date; the -1 step guarantees we undershoot so the loop below still
+        // emits the first in-window occurrence even if a DST day skews the day count.
+        if (cur < from) {
+          const daysBetween = Math.floor((from - cur) / 86400000)
+          const jumps = Math.floor(daysBetween / stepDays) - 1
+          if (jumps > 0) cur.setDate(cur.getDate() + jumps * stepDays)
+        }
+        while (cur <= to && count < 200) {
+          if (cur >= from) {
+            // Emit via localDateStr (local) — never round-trip a local Date through
+            // toISOString()/UTC, which would land on the wrong day west of UTC / across DST.
+            const dateStr = localDateStr(cur)
+            results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}`, _parentId: ev.id, _isRecurring: true })
+          }
+          // Advance in LOCAL time, preserving the noon wall clock.
+          cur.setDate(cur.getDate() + stepDays)
+          count++
+        }
       }
     })
     return results
@@ -415,7 +438,9 @@
   // IMPORTANT: this is an HTML-TEXT/ATTRIBUTE escaper ONLY. It is NOT a JavaScript string
   // escaper. Inside an inline handler such as onclick="f('${esc(x)}')" the browser
   // HTML-decodes the attribute BEFORE the JS parser sees it, so esc()'s &#39; turns back
-  // into a bare quote and closes the string. See the FIXMEs in openEventModal/renderList.
+  // into a bare quote and closes the string. That is why the Delete buttons in
+  // openEventModal/renderList bind via addEventListener with the id kept in a closure /
+  // data attribute, never spliced into an inline handler.
   function esc(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
   }
@@ -572,13 +597,17 @@
         <div class="modal-detail-row"><div class="modal-detail-icon">🕐</div><div>${fmt12(ev.start)} – ${fmt12(ev.end)} (${duration(ev.start, ev.end)})</div></div>
         <div class="modal-detail-row"><div class="modal-detail-icon">🔗</div><div>${linkHtml}</div></div>
         <div class="modal-actions">
-          <button class="btn btn-ghost" style="color:#ef4444;border-color:#ef4444;" onclick="window._calDelete('${esc(ev.id)}')">Delete</button>
+          <button class="btn btn-ghost" id="mDelete" style="color:#ef4444;border-color:#ef4444;">Delete</button>
           ${joinNotesBtn}
           <button class="btn btn-primary" id="mDone">Done</button>
         </div>
       </div>`
 
     document.body.appendChild(modal)
+    // Bind Delete via addEventListener rather than an inline onclick: ev.id can originate
+    // outside this file (e.g. an email Message-ID) and HTML-escaping does NOT stop a
+    // JS-string breakout inside an inline handler. Passing the raw id in a closure is safe.
+    modal.querySelector('#mDelete').addEventListener('click', () => window._calDelete(ev.id))
     modal.querySelector('#mClose').addEventListener('click', () => modal.remove())
     modal.querySelector('#mDone').addEventListener('click',  () => modal.remove())
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove() })
@@ -623,7 +652,7 @@
 
     const fromDate = new Date(year, month, 1)
     const toDate   = new Date(year, month+1, 0)
-    const events = getExpandedEvents(fromDate.toISOString().slice(0,10), toDate.toISOString().slice(0,10))
+    const events = getExpandedEvents(localDateStr(fromDate), localDateStr(toDate))
     const today  = new Date()
     const firstDow = new Date(year, month, 1).getDay()
     const daysInMonth = new Date(year, month+1, 0).getDate()
@@ -655,7 +684,7 @@
       html += `<div class="day-num">${day}</div>`
       html += `<div class="day-events">`
       shown.forEach(ev => {
-        html += `<div class="event-pill ${esc(ev.linkType||'other')}" data-id="${esc(ev.id)}" title="${esc(ev.title+' '+ev.start+'–'+ev.end)}">${ev.start ? fmt12short(ev.start)+' ' : ''}${esc(ev.title)}</div>`
+        html += `<div class="event-pill ${esc(ev.linkType||'other')}" data-id="${esc(ev.id)}" data-parent-id="${esc(ev._parentId||ev.id)}" title="${esc(ev.title+' '+ev.start+'–'+ev.end)}">${ev.start ? fmt12short(ev.start)+' ' : ''}${esc(ev.title)}</div>`
       })
       if (extra > 0) html += `<div class="more-label">+${extra} more</div>`
       html += `</div></div>`
@@ -674,7 +703,9 @@
     document.querySelectorAll('.event-pill').forEach(pill => {
       pill.addEventListener('click', e => {
         e.stopPropagation()
-        const ev = getEvents().find(e => e.id === pill.dataset.id)
+        // Occurrences carry a synthetic `<parentId>_<date>` id; resolve back to the stored
+        // parent record so repeating events open too (a bare data-id never matches storage).
+        const ev = getEvents().find(e => e.id === (pill.dataset.parentId || pill.dataset.id))
         if (ev) openEventModal(ev)
       })
     })
@@ -693,7 +724,9 @@
     const endLabel   = `${MONTHS[endOfWeek.getMonth()].slice(0,3)} ${endOfWeek.getDate()}, ${endOfWeek.getFullYear()}`
     document.getElementById('calNavTitle').textContent = `${startLabel} – ${endLabel}`
 
-    const events = getEvents()
+    // Expand recurrence for the shown week so Week view matches Month/List, not just the
+    // raw stored rows (which would hide every generated occurrence).
+    const events = getExpandedEvents(localDateStr(startOfWeek), localDateStr(endOfWeek))
     const hours = Array.from({length:24}, (_,i) => i)
     const weekDays = Array.from({length:7}, (_,i) => {
       const d = new Date(startOfWeek)
@@ -724,7 +757,7 @@
         hourEvs.forEach(ev => {
           const startM = parseInt(ev.start.split(':')[1])
           const topPct = (startM / 60) * 100
-          html += `<div class="week-event-block ${esc(ev.linkType||'other')}" style="top:${topPct}%;" data-id="${esc(ev.id)}">${esc(ev.title)}</div>`
+          html += `<div class="week-event-block ${esc(ev.linkType||'other')}" style="top:${topPct}%;" data-id="${esc(ev.id)}" data-parent-id="${esc(ev._parentId||ev.id)}">${esc(ev.title)}</div>`
         })
         html += '</div>'
       })
@@ -735,7 +768,8 @@
     document.querySelectorAll('.week-event-block').forEach(el => {
       el.addEventListener('click', e => {
         e.stopPropagation()
-        const ev = getEvents().find(e => e.id === el.dataset.id)
+        // Resolve occurrences back to their stored parent id (see month view).
+        const ev = getEvents().find(e => e.id === (el.dataset.parentId || el.dataset.id))
         if (ev) openEventModal(ev)
       })
     })
@@ -772,7 +806,7 @@
     Object.entries(groups).sort().forEach(([date, evs]) => {
       const isPast = date < today
       const label  = date === today ? 'Today' : formatDate(date)
-      html += `<div class="list-group${isPast?' style="opacity:.6"':''}"><div class="list-group-label">${label}</div>`
+      html += `<div class="list-group"${isPast?' style="opacity:.6"':''}><div class="list-group-label">${label}</div>`
       evs.forEach(ev => {
         const linkHtml = ev.link
           ? `<a class="list-event-link ${esc(ev.linkType)}" href="${esc(ev.link)}" target="_blank">${TYPE_ICONS[ev.linkType]||'🔗'} ${esc(ev.linkLabel||'Open')}</a>`
@@ -789,12 +823,17 @@
               <div class="list-event-meta">${esc(duration(ev.start, ev.end))}</div>
               ${linkHtml}
             </div>
-            <button class="btn-icon" title="Delete" onclick="window._calDelete('${esc(ev.id)}')">Delete</button>
+            <button class="btn-icon" title="Delete" data-del-id="${esc(ev.id)}">Delete</button>
           </div>`
       })
       html += '</div>'
     })
-    document.getElementById('calView').innerHTML = html
+    const calView = document.getElementById('calView')
+    calView.innerHTML = html
+    // Bind Delete via dataset + addEventListener rather than an inline onclick: ev.id can be
+    // attacker-controlled (e.g. an email Message-ID) and escaping doesn't stop a JS-string
+    // breakout inside an inline handler. List rows are raw events, so the id is the stored id.
+    calView.querySelectorAll('[data-del-id]').forEach(b => b.addEventListener('click', () => window._calDelete(b.dataset.delId)))
   }
 
   /* ── Upcoming mini (sidebar) ──────────────────────────────── */
@@ -814,7 +853,7 @@
       return
     }
     el.innerHTML = upcoming.map(ev => `
-      <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center;cursor:pointer;" data-id="${esc(ev.id)}">
+      <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center;cursor:pointer;" data-id="${esc(ev.id)}" data-parent-id="${esc(ev._parentId||ev.id)}">
         <div class="event-type-dot" style="background:${dotColor(ev.linkType)};margin-top:0;"></div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(ev.title)}</div>
@@ -824,7 +863,8 @@
 
     el.querySelectorAll('[data-id]').forEach(row => {
       row.addEventListener('click', () => {
-        const ev = getEvents().find(e => e.id === row.dataset.id)
+        // Resolve occurrences back to their stored parent id (see month view).
+        const ev = getEvents().find(e => e.id === (row.dataset.parentId || row.dataset.id))
         if (ev) openEventModal(ev)
       })
     })

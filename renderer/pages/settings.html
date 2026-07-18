@@ -4,9 +4,9 @@
   Loaded by loadPage() (re-runs each visit; note the IIFE). Sets the
   active AI provider/key/model (global ai_provider / ai_key_<p> /
   ai_model_<p> keys — read by window.aiChat everywhere), pulls Ollama
-  models, and holds per-account toggles + feedback + Clear All Data.
-  See FIXMEs: the auto-guard toggle and feedback key are write-only,
-  and "Clear All Data" doesn't actually end the session.
+  models, and holds feedback + Clear All Data. Feedback sets the
+  cs_<user>_feedbackSent flag the rewards badge reads, and Clear All
+  Data signs the user out via doSignOut().
 -->
 <style>
   .settings-section { margin-bottom: 24px; }
@@ -173,20 +173,9 @@
   </div>
 </div>
 
-<!-- ── Timer Settings ─────────────────────────────────────────────── -->
-<div class="card settings-section" style="margin-top:16px;">
-  <div class="card-title">Timer Settings</div>
-  <div class="toggle-row">
-    <div>
-      <div class="toggle-label">Auto-enable Focus Guard when Pomodoro starts</div>
-      <div class="toggle-desc">Automatically activates the guard when you start a Pomodoro timer.</div>
-    </div>
-    <label class="toggle-switch">
-      <input type="checkbox" id="autoGuardToggle" />
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-</div>
+<!-- Focus Guard auto-enables for Pomodoro in study.html (unconditionally, when
+     allowed apps are selected); a settings toggle here was write-only — nothing
+     read it — so it was removed rather than left as a control that does nothing. -->
 
 <!-- ── Account ────────────────────────────────────────────────────── -->
 <div class="card settings-section" style="margin-top:16px;">
@@ -439,30 +428,17 @@
 
   checkOllama()
 
-  // ── Auto-guard toggle ─────────────────────────────────────
-  // FIXME(medium): this toggle is write-only — study.html never reads
-  // cs_<user>_autoGuard when starting a Pomodoro, so flipping it does nothing.
-  const autoGuardKey = `cs_${username}_autoGuard`
-  const autoGuardVal = localStorage.getItem(autoGuardKey)
-  // default true
-  const autoGuardEnabled = autoGuardVal === null ? true : autoGuardVal === 'true'
-  const toggle = document.getElementById('autoGuardToggle')
-  toggle.checked = autoGuardEnabled
-  toggle.addEventListener('change', () => {
-    localStorage.setItem(autoGuardKey, toggle.checked ? 'true' : 'false')
-  })
-
   // ── Feedback ──────────────────────────────────────────────
   document.getElementById('sendFeedbackBtn').addEventListener('click', () => {
     const text = document.getElementById('feedbackText').value.trim()
     if (!text) return
-    // FIXME(medium): feedback is stored under cs_<user>_feedback, but the rewards
-    // badge check reads a different key (feedbackGiven), so the "gave feedback"
-    // badge never unlocks. Align the two key names.
-    const feedbackKey = `cs_${username}_feedback`
-    const existing = JSON.parse(localStorage.getItem(feedbackKey) || '[]')
+    // Store via the per-account helpers and set the flag the rewards badge reads
+    // (rewards.html checks csGet('feedbackSent')) so the "Feedback Giver" badge
+    // unlocks. Using the helpers keeps writer and reader keyed identically.
+    const existing = window.csGetJSON('feedback', [])
     existing.push({ text, timestamp: new Date().toISOString() })
-    localStorage.setItem(feedbackKey, JSON.stringify(existing))
+    window.csSetJSON('feedback', existing)
+    window.csSet('feedbackSent', '1')
     document.getElementById('feedbackText').value = ''
     const thanks = document.getElementById('feedbackThanks')
     thanks.classList.add('visible')
@@ -475,11 +451,11 @@
     Object.keys(localStorage)
       .filter(k => k.startsWith(`cs_${username}_`))
       .forEach(k => localStorage.removeItem(k))
-    // FIXME(medium): the alert says "signed out", but this only clears the data
-    // keys and navigates to welcome — cs_currentUser is untouched, so the session
-    // is still active. Either actually sign out, or reword the message.
+    // Actually end the session so the "signed out" claim is true: doSignOut()
+    // (global, index.html) clears cs_currentUser, stops the scheduler, blanks
+    // #content and re-shows the auth overlay.
     alert('All data cleared. You have been signed out.')
-    window.navigateTo('welcome')
+    window.doSignOut()
   })
 })()
 </script>
