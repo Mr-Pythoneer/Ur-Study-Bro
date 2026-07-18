@@ -31,9 +31,9 @@
 
      ─── Storage ──────────────────────────────────────────────────────
      window.csKey/csGet/csSet/csGetJSON/csSetJSON are PER-ACCOUNT: they
-     namespace to cs_<user>_<key>. The two raw localStorage.getItem() reads in
-     computeStats() (social_feed_count, social_goals_completed) are NOT
-     namespaced — that is a bug flagged inline, not a convention.
+     namespace to cs_<user>_<key>. computeStats() also reads a few raw (non-namespaced)
+     localStorage keys — social_feed / social_goals — because social.html stores those
+     as global arrays by design; the counts are filtered to the current user in code.
      ══════════════════════════════════════════════════════════════════ -->
 <style>
   /* ── Tabs ──────────────────────────────────────────────────── */
@@ -555,7 +555,8 @@
   // Everything user-supplied (reward names, icons, wishlist items) is interpolated
   // into innerHTML templates, so it MUST go through esc() first. `s??''` keeps
   // null/undefined from rendering as the literal text "null".
-  // Note the Subject Breakdown in renderStats() does not use this — see FIXME there.
+  // The Subject Breakdown in renderStats() and the exportReport() sinks route through
+  // this too (exportReport via the window._esc export).
   function esc(s) {
     return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
   }
@@ -567,12 +568,14 @@
   // `cat` drives the grouping headers in renderStats(); adding a new cat string
   // creates a new section automatically, no other change needed.
   //
-  // FIXME(medium): roughly 20 of these badges can never unlock, because their
-  // counters (socialPosts, groupGoals, snailClicks, recordings, emailsRead,
-  // wordsWritten, factChecks, notesSynced, flashcards, allTimers, highTestScore,
-  // notifClick, midnightStudy, weekendStudy, ghostMode, perfectDays, earlyBird,
-  // nightOwl, maxDayPoints …) are read in computeStats() but written by no file in
-  // the app. Either emit the counters at the source or drop the badges. See audit.
+  // FIXME(medium): several of these badges still can never unlock, because their
+  // counters (snailClicks, recordings, emailsRead, wordsWritten, factChecks,
+  // notesSynced, flashcards, allTimers, highTestScore, notifClick, midnightStudy,
+  // weekendStudy, ghostMode, perfectDays, earlyBird, nightOwl, maxDayPoints …) are
+  // read in computeStats() but written by no file in the app. The fix is source-side
+  // (each producing page must emit its counter) or dropping the badges — it cannot be
+  // done from this reader alone. (socialPosts, groupGoals, redeemed, planTasks and the
+  // assessment badges now read the keys their producers actually write.)
   const BADGES = [
     // ── Sessions ──────────────────────────────────────────
     { cat:'Sessions', icon:'🌱', name:'First Step',      desc:'Complete your first session',        req:s=>s.sessions>=1   },
@@ -667,6 +670,11 @@
     { cat:'Legendary',icon:'🥇', name:'The GOAT',        desc:'All other badges unlocked',         req:s=>s.sessions>=100&&s.hours>=50&&s.bestStreak>=30 },
     { cat:'Legendary',icon:'🐌', name:'Ur Study Bro',    desc:'The ultimate dedication badge',     req:s=>s.sessions>=500||s.hours>=250 },
   ]
+  // Exported for exportReport(), which lives OUTSIDE this IIFE and cannot otherwise
+  // see BADGES or esc — without these its badge count printed '—' and its report
+  // sinks went unescaped.
+  window._BADGES = BADGES
+  window._esc = esc
 
   // ── Streak ─────────────────────────────────────────────────────
   // Returns { current, best } in days. `days` is the de-duped, sorted set of local
@@ -679,32 +687,32 @@
     const days = [...new Set(records.map(r => r.date))].sort()
     if (!days.length) return { current: 0, best: 0 }
     const today = localDateStr()
+    // Step a LOCAL YYYY-MM-DD string by `delta` days. new Date(y, m-1, d+delta) is
+    // local-parsed and normalizes across DST correctly; reading it back with local
+    // getters never touches UTC — unlike the old new Date(str)/toISOString() round
+    // trip, which skipped the DST fall-back day and broke the streak once a year.
+    const stepDay = (s, delta) => {
+      const [y,m,d] = s.split('-').map(Number)
+      const t = new Date(y, m-1, d + delta)
+      return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`
+    }
     let current = 0, check = today
     while (days.includes(check)) {
       current++
-      const d = new Date(check); d.setDate(d.getDate() - 1)
-      // FIXME(high): this day-stepper round-trips a LOCAL date string through UTC.
-      // `new Date('YYYY-MM-DD')` parses as UTC midnight, and toISOString() reads
-      // back UTC — so on the DST fall-back day the subtraction lands on the wrong
-      // date and the streak silently breaks once a year. Use localDateStr()-style
-      // local formatting instead. Same bug in the loop below and in renderStreak().
-      check = d.toISOString().slice(0, 10)
+      check = stepDay(check, -1)
     }
     if (!days.includes(today) && current === 0) {
-      const d = new Date(today); d.setDate(d.getDate() - 1)
-      let y = d.toISOString().slice(0, 10)
+      let y = stepDay(today, -1)
       while (days.includes(y)) {
         current++
-        const dd = new Date(y); dd.setDate(dd.getDate() - 1)
-        y = dd.toISOString().slice(0, 10)
+        y = stepDay(y, -1)
       }
     }
     // Longest historical run: step through the sorted days and check whether each
     // one is exactly the day after its predecessor.
     let best = 0, run = 1
     for (let i = 1; i < days.length; i++) {
-      const prev = new Date(days[i-1]); prev.setDate(prev.getDate() + 1)
-      if (prev.toISOString().slice(0,10) === days[i]) { run++; if (run > best) best = run }
+      if (stepDay(days[i-1], 1) === days[i]) { run++; if (run > best) best = run }
       else run = 1
     }
     if (run > best) best = run          // flush the run that was still open at the end
@@ -777,11 +785,10 @@
     grid.innerHTML = ''
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i)
-      // FIXME(high): keys the cell by the UTC day (toISOString) while `perDay` is
-      // indexed by the LOCAL date on each record. Every evening west of UTC the two
-      // disagree, so the whole window shifts a day and today's sessions vanish from
-      // the grid. Format locally, as localDateStr() does.
-      const dateStr = d.toISOString().slice(0, 10)
+      // Key the cell by the LOCAL day so it lines up with `perDay`, which is indexed
+      // by the local date on each record (was toISOString/UTC, which shifted the whole
+      // window a day every evening west of UTC and dropped today's sessions).
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
       const count   = Math.min(4, perDay[dateStr] || 0)
       const cell    = document.createElement('div')
       cell.className = 'hm-day'
@@ -838,34 +845,35 @@
     // these are silently dead. If you add a badge, grep for its counter key first
     // and confirm something actually writes it.
 
-    // FIXME(high): reads 'redeemHistory', but _unlockReward() writes 'unlockHistory'
-    // (see getHistory/setHistory above). Nothing writes 'redeemHistory' anywhere in
-    // the repo, so this is always 0 and the three Rewards badges are unobtainable.
-    const redeemed       = (csGetJSON('redeemHistory',[])).length
-    // FIXME(medium): 'social_feed_count' is written by no file — the Showoff badge
-    // is unobtainable. It is also read via raw localStorage, so it is NOT per-account
-    // (no cs_<user>_ prefix): if it were ever written, every account would share it.
-    const socialPosts    = parseInt(localStorage.getItem('social_feed_count')||'0')
+    // Redemptions are recorded by _unlockReward() into 'unlockHistory' (via getHistory
+    // above); read that same key so the count can never drift from the writer. The old
+    // 'redeemHistory' key was never written anywhere, so redeemed was always 0.
+    const redeemed       = getHistory().length
+    // social.html stores the feed as an array under the global 'social_feed' key, each
+    // post tagged with `author` (lowercased username). Count THIS user's own posts,
+    // rather than a 'social_feed_count' counter that no file ever writes.
+    const me             = (currentUser() || '').toLowerCase()
+    const socialPosts    = JSON.parse(localStorage.getItem('social_feed')||'[]').filter(p => p.author === me).length
     // Raw localStorage, but hand-namespaced with currentUser() — the same thing
     // csGetJSON() does for you. Prefer the cs* helpers in new code.
     const friends        = JSON.parse(localStorage.getItem(`social_friends_${currentUser()}`)||'[]').length
     const snailClicks    = parseInt(csGet('snailClickCount')||'0')
-    // FIXME(medium): 'assessmentDone' is set to 'started' or 'skipped' by the prompt
-    // in index.html, so this truthiness check awards the "Lab Rat / completed the
-    // assessment" badge to users who SKIPPED it. Check for a completion value.
-    const didAssessment  = !!csGet('assessmentDone')
-    // FIXME(medium): nothing in the app ever writes 'done' (only index.html's
-    // 'started'/'skipped'), so fullTest is permanently false and the Transformation
-    // badge is unobtainable. assessment.html must record completion.
-    const fullTest       = csGet('assessmentDone') === 'done'
-    // FIXME(high): 'planDone' is an OBJECT keyed by task index ({ idx: timestamp } —
-    // see renderer/pages/plan.html), not an array. `.length` on it is undefined, so
-    // parseInt yields NaN and every `s.planTasks >= n` comparison is false: the three
-    // study-path badges can never unlock. Use Object.keys(...).length.
-    const planTasks      = parseInt(csGet('planDone') ? JSON.parse(csGet('planDone')||'[]').length : 0)
-    // FIXME(medium): 'social_goals_completed' is written by no file — the Teammate
-    // badge is unobtainable. Also non-prefixed, so it would be shared across accounts.
-    const groupGoals     = parseInt(localStorage.getItem('social_goals_completed')||'0')
+    // assessment.html writes cs_<user>_cogProfile only in buildResults(), i.e. after
+    // the assessment is fully submitted — never on index.html's 'started'/'skipped'
+    // prompt. So its presence is the real completion signal. (The old
+    // !!csGet('assessmentDone') awarded this badge to users who clicked "Maybe later".)
+    const didAssessment  = !!csGet('cogProfile')
+    // Same completion signal — cogProfile exists only after the full test is submitted.
+    // (The old 'assessmentDone'==='done' check never fired, since nothing writes 'done'.)
+    const fullTest       = !!csGet('cogProfile')
+    // plan.html stores planDone as an OBJECT keyed by task index ({ idx: timestamp }),
+    // so count its keys. The old `.length` on the object was undefined → parseInt NaN
+    // → every s.planTasks>=n comparison false, so the study-path badges never unlocked.
+    const planTasks      = Object.keys(csGetJSON('planDone', {})).length
+    // social.html stores goals as an array under the global 'social_goals' key; a goal
+    // is complete when its progress reaches its target. Count this user's own completed
+    // goals, rather than a 'social_goals_completed' counter that no file ever writes.
+    const groupGoals     = JSON.parse(localStorage.getItem('social_goals')||'[]').filter(g => g.creator === me && g.target > 0 && (g.progress||0) >= g.target).length
     const recordings     = parseInt(csGet('recordingCount')||'0')
     const emailsRead     = parseInt(csGet('emailsRead')||'0')
     const wordsWritten   = parseInt(csGet('wordsWritten')||'0')
@@ -940,14 +948,13 @@
     const breakdown = document.getElementById('subjectBreakdown')
     const subjectEntries = Object.entries(s.subjectMins).sort((a,b) => b[1]-a[1])
     const maxMins = subjectEntries[0]?.[1] || 1
-    // FIXME(medium): stored XSS — the `${sub}` in the .subject-bar-label below is a
-    // user-entered subject name interpolated raw into innerHTML with no esc(),
-    // unlike every other user string in this file. A subject containing markup
-    // corrupts the chart and executes. Wrap it in esc() (defined above).
+    // Subject names are free-text (typed in study.html), so escape them like every
+    // other user string in this file before interpolating into innerHTML — otherwise
+    // a subject containing markup corrupts the chart and executes (stored XSS).
     breakdown.innerHTML = subjectEntries.length
       ? subjectEntries.map(([sub,mins]) => `
           <div class="subject-bar-row">
-            <div class="subject-bar-label">${sub}</div>
+            <div class="subject-bar-label">${esc(sub)}</div>
             <div class="subject-bar-wrap"><div class="subject-bar-fill" style="width:${Math.round(mins/maxMins*100)}%;"></div></div>
             <div class="subject-bar-count">${Math.round(mins/60*10)/10}h</div>
           </div>`).join('')
@@ -1131,11 +1138,18 @@
 //
 // Deliberately OUTSIDE the IIFE, so it re-declares cleanly on each page visit and
 // is reachable from the inline onclick. The cost is that it can see none of the
-// IIFE's helpers (esc, computeStreak, computeStats, BADGES) and re-implements the
-// streak, heatmap and stats logic from scratch — the duplication below is the
-// source of both FIXMEs in this function. Fold it into the IIFE and export the
-// helpers if you touch this seriously.
+// IIFE's computeStreak/computeStats and re-implements the streak, heatmap and stats
+// logic from scratch. It now borrows esc and BADGES via the window._esc/window._BADGES
+// exports set inside the IIFE; fold it in fully if you touch this seriously.
 window.exportReport = function() {
+  // esc is defined inside the IIFE and exported as window._esc; fall back to a local
+  // copy so this report never interpolates user strings (name, subjects) raw.
+  const esc = window._esc || (s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])))
+  // LOCAL date helpers — records store local dates, so seeding/stepping via UTC
+  // (toISOString) printed a 0-day streak every evening west of UTC and shifted the
+  // heatmap window by a day.
+  const localDay  = (dt) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+  const stepLocal = (s, delta) => { const [y,m,d] = s.split('-').map(Number); return localDay(new Date(y, m-1, d + delta)) }
   const records    = csGetJSON('records', [])
   const pts        = parseInt(csGet('studyPoints')||'0')
   const name       = csGet('displayName') || currentUser()
@@ -1147,19 +1161,17 @@ window.exportReport = function() {
 
   // Streak
   const days = [...new Set(records.map(r=>r.date))].sort()
-  // FIXME(high): seeds the walk with the UTC date, but records store LOCAL dates.
-  // Any evening west of UTC the seed is already "tomorrow", `days` never contains
-  // it, the loop body never runs and the report prints a 0-day streak even for a
-  // user on a 100-day run. Seed from the local date (cf. localDateStr() in the IIFE).
-  let streak=0, check=new Date().toISOString().slice(0,10)
-  while(days.includes(check)){streak++;const d=new Date(check);d.setDate(d.getDate()-1);check=d.toISOString().slice(0,10)}
+  // Seed and step the streak walk in LOCAL time so it matches the local dates stored
+  // on records (was UTC via toISOString, which printed a 0-day streak most evenings).
+  let streak=0, check=localDay(new Date())
+  while(days.includes(check)){streak++;check=stepLocal(check,-1)}
 
   // Subject breakdown
   const subMins = {}
   records.forEach(r=>{subMins[r.subject||'Other']=(subMins[r.subject||'Other']||0)+r.duration})
   const maxSub = Math.max(1,...Object.values(subMins))
   const subRows = Object.entries(subMins).sort((a,b)=>b[1]-a[1]).slice(0,10)
-    .map(([sub,mins])=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">${sub}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">
+    .map(([sub,mins])=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">${esc(sub)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">
       <div style="background:#e0f2ee;border-radius:4px;height:8px;width:100%;overflow:hidden;display:inline-block;vertical-align:middle;width:140px;margin-right:8px;">
         <div style="background:#0f7b6c;height:100%;width:${Math.round(mins/maxSub*100)}%;"></div></div>
       ${(mins/60).toFixed(1)}h</td></tr>`).join('')
@@ -1167,7 +1179,7 @@ window.exportReport = function() {
   // Top 10 sessions
   const top10 = [...records].sort((a,b)=>b.duration-a.duration).slice(0,10)
     .map(r=>`<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.date}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.subject||'—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${esc(r.subject||'—')}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.duration}min</td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;">${['','★','★★','★★★','★★★★','★★★★★'][r.rating||0]||'—'}</td></tr>`).join('')
 
@@ -1175,9 +1187,9 @@ window.exportReport = function() {
   // (different colour ramp, inline styles so it survives in the popup).
   const perDay={}; records.forEach(r=>{perDay[r.date]=(perDay[r.date]||0)+1})
   const heatCells = Array.from({length:30},(_,i)=>{
-    // Same UTC-vs-local key mismatch as the on-page heatmap: `ds` is a UTC day but
-    // perDay is keyed by local record dates, so the window can shift by one.
-    const d=new Date(); d.setDate(d.getDate()-(29-i)); const ds=d.toISOString().slice(0,10)
+    // Key by LOCAL day to match perDay (indexed by local record dates); a UTC day
+    // (toISOString) shifted the whole window by one every evening west of UTC.
+    const d=new Date(); d.setDate(d.getDate()-(29-i)); const ds=localDay(d)
     const c=Math.min(4,perDay[ds]||0)
     const colors=['#f0f0f0','#b7e3d8','#7ec9bf','#3daa9d','#0f7b6c']
     return `<div style="width:16px;height:16px;border-radius:3px;background:${colors[c]};display:inline-block;margin:2px;" title="${ds}: ${perDay[ds]||0} sessions"></div>`
@@ -1197,20 +1209,20 @@ window.exportReport = function() {
       maxSingleSession:records.length?Math.max(...records.map(r=>r.duration/60)):0,
       allTimers:false, highTestScore:false, notifClick:false, midnightStudy:false,
       weekendStudy:false, ghostMode:0, perfectDays:0, earlyBird:false, nightOwl:false, maxDayPoints:0 }
-    // FIXME(medium): window._BADGES is never assigned anywhere in the repo — the
-    // BADGES table lives inside the IIFE and is never exported. This guard is always
-    // false, so the whole `s` object above is dead and the report always prints
-    // "— badges unlocked". Export BADGES onto window, or move exportReport inside.
+    // window._BADGES is exported from the IIFE (next to the BADGES literal), so this
+    // guard now resolves and the report prints a real badge count instead of "—".
+    // Note the `s` stub above still zeroes counters the IIFE could reach, so the
+    // report can under-report badges relative to the Stats tab — acceptable here.
     return window._BADGES ? window._BADGES.filter(b=>b.req(s)).length : '—'
   })()
 
   // The report document. Note the "v5.2.0" in the subtitle is hardcoded here and does
   // not track package.json — bump it by hand. Careful editing the template literal
   // below: everything inside the backticks is emitted verbatim, so a comment written
-  // in there ends up in the user's report. Subject/display names are interpolated
-  // unescaped here too (same class of bug as the on-page Subject Breakdown FIXME).
+  // in there ends up in the user's report. Subject/display names are escaped via esc()
+  // (window._esc) before interpolation, matching the on-page renderers.
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-<title>Study Report — ${name}</title>
+<title>Study Report — ${esc(name)}</title>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; color:#111; padding:48px; max-width:800px; margin:0 auto; }
@@ -1229,7 +1241,7 @@ window.exportReport = function() {
 </head><body>
 <button onclick="window.print()" style="float:right;padding:8px 18px;background:#0f7b6c;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:16px;">🖨 Print / Save PDF</button>
 <div style="font-size:36px;margin-bottom:8px;">🐌</div>
-<h1>${name}'s Study Report</h1>
+<h1>${esc(name)}'s Study Report</h1>
 <div class="sub">Generated ${today} · Ur Study Bro v5.2.0</div>
 
 <div class="stat-row">

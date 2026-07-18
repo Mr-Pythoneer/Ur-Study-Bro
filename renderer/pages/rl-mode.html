@@ -304,6 +304,7 @@
   let current     = null    // the question on screen
   let currentPick = null    // { topic, why, tag }
   let answered    = false
+  let selecting   = false   // true while nextQuestion() is picking/generating
   let generating  = {}      // topic -> bool
   let destroyed   = false
 
@@ -397,6 +398,7 @@
   function updateArm(topic, correct) {
     const a = arm(topic)
     const accBefore = a.acc
+    const qBefore = a.q
     const r = rewardFor(correct, accBefore)
 
     a.q   = a.q   + ALPHA * (r - a.q)                // Q ← Q + α(r − Q)
@@ -406,7 +408,7 @@
     if (correct) a.correct += 1
 
     csSetJSON(K.arms, arms)
-    return { accBefore, reward: r, qBefore: a.q - ALPHA * (r - a.q), qAfter: a.q }
+    return { accBefore, reward: r, qBefore, qAfter: a.q }
   }
 
   function pointsFor(correct, accBefore, streakNow) {
@@ -512,16 +514,23 @@ Return ONLY this JSON shape:
   // ── Round loop ──────────────────────────────────────────────
   async function nextQuestion() {
     if (destroyed) return
-    // FIXME(high/race): the answer gate opens here, but `current` isn't replaced
-    // until after the `await generate(topic)` below. A keypress during that await
-    // runs answer() against the PREVIOUS question — scoring it twice. Move
-    // `answered = false` to just before renderQuestion(), after current is set.
+    // Re-entrancy guard: `current` is null for the whole generation window, so
+    // without this a second caller (e.g. addTopic during the spinner) would kick
+    // off a concurrent nextQuestion and the two would fight over `current`.
+    if (selecting) return
+    selecting = true
+    // Close the answer gate for the whole selection/generation window: clearing
+    // `current` here makes answer()'s `|| !current` guard reject keystrokes until
+    // a new question is installed below, so the previous question can't be scored
+    // twice during the `await generate(topic)`. Also stops removeTopic() from
+    // resurrecting a just-deleted arm via a late answer().
     answered = false
+    current = null
 
-    if (!topics.length) return renderNoTopics()
+    if (!topics.length) { selecting = false; return renderNoTopics() }
 
     currentPick = selectArm()
-    if (!currentPick) return renderNoTopics()
+    if (!currentPick) { selecting = false; return renderNoTopics() }
     const topic = currentPick.topic
 
     renderBrain()
@@ -529,7 +538,7 @@ Return ONLY this JSON shape:
     if (!queue[topic] || !queue[topic].length) {
       renderGenerating(topic)
       await generate(topic)
-      if (destroyed) return
+      if (destroyed) { selecting = false; return }
     }
 
     current = (queue[topic] || []).shift()
@@ -540,6 +549,7 @@ Return ONLY this JSON shape:
     csSetJSON(K.asked, asked)
 
     renderQuestion()
+    selecting = false
     if ((queue[topic] || []).length <= PREFETCH_AT) generate(topic)   // prefetch, don't await
   }
 
@@ -805,7 +815,9 @@ Return ONLY this JSON shape:
     csSetJSON(K.arms, arms)
     renderTopics()
     renderBrain()
-    if (!current) nextQuestion()
+    // Only kick off a round if none is showing AND none is mid-selection —
+    // `!current` alone is transiently true during generation.
+    if (!current && !selecting) nextQuestion()
   }
 
   function removeTopic(t) {

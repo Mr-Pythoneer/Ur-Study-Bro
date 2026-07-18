@@ -18,7 +18,7 @@
        ambient) — without them every `const` here would collide on visit #2.
      • Anything an IIFE starts — an interval, an event listener, an appended
        DOM node — must be undone in window._pageCleanup, or one more copy
-       leaks per visit. Several leaks below are known and flagged FIXME.
+       leaks per visit.
      • Inline handlers in the markup (onclick="setAmbient('rain')",
        onclick="endStudySession()") resolve against window ONLY. That is why
        those functions are assigned to `window.*` even from inside an IIFE —
@@ -384,10 +384,12 @@
       remaining:         25 * 60,
       running:           false,
       interval:          null,
+      endsAt:            null,   // wall-clock target (ms) while running; null when paused/idle
       isPomodoro:        true,
       pomodoroN:         0,
       inBreak:           false,
       breakInterval:     null,
+      breakEndsAt:       null,   // wall-clock target (ms) for the current break
       breakRemaining:    BREAK_SECS,
       guardActive:       false,
       timerLockedByGuard: false,
@@ -396,7 +398,11 @@
   }
   const G = window._studyTimerGlobal
 
-  // _pageCleanup: do NOT clear interval — timer keeps running in background
+  // _pageCleanup: tear down this visit's intervals/listeners before the page is
+  // swapped. The countdown's PROGRESS survives via G.running + G.endsAt (a wall
+  // clock), so we can and MUST clear the live intervals — otherwise their
+  // closures keep writing to the now-detached DOM nodes of this visit. The next
+  // visit reattaches a fresh interval bound to the new DOM (see below).
   //
   // offGuardNudge() is essential: onGuardNudge() is re-registered further down
   // on every visit, so without this each visit would stack another IPC listener
@@ -407,13 +413,15 @@
   // only works because it runs after this block. Keep that ordering.
   window._pageCleanup = () => {
     if (window.api) { window.api.offGuardNudge() }
-    // intentionally do NOT clear G.interval or G.breakInterval
+    clearInterval(stBannerIv)
+    clearInterval(G.interval);      G.interval = null
+    clearInterval(G.breakInterval); G.breakInterval = null
   }
 
   // ── Element refs ───────────────────────────────────────────────
-  // Captured once per visit. Any closure that outlives the visit (e.g. an
-  // interval started here and never cleared) keeps pointing at these now-
-  // detached nodes and will update nothing — see the reattach FIXMEs below.
+  // Captured once per visit. Any closure that outlives the visit would keep
+  // pointing at these now-detached nodes, so _pageCleanup clears this visit's
+  // intervals and the reattach blocks below rebind to the fresh DOM refs.
   const display  = document.getElementById('timerDisplay')
   const status   = document.getElementById('timerStatus')
   const ring     = document.getElementById('ringFill')
@@ -486,10 +494,9 @@
     // Corrupt JSON in the shared key ⇒ just hide the banner, never throw.
     } catch(e) { banner.style.display = 'none' }
   }
-  // FIXME(medium): this interval handle is never stored and never cleared in
-  // _pageCleanup — every visit to Study Mode leaks another immortal 2s poller
-  // holding a stale `banner` ref. Store the id and clearInterval on cleanup.
-  setInterval(checkStudyTogetherBanner, 2000)
+  // Handle stored so _pageCleanup can clearInterval it — otherwise every visit
+  // to Study Mode would leak another immortal 2s poller holding a stale ref.
+  const stBannerIv = setInterval(checkStudyTogetherBanner, 2000)
   checkStudyTogetherBanner()
 
   // On window so the inline onclick="endStudySession()" in the banner markup
@@ -497,16 +504,48 @@
   window.endStudySession = function() {
     localStorage.removeItem('studyTogether_session')
     document.getElementById('studyTogetherBanner').style.display = 'none'
-    // FIXME(low): `toast` is not declared on this page, so `toast &&` throws a
-    // ReferenceError (guarding an undeclared identifier does NOT make it safe —
-    // only typeof does). Use showNudge() below instead.
-    toast && toast('Study Together session ended')
+    // Use this page's own toast helper. (`toast` is not declared on this page, so
+    // the old `toast && …` threw a ReferenceError — guarding an undeclared
+    // identifier does not make it safe, only `typeof` would.)
+    showNudge('Study Together session ended')
   }
 
   /* ── Timer utils ─────────────────────────────────────────── */
   function fmt(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}` }
   function updateRing() { ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - G.remaining/G.totalSecs) }
   function setDisplay() { display.textContent=fmt(G.remaining); updateRing() }
+
+  // Wall-clock countdown: derive remaining from G.endsAt each tick instead of
+  // decrementing a counter, so throttled/dropped ticks (backgrounded window) and
+  // page navigations don't lose time. clamp at 0 so fmt() never shows negatives.
+  function tickStudy() {
+    G.remaining = Math.max(0, Math.round((G.endsAt - Date.now()) / 1000))
+    setDisplay()
+    if (G.remaining <= 0) {
+      clearInterval(G.interval); G.interval = null; G.running = false; G.endsAt = null
+      startBtn.textContent = '▶ Start'
+      display.className = 'timer-display finished'; status.textContent = 'Done!'
+      G.timerLockedByGuard = false
+      syncGuardLockUI()
+      completeSession()
+    }
+  }
+  function startStudyInterval() { G.interval = setInterval(tickStudy, 1000) }
+
+  function tickBreak() {
+    G.breakRemaining = Math.max(0, Math.round((G.breakEndsAt - Date.now()) / 1000))
+    breakDisplay.textContent = fmt(G.breakRemaining)
+    breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
+    if (G.breakRemaining <= 0) {
+      clearInterval(G.breakInterval); G.breakInterval = null
+      breakDisplay.textContent = '0:00'
+      breakLabel.textContent = "Break over — let's go!"
+      if (window.api && window.api.scheduleNotify) {
+        window.api.scheduleNotify({ title: 'Break Over!', startLabel: 'Time to focus again', link: null })
+      }
+    }
+  }
+  function startBreakInterval() { G.breakInterval = setInterval(tickBreak, 1000) }
 
   // Rebuilds every visual from G. Called once on load because the DOM is brand
   // new on each visit while G is not — this is what makes a timer started three
@@ -550,31 +589,18 @@
 
     // Break overlay
     if (G.inBreak) {
-      breakDisplay.textContent = fmt(G.breakRemaining)
-      breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
       breakOverlay.classList.add('visible')
-      // Reattach break interval if it's running but interval was lost
-      // FIXME(medium): this guard can never fire. _pageCleanup intentionally
-      // does not clear G.breakInterval, so the id stays truthy after navigating
-      // away — while the OLD interval's closure still writes to the previous
-      // visit's detached breakDisplay/breakRingFill. Result: the break overlay
-      // is frozen at the time you left. Same dead-guard bug as the study timer
-      // reattach below. A fix must null the handle on teardown (or key off
-      // wall-clock), not merely re-check it here.
-      if (!G.breakInterval && G.inBreak && G.breakRemaining > 0) {
-        G.breakInterval = setInterval(() => {
-          G.breakRemaining--
-          breakDisplay.textContent = fmt(G.breakRemaining)
-          breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
-          if (G.breakRemaining <= 0) {
-            clearInterval(G.breakInterval); G.breakInterval = null
-            breakDisplay.textContent = '0:00'
-            breakLabel.textContent = "Break over — let's go!"
-            if (window.api && window.api.scheduleNotify) {
-              window.api.scheduleNotify({ title: 'Break Over!', startLabel: 'Time to focus again', link: null })
-            }
-          }
-        }, 1000)
+      // Reattach the break interval on this visit's DOM refs. _pageCleanup now
+      // clears G.breakInterval to null on teardown, so on a revisit this runs;
+      // tickBreak() derives the remaining time from the persisted wall-clock
+      // G.breakEndsAt, so the overlay resumes at the correct time (and fires the
+      // "break over" completion if the break elapsed while we were away).
+      if (!G.breakInterval && G.breakEndsAt) {
+        tickBreak()
+        if (G.breakRemaining > 0) startBreakInterval()
+      } else {
+        breakDisplay.textContent = fmt(G.breakRemaining)
+        breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
       }
     } else {
       breakOverlay.classList.remove('visible')
@@ -724,43 +750,34 @@
   // ── Restore UI from global state on page load ─────────────
   syncUIFromGlobal()
 
-  // If the study interval was running but interval object is gone (page reload),
-  // reattach it so the timer continues ticking
-  //
-  // FIXME(high): this never fires, so a running timer appears FROZEN forever
-  // after navigating away and back. _pageCleanup deliberately leaves G.interval
-  // set (so the countdown survives), which means `!G.interval` is always false
-  // here — while the surviving interval's closure still writes to the PREVIOUS
-  // visit's `display`/`ring`/`startBtn`, which are now detached nodes. G.remaining
-  // keeps decrementing invisibly; the UI only catches up on a full app reload.
-  // The two guards (`G.running` and `!G.interval`) can never both be true.
+  // Reattach the study interval on this visit's DOM refs. _pageCleanup now clears
+  // G.interval to null on teardown (while leaving G.running + the wall-clock
+  // G.endsAt intact), so `!G.interval` is true on a revisit and this fires,
+  // rebinding tickStudy() to the fresh display/ring/startBtn. tickStudy() first
+  // recomputes remaining from G.endsAt — catching up any time that passed while
+  // we were on another page, and completing the session if it already expired.
   if (G.running && !G.interval) {
-    G.interval = setInterval(() => {
-      G.remaining--; setDisplay()
-      if (G.remaining <= 0) {
-        clearInterval(G.interval); G.interval = null; G.running = false
-        startBtn.textContent = '▶ Start'
-        display.className = 'timer-display finished'; status.textContent = 'Done!'
-        G.timerLockedByGuard = false
-        syncGuardLockUI()
-        completeSession()
-      }
-    }, 1000)
+    tickStudy()
+    if (G.running) startStudyInterval()
   }
 
   startBtn.addEventListener('click', () => {
     if (G.running) {
-      clearInterval(G.interval); G.interval = null; G.running = false
+      clearInterval(G.interval); G.interval = null; G.running = false; G.endsAt = null
       startBtn.textContent = '▶ Resume'; display.classList.remove('running')
       status.textContent = 'Paused'
     } else {
-      // FIXME(critical): Start does not check whether the previous session
-      // already finished. After a non-Pomodoro timer completes, G.remaining is
-      // still <= 0 and the reward card leaves Start enabled — so clicking it
-      // ticks once, hits `G.remaining <= 0` after 1 second and runs
-      // completeSession() AGAIN: another record row, another Study Points award,
-      // repeatable indefinitely. Should reset to G.totalSecs (or refuse) when
-      // G.remaining <= 0. Points/records are the app's whole scoring system.
+      // Start-from-Done: if the previous session already finished (G.remaining
+      // <= 0, reward card still up with Start enabled), treat this click as a
+      // FRESH session and re-arm the full duration. Without this the first tick
+      // would immediately hit `remaining <= 0` and re-run completeSession(),
+      // awarding a phantom record + Study Points once per second.
+      if (G.remaining <= 0) {
+        G.remaining = G.totalSecs
+        display.className = 'timer-display'
+        banner.classList.remove('visible')
+        setDisplay()
+      }
       G.running = true; startBtn.textContent = '⏸ Pause'
       display.classList.add('running'); status.textContent = 'Focusing…'
       // Lock guard to timer once timer is started
@@ -771,22 +788,11 @@
       // auto-start guard for pomodoro if apps are checked
       // (Pomodoro implies "protect me"; other presets leave the guard manual.)
       if (G.isPomodoro && checkedApps.size > 0 && !G.guardActive) _startGuard()
-      // FIXME(high): counts TICKS, not wall-clock. Chromium throttles timers in
-      // backgrounded/occluded windows to ~1/minute, so minimising the app — the
-      // normal case while studying — silently stalls the countdown and a "25 min"
-      // session takes far longer in real time. Should store a target timestamp
-      // and derive remaining from Date.now() on each tick.
-      G.interval = setInterval(() => {
-        G.remaining--; setDisplay()
-        if (G.remaining <= 0) {
-          clearInterval(G.interval); G.interval = null; G.running = false
-          startBtn.textContent = '▶ Start'
-          display.className = 'timer-display finished'; status.textContent = 'Done!'
-          G.timerLockedByGuard = false
-          syncGuardLockUI()
-          completeSession()
-        }
-      }, 1000)
+      // Wall-clock: anchor the finish time now and let tickStudy() derive the
+      // remaining seconds from it, so a backgrounded/throttled window still
+      // completes on real time rather than counting (throttled) ticks.
+      G.endsAt = Date.now() + G.remaining * 1000
+      startStudyInterval()
     }
   })
 
@@ -794,7 +800,7 @@
   // clears timerLockedByGuard and stops the guard. Don't gate it behind the
   // lock or users can get trapped with no way to release Focus Guard.
   resetBtn.addEventListener('click', () => {
-    clearInterval(G.interval); G.interval = null; G.running = false
+    clearInterval(G.interval); G.interval = null; G.running = false; G.endsAt = null
     G.remaining = G.totalSecs
     G.timerLockedByGuard = false
     startBtn.textContent = '▶ Start'; display.className = 'timer-display'
@@ -964,6 +970,7 @@
 
     G.inBreak = true
     G.breakRemaining = BREAK_SECS
+    G.breakEndsAt = Date.now() + BREAK_SECS * 1000
     breakTip.textContent = BREAK_TIPS[Math.floor(Math.random()*BREAK_TIPS.length)]
     pomodoroCount.textContent = `${G.pomodoroN} Pomodoro${G.pomodoroN!==1?'s':''} completed today`
 
@@ -973,26 +980,14 @@
 
     breakOverlay.classList.add('visible')
 
-    G.breakInterval = setInterval(() => {
-      G.breakRemaining--
-      breakDisplay.textContent = fmt(G.breakRemaining)
-      breakRingFill.style.strokeDashoffset = BREAK_CIRCUMFERENCE * (1 - G.breakRemaining/BREAK_SECS)
-      if (G.breakRemaining <= 0) {
-        clearInterval(G.breakInterval); G.breakInterval = null
-        breakDisplay.textContent = '0:00'
-        breakLabel.textContent = "Break over — let's go!"
-        if (window.api && window.api.scheduleNotify) {
-          window.api.scheduleNotify({ title: 'Break Over!', startLabel: 'Time to focus again', link: null })
-        }
-      }
-    }, 1000)
+    startBreakInterval()
   }
 
   // Both "Start Next Pomodoro" and "Skip Break" land here — the only difference
   // is when it's clicked, so they share one handler. Note it does NOT auto-start
   // the next timer; it just re-arms it at Ready.
   function endBreak() {
-    clearInterval(G.breakInterval); G.breakInterval = null; G.inBreak = false
+    clearInterval(G.breakInterval); G.breakInterval = null; G.breakEndsAt = null; G.inBreak = false
     breakOverlay.classList.remove('visible')
     // Reset study timer
     G.remaining = G.totalSecs; setDisplay()
@@ -1095,13 +1090,13 @@
       const logo = LOGOS[name] || GENERIC_LOGO
       const div = document.createElement('div')
       div.className = `app-check ${checkedApps.has(name)?'checked':''}`
-      // FIXME(medium): `name` is interpolated into innerHTML unescaped. Preset
-      // names are safe constants, but custom names come from user input and from
-      // window.api.scanApps() reading /Applications — an app named e.g.
-      // `<img src=x onerror=…>` executes in the renderer. `logo` must stay raw
-      // HTML (it's SVG markup), so escape `name` only, or build the <span> with
-      // textContent instead of templating the whole row.
-      div.innerHTML = `<input type="checkbox" ${checkedApps.has(name)?'checked':''}><div class="app-logo">${logo}</div><span>${name}</span>`
+      // `logo` is trusted SVG markup (LOGOS/GENERIC_LOGO constants) so it stays
+      // raw HTML, but `name` is tainted — custom names come from user input and
+      // from window.api.scanApps() reading /Applications, so an app named e.g.
+      // `<img src=x onerror=…>` would execute in the renderer if templated in.
+      // Build the label node with textContent so `name` can never be markup.
+      div.innerHTML = `<input type="checkbox" ${checkedApps.has(name)?'checked':''}><div class="app-logo">${logo}</div><span></span>`
+      div.querySelector('span').textContent = name
       const cb = div.querySelector('input')
       const toggle = () => {
         // Allow-list is frozen while the guard runs (see .app-grid.locked).
@@ -1286,16 +1281,15 @@
    blocks, and without it the previous statement could swallow this one.
 
    Everything here is appended to document.body/head rather than living in
-   the page markup so the snail can float over the whole app chrome. That
-   choice is also the source of the leak FIXMEs below: appended nodes are
-   NOT removed when the page is torn down.
+   the page markup so the snail can float over the whole app chrome. Because
+   those nodes sit outside #content, the _pageCleanup wrapper at the bottom of
+   this IIFE removes them explicitly when the page is torn down.
 ──────────────────────────────────────────────────────────────── */
 ;(function() {
   // ── Inject styles
-  // FIXME(medium): this <style> is appended to <head> on EVERY visit and never
-  // removed — visit the page ten times and there are ten identical style tags
-  // (plus the canvas/snail/ask-box nodes appended below, and their duplicate
-  // ids). _pageCleanup should remove all four nodes.
+  // This <style> (and the canvas/snail/ask-box nodes appended below) live outside
+  // #content, so loadPage() can't reclaim them — the _pageCleanup wrapper at the
+  // bottom of this IIFE removes all four, so nothing accumulates across visits.
   const style = document.createElement('style')
   style.textContent = `
     #focus-snail {
@@ -1365,7 +1359,7 @@
 
   // ── DOM
   // Three body-level nodes: the trail canvas (behind), the snail emoji, and the
-  // ask popover. All leak per visit — see the FIXME above.
+  // ask popover. Removed on teardown by the _pageCleanup wrapper below.
   const canvas = document.createElement('canvas')
   canvas.id = 'snail-canvas'
   document.body.appendChild(canvas)
@@ -1397,8 +1391,8 @@
     H = canvas.height = window.innerHeight
   }
   resizeCanvas()
-  // Also never removed on teardown — one more listener per visit, each pinned
-  // to a different orphaned canvas.
+  // Removed in _pageCleanup so it doesn't stack a listener (pinned to an orphaned
+  // canvas) on every visit.
   window.addEventListener('resize', resizeCanvas)
 
   // ── Snail position + movement
@@ -1553,25 +1547,36 @@
 
   // ── Watch G.running
   // Polled rather than event-driven because the timer IIFE exposes no hook.
-  // FIXME(medium): the snail never appears. `G` is a const INSIDE the timer
-  // IIFE above, so it is not in scope here — `typeof G !== 'undefined'` is
-  // always false and this only ever calls hideSnail(). The whole feature is
-  // dead. Read window._studyTimerGlobal.running instead (that IS the global).
+  // Read the shared state off window directly — `G` is a const scoped INSIDE the
+  // timer IIFE above and is not reachable here, so the old `typeof G` guard was
+  // always false and the whole snail feature was dead.
   function checkTimer() {
-    if (typeof G !== 'undefined' && G.running) showSnail()
+    const g = window._studyTimerGlobal
+    if (g && g.running) showSnail()
     else hideSnail()
   }
-  // FIXME(medium): handle never stored, never cleared — another immortal 1s
-  // interval per visit. The _pageCleanup wrapper below only HIDES the snail;
-  // it never tears this down (nor the appended nodes or resize listener).
-  setInterval(checkTimer, 1000)
+  // Handle stored so the cleanup wrapper below can clear it — otherwise every
+  // visit would leak another immortal 1s interval.
+  const snailCheckIv = setInterval(checkTimer, 1000)
 
   // Wrap rather than assign: the timer IIFE already installed a _pageCleanup
-  // (offGuardNudge) and clobbering it would leak IPC listeners. `orig` is
-  // captured now and chained. stopAmbient is resolved at CALL time from
-  // window.stopAmbient — the ambient IIFE below hasn't run yet at this point.
+  // (offGuardNudge + interval teardown) and clobbering it would leak IPC
+  // listeners. `orig` is captured now and chained. stopAmbient is resolved at
+  // CALL time from window.stopAmbient — the ambient IIFE below hasn't run yet.
+  //
+  // This visit's snail nodes live on document.body/head (outside #content), so
+  // loadPage()'s content.innerHTML='' never reclaims them — remove them here,
+  // along with the interval and resize listener, so nothing accumulates across
+  // visits (which also keeps their ids unique).
   window._pageCleanup = (function(orig) {
-    return function() { hideSnail(); stopAmbient(); if (orig) orig() }
+    return function() {
+      clearInterval(snailCheckIv)
+      hideSnail()
+      stopAmbient()
+      window.removeEventListener('resize', resizeCanvas)
+      canvas.remove(); snailEl.remove(); askBox.remove(); style.remove()
+      if (orig) orig()
+    }
   })(window._pageCleanup)
 })()
 
@@ -1598,12 +1603,13 @@
 
   // Lazily created: constructing an AudioContext before a user gesture gets it
   // auto-suspended, so we wait until the first setAmbient() click.
-  // FIXME(low): `ctx` is IIFE-local, so a NEW AudioContext is created on every
-  // visit to this page and the old one is never close()d — browsers cap the
-  // number of live contexts (~6), after which ambient sound stops working
-  // until the app is restarted. Close it in _pageCleanup or hang it off window.
+  // The single context is hung off window and REUSED across page visits — a
+  // fresh IIFE-local context per visit was never close()d, and browsers cap the
+  // number of live contexts (~6), after which `new AudioContext()` throws and
+  // ambient sound silently stops working until the app is restarted.
   function getCtx() {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
+    if (!window._csAudioCtx) window._csAudioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    ctx = window._csAudioCtx
     return ctx
   }
 
@@ -1694,6 +1700,9 @@
   // On window: called from inline onclick in the markup (an IIFE-local function
   // would silently do nothing there).
   window.setAmbient = function(name) {
+    // Persist the choice (including 'off') so the restore-on-load path below can
+    // reinstate it on the next visit — nothing else ever writes this key.
+    localStorage.setItem('lastAmbient', name)
     stopAmbient()
     document.querySelectorAll('.ambient-btn').forEach(b => { b.classList.remove('active'); b.style.background=''; b.style.color='' })
     const btn = document.getElementById('amb-' + name)
@@ -1731,12 +1740,9 @@
 
   window.stopAmbient = stopAmbient
 
-  // Restore last ambient on load
-  // FIXME(low): dead code — nothing in the app ever WRITES `lastAmbient`, so
-  // `last` is always null and the user's sound choice is silently lost on every
-  // navigation. setAmbient() needs a matching localStorage.setItem (and note it
-  // would have to survive the autoplay policy: a restore with no user gesture
-  // starts suspended).
+  // Restore last ambient on load. setAmbient() now persists 'lastAmbient', so the
+  // user's choice survives navigation. (Autoplay policy still applies: a restore
+  // with no user gesture may start suspended until the next interaction.)
   const last = localStorage.getItem('lastAmbient')
   if (last && last !== 'off') setTimeout(() => window.setAmbient(last), 500)
 })()

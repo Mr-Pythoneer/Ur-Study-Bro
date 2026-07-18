@@ -4,8 +4,7 @@
   Loaded by loadPage() (re-runs each visit; note the IIFE). Paste notes,
   generate a summary + flashcard deck + practice questions via
   window.api.askAI, plus a "Personalised Study Guide" built from the
-  cognitive assessment. See FIXMEs: dead on default Ollama, and the
-  guide reads a 'cognitiveReport' key that is never written.
+  cognitive assessment (read from the 'cogProfile' key via loadReport()).
 -->
 <style>
   .kit-layout { display:grid; grid-template-columns:1fr 1.4fr; gap:20px; }
@@ -306,7 +305,11 @@
       const src=chip.dataset.src
       const ta=document.getElementById('notesInput')
       if(src==='writer'){
-        const docs=JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+        // Read the SAME per-account key AI Writer now saves to (csGetJSON).
+        // It used to read the global 'ai_writer_docs', which AI Writer migrated
+        // away + deleted — reading the global key here leaked docs across
+        // accounts and broke this chip once the migration ran.
+        const docs=csGetJSON('ai_writer_docs',[])
         if(docs.length){const d=docs[0];ta.value=d.title+'\n\n'+d.html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();return}
         alert('No saved AI Writer docs found. Write and save something in AI Writer first.')
       } else if(src==='meeting'){
@@ -332,10 +335,9 @@
     const text=document.getElementById('notesInput').value.trim()
     if(!text||text.length<50){alert('Paste at least a few sentences of notes first.');return}
     const{provider,apiKey,model}=getApiCfg()
-    // FIXME(high): Ollama (default) needs no key, and the "yellow bar above" is
-    // hidden for Ollama — so this alert points at invisible UI and Study Kit is
-    // dead out of the box. Gate on provider !== 'ollama' && !apiKey.
-    if(!apiKey){alert('Enter your API key in the yellow bar above.');return}
+    // Ollama runs locally and needs no key (its key bar is hidden); only cloud
+    // providers require a key before generating.
+    if(provider!=='ollama' && !apiKey){alert('Enter your API key in the yellow bar above.');return}
 
     const doSummary=document.getElementById('chkSummary').checked
     const doFlash  =document.getElementById('chkFlash').checked
@@ -459,11 +461,27 @@ Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[
   /* ══════════════════════════════════════════
      PERSONALISED STUDY GUIDE
   ══════════════════════════════════════════ */
+  // The assessment persists its results under 'cogProfile' (assessment.html), not
+  // 'cognitiveReport'. Read that key and map its real fields onto the shape this
+  // guide expects, so the Personalised Study Guide is reachable after the test.
+  function loadReport(){
+    const p = csGetJSON('cogProfile', null)
+    if(!p) return null
+    const vark = {V:'Visual',A:'Auditory',R:'Read/Write',K:'Kinesthetic'}[p.varkDominant] || 'Multimodal'
+    return {
+      profileTitle: `${p.riskLabel || 'Cognitive'} Profile · ${vark} Learner`,
+      overallSummary: `Assessment indicates ${p.riskLabel ? p.riskLabel.toLowerCase()+' ADHD-pattern risk' : 'your cognitive pattern'}, a ${vark.toLowerCase()} learning style, a forward digit span of ${p.forwardSpan}, and ${p.matrixAccuracy}% sorting accuracy.`,
+      cognitiveStrengths: p.strengths || [],
+      cognitiveWeaknesses: p.growth || [],
+      recommendedTimer: p.sessionLen ? `${p.sessionLen} min` : '',
+      timerRationale: `matched to your ${p.riskLabel ? p.riskLabel.toLowerCase()+'-risk' : 'baseline'} attention profile`,
+      studyStrategies: [],
+      watchOut: (p.growth && p.growth.length) ? p.growth.join('; ') : ''
+    }
+  }
+
   function initGuidePanel(){
-    // FIXME(high): nothing anywhere writes 'cognitiveReport', so report is always
-    // null and the Personalised Study Guide is permanently unreachable. The
-    // assessment stores its results under a different key — read that one.
-    const report = csGetJSON('cognitiveReport', null)
+    const report = loadReport()
     if(!report){
       document.getElementById('guideNoReport').style.display = ''
       document.getElementById('guideHasReport').style.display = 'none'
@@ -489,9 +507,9 @@ Generate ${fcN} flashcards and ${eqN} exam questions. Only include sections: ${[
     if(!subject){ alert('Enter a subject or topic first.'); return }
 
     const {provider, apiKey, model} = getApiCfg()
-    if(!apiKey){ alert('Enter your API key in the yellow bar above.'); return }
+    if(provider!=='ollama' && !apiKey){ alert('Enter your API key in the yellow bar above.'); return }
 
-    const report = csGetJSON('cognitiveReport', null)
+    const report = loadReport()
     if(!report){ alert('Complete the cognitive assessment first.'); return }
 
     const goal   = document.getElementById('guideGoal').value
@@ -692,10 +710,6 @@ Be specific to their strengths and weaknesses. Reference the cognitive profile d
     document.getElementById('flashProgress').style.display = 'block'
     document.getElementById('flashRating').style.display = 'none'
     showCard()
-
-    // Track for badge
-    const cur = parseInt(localStorage.getItem(window.csKey ? window.csKey('flashcardsReviewed') : 'fr') || '0')
-    if (window.csSet) window.csSet('flashcardsReviewed', String(cur + deck.length))
   }
 
   function showCard() {
@@ -719,6 +733,10 @@ Be specific to their strengths and weaknesses. Reference the cognitive profile d
 
   window.rateFlash = function(rating) {
     ratings[rating]++
+    // Credit exactly one reviewed card per rating (guard parseInt so a poisoned
+    // value can't wedge the counter with 'NaN').
+    if (window.csSet && window.csGet)
+      window.csSet('flashcardsReviewed', String((parseInt(window.csGet('flashcardsReviewed') || '0') || 0) + 1))
     // Simple spaced repetition: 'again' → push card to end of deck
     if (rating === 'again') deck.push(deck[current])
     current++

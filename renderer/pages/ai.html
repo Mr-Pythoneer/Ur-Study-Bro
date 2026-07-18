@@ -5,8 +5,8 @@
   UI with a provider/model sidebar. Ollama (local, default) streams via
   window.api.ollamaStream; cloud providers go through window.aiChat.
   Provider/model/key persist in the GLOBAL localStorage keys ai_provider
-  / ai_model_<p> / ai_key_<p> (shared across accounts by design).
-  See the FIXMEs for the hidden Ollama hint and the auto-scroll target.
+  / ai_model_<p> / ai_key_<p> (shared across accounts by design). Provider
+  and model persist on change; the key persists on the explicit Save press.
 -->
 <style>
   .ai-layout { display:flex; gap:20px; height:calc(100vh - 180px); min-height:400px; }
@@ -125,9 +125,11 @@
       <div id="apiKeyRow">
         <label>API Key</label>
         <input type="password" id="apiKeyInput" placeholder="sk-ant-…" autocomplete="off"/>
-        <div class="key-hint" id="keyHint">
-          Get a free key at <a id="keyLink" onclick="window.api.openExternal('https://console.anthropic.com')">console.anthropic.com</a>
-        </div>
+      </div>
+      <!-- keyHint is a sibling of #apiKeyRow so the Ollama install hint still
+           shows when the key row is hidden for the Ollama provider. -->
+      <div class="key-hint" id="keyHint">
+        Get a free key at <a id="keyLink" onclick="window.api.openExternal('https://console.anthropic.com')">console.anthropic.com</a>
       </div>
 
       <button class="btn btn-primary" style="width:100%;font-size:13px;" id="saveKeyBtn">Save Key</button>
@@ -192,9 +194,9 @@
     ],
   }
 
-  // FIXME(medium): saveSettings only runs on the "Save" button. Changing the
-  // provider/model dropdown doesn't persist, so a picked model is lost on the
-  // next visit unless the user also clicks Save. Persist on change.
+  // Provider/model selections persist on change (see the change listeners
+  // below); saveSettings() additionally persists the key + system prompt on
+  // the explicit Save press.
   function saveSettings() {
     localStorage.setItem('ai_provider', providerSel.value)
     localStorage.setItem('ai_model_' + providerSel.value, modelSel.value)
@@ -221,8 +223,7 @@
     document.getElementById('saveKeyBtn').textContent = isOllama ? 'Saved ✓' : 'Save Key'
 
     if (isOllama) {
-      // FIXME(low): keyHint lives inside #apiKeyRow, which was just hidden on the
-      // line above for Ollama — so this install hint is written but never shown.
+      // keyHint is a sibling of the (hidden) #apiKeyRow, so this install hint shows.
       keyHint.innerHTML = 'Runs on your device. Install Ollama from <a onclick="window.api.openExternal(\'https://ollama.com\')" style="color:var(--accent);cursor:pointer;">ollama.com</a>'
     } else if (p === 'gemini') {
       keyHint.innerHTML = 'Free key at <a onclick="window.api.openExternal(\'https://aistudio.google.com/apikey\')" style="color:var(--accent);cursor:pointer;">aistudio.google.com</a>'
@@ -243,7 +244,13 @@
     noKeyBanner.classList.toggle('visible', !hasKey)
   }
 
-  providerSel.addEventListener('change', syncModels)
+  providerSel.addEventListener('change', () => {
+    localStorage.setItem('ai_provider', providerSel.value)
+    syncModels()
+  })
+  modelSel.addEventListener('change', () => {
+    localStorage.setItem('ai_model_' + providerSel.value, modelSel.value)
+  })
   apiKeyInput.addEventListener('input', checkKey)
   document.getElementById('saveKeyBtn').addEventListener('click', () => {
     saveSettings(); checkKey()
@@ -416,10 +423,8 @@
       window.api.onOllamaToken(token => {
         full += token
         if (bubble) bubble.innerHTML = renderMarkdown(full) + '<span class="stream-cursor">▍</span>'
-        // Auto-scroll
-        // FIXME(medium): the scroll container is #chatHistory, not #chatMessages —
-        // this getElementById returns null, so streamed replies never auto-scroll.
-        const chat = document.getElementById('chatMessages')
+        // Auto-scroll the chat container as tokens arrive
+        const chat = document.getElementById('chatHistory')
         if (chat) chat.scrollTop = chat.scrollHeight
       })
 
@@ -503,5 +508,9 @@
   // Expose for sidebar onclick
   window.loadConversation = loadConversation
   window.deleteConversation = deleteConversation
+
+  // Navigating away mid-stream would otherwise leave an Ollama token listener
+  // registered against this (now-detached) page. Tear it down on page swap.
+  window._pageCleanup = () => { try { window.api.offOllamaStream() } catch (e) {} }
 })()
 </script>

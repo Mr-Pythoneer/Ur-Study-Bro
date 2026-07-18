@@ -119,16 +119,20 @@ contextBridge.exposeInMainWorld('api', {
   // promise to await. The lifecycle is token* → (done | error), delivered on
   // three sibling channels you subscribe to below.
   ollamaStream:     (payload) => ipcRenderer.send('ollama:stream', payload),
-  // FIXME(medium): the stream channels carry no stream/request id, and the only
-  // way to unsubscribe is removeAllListeners — so two overlapping streams
-  // interleave tokens into whichever handlers are attached, and tearing one
-  // down kills the other's. Only ever run one stream at a time. See audit.
-  onOllamaToken:    (cb) => ipcRenderer.on('ollama:stream-token', (_e, t) => cb(t)),
-  onOllamaDone:     (cb) => ipcRenderer.on('ollama:stream-done',  (_e)    => cb()),
-  onOllamaError:    (cb) => ipcRenderer.on('ollama:stream-error', (_e, e) => cb(e)),
+  // Each on* returns a disposer that removes ONLY the listener it registered,
+  // so a page can tear down exactly its own handlers (call the returned fn in
+  // window._pageCleanup) instead of relying on offOllamaStream()'s all-or-
+  // nothing removeAllListeners, which would also kill a concurrent stream's
+  // handlers. (The channels still carry no stream id, so genuinely overlapping
+  // streams can interleave tokens — prefer one at a time — but per-callback
+  // teardown stops one page's cleanup from clobbering another's listeners.)
+  onOllamaToken:    (cb) => { const h = (_e, t) => cb(t); ipcRenderer.on('ollama:stream-token', h); return () => ipcRenderer.removeListener('ollama:stream-token', h) },
+  onOllamaDone:     (cb) => { const h = (_e)    => cb();  ipcRenderer.on('ollama:stream-done',  h); return () => ipcRenderer.removeListener('ollama:stream-done',  h) },
+  onOllamaError:    (cb) => { const h = (_e, e) => cb(e); ipcRenderer.on('ollama:stream-error', h); return () => ipcRenderer.removeListener('ollama:stream-error', h) },
   // Call from window._pageCleanup. Also call before starting a new stream:
   // re-registering without this stacks a second copy of every handler and each
-  // token gets rendered twice.
+  // token gets rendered twice. Prefer the per-callback disposers above when a
+  // page needs to remove only its own listeners.
   offOllamaStream:  ()   => {
     ipcRenderer.removeAllListeners('ollama:stream-token')
     ipcRenderer.removeAllListeners('ollama:stream-done')

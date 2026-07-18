@@ -22,20 +22,19 @@
 
      ══ READ THIS BEFORE EDITING ══════════════════════════════════════════
      loadPage() RE-CREATES and RE-EXECUTES every <script> in this file, in
-     GLOBAL scope, on EVERY visit to the page. That has three consequences:
+     GLOBAL scope, on EVERY visit to the page. That drives the structure here:
 
-     1. This page's <script> is NOT wrapped in an IIFE, unlike every other
-        page in renderer/pages/. It must be. See FIXME(critical) at the top
-        of the script block — top-level `const` re-declaration makes the
-        whole block a SyntaxError from the second visit onward.
-     2. Inline onclick="foo()" in the markup only resolves against globals.
-        Functions here are currently global by accident (top-level function
-        declarations in a re-injected classic script). Once the IIFE lands,
-        every handler reachable from markup must be explicitly assigned to
-        window.* — as startStudyTogether/endStudyTogether already are.
-     3. Nothing here registers window._pageCleanup, so the Firebase
-        .on('value') listeners this page attaches are never detached and
-        stack up on every visit. See the leak FIXMEs below.
+     1. The whole <script> body is wrapped in an IIFE ((function(){ … })() at
+        the top/bottom of the block) so re-execution cannot re-declare the
+        top-level const/let and throw a SyntaxError from the 2nd visit on.
+     2. Inline onclick="foo()" in the markup only resolves against globals, so
+        every handler reachable from static markup is assigned to window.* via
+        the Object.assign(window, …) block near the bottom of the IIFE. Handlers
+        reached only from dynamically-rendered lists use delegated listeners
+        (initDelegation) + data-* attributes instead of inline onclick.
+     3. window._pageCleanup is registered at the bottom of the IIFE and detaches
+        the Firebase .on('value') listeners and the window CustomEvent listener
+        this page attaches, so they don't stack up across visits.
 
      STORAGE KEYS — INCONSISTENT WITH THE REST OF THE APP
      The app convention is window.csKey/csGet/csSet (namespaced cs_<user>_<key>).
@@ -47,10 +46,13 @@
      SECURITY — THIS PAGE RENDERS UNTRUSTED REMOTE DATA
      Friend names, feed posts and goal titles arrive from Firebase, written by
      other users, under test-mode rules (public read/write). They are dropped
-     into innerHTML. escHtml() exists at the bottom but is applied unevenly —
-     several fields are raw. Multiple XSS FIXMEs are marked inline. escHtml()
-     is an HTML-context escaper only: it does NOT make a value safe to splice
-     into a single-quoted onclick="…" attribute (JS string context).
+     into innerHTML, so every remote field is passed through escHtml() (defined
+     at the bottom). escHtml() is an HTML-context escaper only: it does NOT make
+     a value safe inside a single-quoted onclick="…" attribute (JS string
+     context) — it escapes " but not '. For that reason remote data is never put
+     in inline handlers at all; the rendered list buttons/cards carry only a
+     code/id in data-* and the delegated handlers (initDelegation) look the
+     entity up in memory. Keep both invariants when adding fields here.
      ══════════════════════════════════════════════════════════════════════ -->
 <!--
   ┌─────────────────────────────────────────────────────────────┐
@@ -374,13 +376,13 @@
 </div>
 
 <script>
-// FIXME(critical): this script has no IIFE wrapper — every other page in
-// renderer/pages/ has one. loadPage() re-executes this block in GLOBAL scope on
-// every visit, so `const ME` is re-declared and the whole block dies with
-// "Identifier 'ME' has already been declared" from the 2nd visit on: init()
-// never runs, the friend code stays "——" and nothing renders. Wrap in
-// (function(){ … })(), export the markup's onclick targets onto window, and
-// register window._pageCleanup to detach the Firebase listeners. See audit.
+// Wrapped in an IIFE so loadPage() — which re-creates and re-executes this whole
+// block in GLOBAL scope on every visit — cannot re-declare the top-level
+// const/let and throw "Identifier 'ME' has already been declared" from the 2nd
+// visit on. The markup's inline onclick targets are re-exported onto window near
+// the bottom of the IIFE, and window._pageCleanup detaches the Firebase/window
+// listeners this page attaches so they don't stack up across visits.
+(function(){
 
 // ── Config & state ────────────────────────────────────────────
 // NOTE: reads 'cs_currentUser' directly rather than going through window.csKey/
@@ -396,6 +398,15 @@ let goals = JSON.parse(localStorage.getItem(`social_goals`) || '[]')
 let currentChatFriend = null
 let db = null // Firebase DB reference (null = demo mode)
 let chatUnsub = null
+// Kept handler refs so window._pageCleanup can .off() exactly these listeners
+// (each visit re-runs this script and would otherwise stack a new subscription).
+let feedHandler = null
+let goalsHandler = null
+let requestsHandler = null
+let studyHandler = null
+let sessionCompleteHandler = null
+// Generation counter to discard stale in-flight presence fetches in renderFriends.
+let friendsGen = 0
 
 // ── Friend code generation ────────────────────────────────────
 // Deterministic 5-char code derived from the username — there is no server
@@ -440,6 +451,10 @@ function toast(msg, dur=2500) {
 function init() {
   document.getElementById('myCode').textContent = MY_CODE
 
+  // Delegated click handlers on the persistent list containers, so untrusted
+  // remote data is never concatenated into inline onclick attributes.
+  initDelegation()
+
   // Try to load Firebase if config exists
   const savedCfg = localStorage.getItem('social_firebase_config')
   if (savedCfg) {
@@ -482,6 +497,7 @@ function initFirebase(config) {
         document.getElementById('setup-banner').classList.add('hidden')
         registerPresence()
         subscribeToFriendRequests()
+        checkStudyTogetherInvite() // db is set here, unlike the old synchronous boot call
         renderFeed()
         renderGoals()
         toast('🔥 Connected to Firebase!')
@@ -511,21 +527,19 @@ function registerPresence() {
   ref.child('status').onDisconnect().set('offline')
 }
 
-// Live-mirrors requests/<myCode> into pendingReqs + localStorage.
-// GOTCHA: the `if (newReqs.length)` guard means an empty snapshot is IGNORED,
-// so pendingReqs is never cleared by a remote delete — the local cache only
-// ever grows until acceptRequest/decline mutates it by hand.
+// Live-mirrors requests/<myCode> into pendingReqs + localStorage. An empty
+// snapshot now clears pendingReqs too (previously an `if (newReqs.length)` guard
+// swallowed empty snapshots, so a remotely-deleted/declined request never went
+// away locally). The handler ref is kept so _pageCleanup can .off() it.
 function subscribeToFriendRequests() {
   if (!db) return
-  db.ref(`requests/${MY_CODE}`).on('value', snap => {
+  requestsHandler = snap => {
     const data = snap.val() || {}
-    const newReqs = Object.values(data).filter(r => r.status === 'pending')
-    if (newReqs.length) {
-      pendingReqs = newReqs
-      localStorage.setItem(`social_pending_${ME}`, JSON.stringify(pendingReqs))
-      renderFriends()
-    }
-  })
+    pendingReqs = Object.values(data).filter(r => r.status === 'pending')
+    localStorage.setItem(`social_pending_${ME}`, JSON.stringify(pendingReqs))
+    renderFriends()
+  }
+  db.ref(`requests/${MY_CODE}`).on('value', requestsHandler)
 }
 
 // ── Tab switching ─────────────────────────────────────────────
@@ -536,11 +550,10 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['friends','chat','feed','goals'][i] === name))
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
   document.getElementById(`tab-${name}`).classList.add('active')
-  // Re-render on entry so a tab is never showing a stale snapshot.
-  // FIXME(high): in Firebase mode renderFeed()/renderGoals() each attach a
-  // fresh .on('value') listener without detaching the previous one, so every
-  // tab switch permanently stacks another live subscription (and another
-  // re-render per remote change). See the leak FIXMEs in renderFeed/renderGoals.
+  // Re-render on entry so a tab is never showing a stale snapshot. In Firebase
+  // mode renderFeed()/renderGoals() now only repaint from cache here — each
+  // attaches its live .on('value') listener exactly once (guarded by
+  // feedHandler/goalsHandler), so tab switches no longer stack subscriptions.
   if (name === 'feed') renderFeed()
   if (name === 'goals') renderGoals()
   if (name === 'chat') renderConvoList()
@@ -587,8 +600,8 @@ async function sendFriendRequest() {
 // Accepting writes BOTH sides of the friendship (friends/<me>/<them> and
 // friends/<them>/<me>) — the graph is stored denormalised per-user, so a
 // one-sided write leaves the other party without the edge.
-// `req` arrives as a JSON blob spliced into the Accept button's onclick; see
-// the FIXMEs in renderFriends about that.
+// `req` is resolved from pendingReqs by the delegated Accept handler (which
+// reads the request's data-code), not deserialised from an onclick attribute.
 function acceptRequest(req) {
   friends.push({ code: req.code, username: req.from, status: 'online' })
   saveFriends()
@@ -611,6 +624,16 @@ function removeFriend(code) {
   toast('Friend removed')
 }
 
+// Declining now deletes the request from Firebase (mirroring acceptRequest's
+// .remove()); previously it only mutated the local array, so the live requests
+// listener re-added the declined request on the next snapshot.
+function declineRequest(code) {
+  if (db) db.ref(`requests/${MY_CODE}/${code}`).remove()
+  pendingReqs = pendingReqs.filter(x => x.code !== code)
+  localStorage.setItem(`social_pending_${ME}`, JSON.stringify(pendingReqs))
+  renderFriends()
+}
+
 function renderFriends() {
   const list = document.getElementById('friends-list')
   const pList = document.getElementById('pending-list')
@@ -619,31 +642,20 @@ function renderFriends() {
 
   // ── Pending requests ──
   // Everything interpolated below (r.from, r.code) was written to Firebase by a
-  // STRANGER — anyone who knows your friend code can write requests/<code>
-  // under test-mode rules, and this list renders BEFORE you accept anything.
-  // Three separate defects live in the template literal below:
-  //
-  // FIXME(critical): zero-click stored XSS — `${r.from}` in .friend-name goes
-  //   into innerHTML unescaped. A request from a user named
-  //   `<img src=x onerror=…>` fires the moment the list paints, no click needed.
-  //   escHtml() (bottom of file) is used elsewhere; it is just missing here.
-  // FIXME(medium): `onclick='acceptRequest(${JSON.stringify(r)})'` — JSON.stringify
-  //   does not escape `'`, so a name containing an apostrophe closes the
-  //   single-quoted attribute early: breaks on ordinary names like O'Brien, and
-  //   is an injection point for hostile ones. Pass the code and look `r` up.
-  // FIXME(medium): the Decline handler only rewrites the local array and
-  //   localStorage — it never removes requests/<myCode>/<code> from Firebase, so
-  //   subscribeToFriendRequests() re-adds the request on the next snapshot and
-  //   the declined user reappears forever. Mirror acceptRequest()'s .remove().
+  // STRANGER — anyone who knows your friend code can write requests/<code> under
+  // test-mode rules, and this list renders BEFORE you accept anything. All remote
+  // text is escHtml()'d (HTML-context) and the Accept/Decline buttons carry the
+  // request code in data-code, resolved by the delegated handler in
+  // initDelegation() — no untrusted value is ever spliced into a JS/onclick string.
   if (pendingReqs.length) {
     pSec.style.display = 'block'
     pList.innerHTML = pendingReqs.map(r => `
       <div class="friend-card" style="cursor:default;">
-        <div class="avatar" style="background:${colorFor(r.code)};">${initialsFor(r.from)}</div>
-        <div class="friend-info"><div class="friend-name">${r.from}</div><div class="friend-meta">Sent you a friend request</div></div>
+        <div class="avatar" style="background:${colorFor(r.code)};">${escHtml(initialsFor(r.from))}</div>
+        <div class="friend-info"><div class="friend-name">${escHtml(r.from)}</div><div class="friend-meta">Sent you a friend request</div></div>
         <div class="friend-actions">
-          <button class="btn-sm btn-chat" onclick='acceptRequest(${JSON.stringify(r)})'>Accept</button>
-          <button class="btn-sm btn-remove" onclick="pendingReqs=pendingReqs.filter(x=>x.code!=='${r.code}');localStorage.setItem('social_pending_${ME}',JSON.stringify(pendingReqs));renderFriends()">Decline</button>
+          <button class="btn-sm btn-chat" data-action="accept" data-code="${escHtml(r.code)}">Accept</button>
+          <button class="btn-sm btn-remove" data-action="decline" data-code="${escHtml(r.code)}">Decline</button>
         </div>
       </div>`).join('')
   } else pSec.style.display = 'none'
@@ -657,15 +669,14 @@ function renderFriends() {
   // If Firebase, fetch live status; otherwise use stored.
   // Each friend's public card (status/xp/streak) is merged OVER the local copy,
   // so remote fields win and local-only fields (e.g. `demo`) survive.
-  // FIXME(medium): race — this Promise.all closes over the `friends` array as it
-  // was when the fetch started, then REPLACES the whole array on resolve. If the
-  // user hits Remove (or accepts a request) while the fetch is in flight, the
-  // stale snapshot clobbers that edit and saveFriends() persists the resurrected
-  // friend to localStorage. Reconcile per-code against the current array, or
-  // guard with a version counter like loadPage()'s _navVersion.
+  // A generation counter guards against a stale in-flight fetch: if the `friends`
+  // array is mutated (e.g. Remove/Accept) while this Promise.all is pending, a
+  // newer renderFriends() bumps friendsGen and this resolve is discarded, so the
+  // stale snapshot can no longer resurrect a removed friend or clobber the edit.
   if (db) {
+    const gen = ++friendsGen
     Promise.all(friends.map(f => db.ref(`users/${f.code}`).once('value').then(s => ({ ...f, ...(s.val()||{}) }))))
-      .then(updated => { friends = updated; saveFriends(); _renderFriendCards() })
+      .then(updated => { if (gen !== friendsGen) return; friends = updated; saveFriends(); _renderFriendCards() })
   } else _renderFriendCards()
 }
 
@@ -673,34 +684,28 @@ function renderFriends() {
 // presence first. Split out only so the Firebase and demo paths share markup.
 //
 // `f.username`, `f.status` and `f.code` are remote values merged in by
-// renderFriends() from users/<code>, i.e. written by the other user.
-//
-// FIXME(high): stored XSS — `${f.username}` is interpolated into innerHTML
-//   unescaped in .friend-name and .friend-meta. A friend can rename themselves
-//   to markup and run script in your renderer.
-// FIXME(high): JS-context injection — the same untrusted values are spliced into
-//   single-quoted inline handlers, e.g.
-//   onclick="openChat('${f.code}','${f.username||f.code}',…)". escHtml() would
-//   NOT fix this: it escapes `&<>"` but not `'`, and an apostrophe (or `\`) here
-//   terminates the JS string and appends attacker-controlled code. Fix by
-//   dropping inline onclick for addEventListener + a dataset code lookup.
+// renderFriends() from users/<code>, i.e. written by the other user. All of them
+// are HTML-escaped, and the action buttons carry f.code in data-code — the
+// delegated handler in initDelegation() looks the friend up in the `friends`
+// array, so no untrusted value is spliced into a JS/onclick string context.
 function _renderFriendCards() {
   const list = document.getElementById('friends-list')
   list.innerHTML = friends.map(f => {
     const statusClass = f.status === 'focus' ? 'status-focus' : f.status === 'online' ? 'status-online' : 'status-offline'
     const statusLabel = f.status === 'focus' ? '🎯 In Focus' : f.status === 'online' ? '● Online' : '○ Offline'
+    const name = f.username || f.code
     return `
     <div class="friend-card">
-      <div class="avatar" style="background:${colorFor(f.code)};">${initialsFor(f.username||f.code)}</div>
+      <div class="avatar" style="background:${colorFor(f.code)};">${escHtml(initialsFor(name))}</div>
       <div class="friend-info">
-        <div class="friend-name">${f.username || f.code}</div>
-        <div class="friend-meta">Code: ${f.code}${f.streak ? ` · 🔥 ${f.streak} day streak` : ''}${f.xp ? ` · ⭐ ${f.xp} XP` : ''}</div>
+        <div class="friend-name">${escHtml(name)}</div>
+        <div class="friend-meta">Code: ${escHtml(f.code)}${f.streak ? ` · 🔥 ${escHtml(String(f.streak))} day streak` : ''}${f.xp ? ` · ⭐ ${escHtml(String(f.xp))} XP` : ''}</div>
       </div>
       <span class="friend-status ${statusClass}">${statusLabel}</span>
       <div class="friend-actions">
-        <button class="btn-sm btn-chat" onclick="openChat('${f.code}','${f.username||f.code}','${f.status||'offline'}')">Chat</button>
-        <button class="btn-sm" style="background:#f0f7f5;color:#0f7b6c;border:none;" onclick="startStudyTogether('${f.code}','${f.username||f.code}')">🤝 Study Together</button>
-        <button class="btn-sm btn-remove" onclick="removeFriend('${f.code}')">Remove</button>
+        <button class="btn-sm btn-chat" data-action="chat" data-code="${escHtml(f.code)}">Chat</button>
+        <button class="btn-sm" style="background:#f0f7f5;color:#0f7b6c;border:none;" data-action="study" data-code="${escHtml(f.code)}">🤝 Study Together</button>
+        <button class="btn-sm btn-remove" data-action="remove" data-code="${escHtml(f.code)}">Remove</button>
       </div>
     </div>`
   }).join('')
@@ -802,19 +807,20 @@ function renderMessages() {
 // last cached message. It reads the local `messages` cache only, so previews for
 // rooms you have not opened this session stay at "No messages yet" until
 // openChat() subscribes and back-fills them.
-// FIXME(high): same unescaped-`f.username` XSS and single-quote onclick
-// breakout as _renderFriendCards() above — the preview text uses escHtml(), but
-// the name beside it does not, and neither does the onclick="openChat('…')".
+// Remote `f.username` is HTML-escaped, and the card carries f.code in data-code —
+// the delegated handler in initDelegation() opens the chat by looking the friend
+// up in `friends`, so nothing untrusted is spliced into an onclick string.
 function renderConvoList() {
   const list = document.getElementById('convo-list')
   if (!friends.length) { list.innerHTML = '<div style="color:#888;font-size:13px;">Add friends to start chatting.</div>'; return }
   list.innerHTML = friends.map(f => {
     const msgs = messages[f.code] || []
     const last = msgs[msgs.length-1]
-    return `<div class="friend-card" onclick="openChat('${f.code}','${f.username||f.code}','${f.status||'offline'}')">
-      <div class="avatar" style="background:${colorFor(f.code)};">${initialsFor(f.username||f.code)}</div>
+    const name = f.username || f.code
+    return `<div class="friend-card" data-code="${escHtml(f.code)}">
+      <div class="avatar" style="background:${colorFor(f.code)};">${escHtml(initialsFor(name))}</div>
       <div class="friend-info">
-        <div class="friend-name">${f.username||f.code}</div>
+        <div class="friend-name">${escHtml(name)}</div>
         <div class="friend-meta">${last ? escHtml(last.text.slice(0,40)) : 'No messages yet'}</div>
       </div>
     </div>`
@@ -829,8 +835,9 @@ function openBragModal() { document.getElementById('brag-modal').style.display =
 function closeBragModal() { document.getElementById('brag-modal').style.display = 'none' }
 
 // Builds `post.stat` as a pre-rendered display STRING (not structured data), so
-// the emoji/label formatting lives here rather than in renderFeed(). That choice
-// is exactly why renderFeed() renders p.stat as raw HTML — see the FIXME there.
+// the emoji/label formatting lives here rather than in renderFeed(). renderFeed()
+// escHtml()'s p.stat like every other remote field, so the emoji survive but any
+// markup is neutralised.
 // The XP/streak reads use optional-call (`window.csGet?.(…)`) because this page
 // can load before index.html's helpers exist in some boot orders.
 async function postBrag() {
@@ -863,29 +870,23 @@ async function postBrag() {
 // Intent: when the study page finishes a focus session it writes
 // 'social_auto_brag', and this page auto-posts it to the feed.
 //
-// FIXME(high): this never fires. The `storage` event is only delivered to OTHER
-// documents sharing the origin — never to the window that performed the write.
-// Clever Snail is a single-window Electron app and every page is injected into
-// that same window, so nothing here ever runs and auto-posting is dead code.
-// Use a CustomEvent on window (or a direct call) instead of the storage channel.
-// `origSet` below is also dead — it captures localStorage.setItem and is never
-// read; presumably the remains of a monkey-patch approach that was abandoned.
-//
-// Also note: this registers a window-level listener with no removeEventListener,
-// and loadPage() re-runs this script on every visit — so once the IIFE/cleanup
-// FIXME at the top is fixed, this listener must be torn down in _pageCleanup or
-// it stacks one more copy per visit.
+// The old `storage`-event channel could never fire: `storage` is delivered only
+// to OTHER documents sharing the origin, and Clever Snail is a single-window app
+// where every page lives in the same document. Two mechanisms replace it:
+//   1. On load, drain any 'social_auto_brag' key left by a completion that
+//      happened while Social was unmounted (the normal path — Social is not open
+//      during a focus session). This is what actually makes auto-post work today.
+//   2. A same-window 'cs:session-complete' CustomEvent, for the case where the
+//      study page dispatches one directly. The listener is torn down in
+//      _pageCleanup so it doesn't stack across visits.
 function listenForSessionComplete() {
-  // Watch for focus session completions to auto-post
-  const origSet = localStorage.setItem.bind(localStorage)
-  // We'll hook into study page's session done event via a storage key
-  window.addEventListener('storage', e => {
-    if (e.key === 'social_auto_brag' && e.newValue) {
-      const data = JSON.parse(e.newValue)
-      autoPostSession(data)
-      localStorage.removeItem('social_auto_brag')
-    }
-  })
+  const pending = localStorage.getItem('social_auto_brag')
+  if (pending) {
+    try { autoPostSession(JSON.parse(pending)) } catch(e) {}
+    localStorage.removeItem('social_auto_brag')
+  }
+  sessionCompleteHandler = e => { if (e.detail) autoPostSession(e.detail) }
+  window.addEventListener('cs:session-complete', sessionCompleteHandler)
 }
 
 async function autoPostSession(data) {
@@ -898,60 +899,58 @@ async function autoPostSession(data) {
 // Two entry points into one renderer: `loadFeed` paints an array, and the
 // db/demo branch at the bottom decides where that array comes from.
 //
-// FIXME(critical): stored XSS via `p.stat` — `${p.stat ? `<div …>${p.stat}</div>`}`
-// interpolates a REMOTE field as raw HTML while `p.author` and `p.text` on the
-// two adjacent lines are both escHtml()'d. postBrag() only ever builds `stat`
-// from a fixed set of local strings, which is why this looks safe locally — but
-// any Firebase client can push a post whose `stat` is arbitrary markup, and it
-// executes in every viewer's renderer. Escape it, or render stat structurally.
+// Every remote field is HTML-escaped — `p.stat` used to be interpolated raw
+// (unlike its escaped `p.author`/`p.text` siblings), which let any Firebase
+// client push a post whose `stat` was arbitrary markup that executed in every
+// viewer's renderer. React buttons carry the post id + emoji in data-* and are
+// handled by the delegated listener in initDelegation().
 function renderFeed() {
   const list = document.getElementById('feed-list')
 
   const loadFeed = (items) => {
     if (!items.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📣</div>No posts yet — be the first to brag!</div>'; return }
     list.innerHTML = items.slice(0,30).map(p => {
-      const reactionCount = Object.values(p.reactions||{}).reduce((s,v) => s + v, 0)
       const time = timeAgo(p.ts)
+      const rc = e => escHtml(String(p.reactions?.[e] || 0))
+      const id = escHtml(String(p.id))
       return `<div class="feed-card">
         <div class="feed-header">
-          <div class="avatar" style="background:${colorFor(p.code||'A')};width:34px;height:34px;font-size:13px;">${initialsFor(p.author||'?')}</div>
+          <div class="avatar" style="background:${colorFor(p.code||'A')};width:34px;height:34px;font-size:13px;">${escHtml(initialsFor(p.author||'?'))}</div>
           <div><div style="font-size:14px;font-weight:700;">${escHtml(p.author||'Someone')}</div><div style="font-size:12px;color:#888;">${time}</div></div>
         </div>
         <div class="feed-body">${escHtml(p.text)}</div>
-        ${p.stat ? `<div class="feed-achievement">${p.stat}</div>` : ''}
+        ${p.stat ? `<div class="feed-achievement">${escHtml(p.stat)}</div>` : ''}
         <div class="feed-react">
-          <button class="react-btn" onclick="react('${p.id}','🔥')">🔥 ${p.reactions?.['🔥']||0}</button>
-          <button class="react-btn" onclick="react('${p.id}','🐌')">🐌 ${p.reactions?.['🐌']||0}</button>
-          <button class="react-btn" onclick="react('${p.id}','💪')">💪 ${p.reactions?.['💪']||0}</button>
-          <button class="react-btn" onclick="react('${p.id}','👏')">👏 ${p.reactions?.['👏']||0}</button>
+          <button class="react-btn" data-id="${id}" data-emoji="🔥">🔥 ${rc('🔥')}</button>
+          <button class="react-btn" data-id="${id}" data-emoji="🐌">🐌 ${rc('🐌')}</button>
+          <button class="react-btn" data-id="${id}" data-emoji="💪">💪 ${rc('💪')}</button>
+          <button class="react-btn" data-id="${id}" data-emoji="👏">👏 ${rc('👏')}</button>
         </div>
       </div>`
     }).join('')
   }
 
-  // FIXME(high): listener leak — renderFeed() is called from init(), from
-  // initFirebase(), from postBrag(), from autoPostSession() and from every
-  // switchTab('feed'). Each call attaches ANOTHER .on('value') to the same query
-  // and none is ever .off()'d, so subscriptions grow without bound: after N
-  // visits to the Feed tab a single remote post triggers N re-renders and N
-  // saveFeed() writes. Detach the previous handler (keep the ref like chatUnsub
-  // does) and hang the final teardown off window._pageCleanup.
-  if (db) {
-    db.ref('feed').orderByChild('ts').limitToLast(30).on('value', snap => {
+  // Paint from the cached `feed` array. In Firebase mode the live listener is
+  // attached exactly once (guarded by feedHandler) and keeps `feed` current,
+  // re-painting on each remote change; subsequent renderFeed() calls (init,
+  // switchTab, postBrag) only repaint from cache and never stack another
+  // subscription. The handler is detached in _pageCleanup.
+  loadFeed(feed)
+  if (db && !feedHandler) {
+    feedHandler = snap => {
       const data = snap.val() || {}
       const items = Object.values(data).sort((a,b) => b.ts - a.ts)
       feed = items; saveFeed()
-      loadFeed(items)
-    })
-  } else {
-    loadFeed(feed)
+      loadFeed(feed)
+    }
+    db.ref('feed').orderByChild('ts').limitToLast(30).on('value', feedHandler)
   }
 }
 
 // Reactions are addressed by the post's `id` field (a client Date.now()), not by
 // the Firebase push key, so the whole feed has to be fetched and scanned to find
 // the key before writing. Note `v.id == postId` is deliberately loose: ids come
-// back as numbers from Firebase but as strings from the inline onclick attribute.
+// back as numbers from Firebase but as strings from the button's data-id.
 // Not atomic — two simultaneous reactions read the same `cur` and one is lost;
 // a transaction() or ServerValue.increment would fix it.
 async function react(postId, emoji) {
@@ -1000,10 +999,10 @@ async function createGoal() {
 // Expiry is enforced only at render time (`g.expires > Date.now()`) — expired
 // goals are hidden but never deleted, so the `goals` node grows forever.
 //
-// FIXME(high): stored XSS — `${g.creator}` in .goal-meta is a remote,
-// user-chosen name written straight into innerHTML, three lines below
-// `${escHtml(g.title)}` which is escaped. Member names have the same problem via
-// initialsFor() (mitigated only by its 2-char slice). Escape g.creator.
+// Every remote field is HTML-escaped — `g.creator`, `g.progress`, `g.target`
+// and member names all arrive from the world-writable `goals` node. Join/+10
+// buttons carry g.id in data-id, resolved by the delegated listener in
+// initDelegation(), so no untrusted value enters a JS/onclick string.
 function renderGoals() {
   const list = document.getElementById('goals-list')
 
@@ -1016,17 +1015,18 @@ function renderGoals() {
       const timeLeft = g.expires - Date.now()
       const hoursLeft = Math.max(0, Math.floor(timeLeft / 3600000))
       const isMember = g.members?.[MY_CODE]
+      const id = escHtml(String(g.id))
       return `<div class="goal-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
           <div class="goal-title">${escHtml(g.title)}</div>
-          ${!isMember ? `<button class="btn-sm btn-chat" onclick="joinGoal('${g.id}')">Join</button>` : ''}
+          ${!isMember ? `<button class="btn-sm btn-chat" data-action="join" data-id="${id}">Join</button>` : ''}
         </div>
-        <div class="goal-meta">by ${g.creator} · ${hoursLeft}h left · ${memberNames.length} members</div>
+        <div class="goal-meta">by ${escHtml(g.creator)} · ${hoursLeft}h left · ${memberNames.length} members</div>
         <div class="goal-bar-wrap"><div class="goal-bar" style="width:${pct}%"></div></div>
-        <div class="goal-bar-label"><span>${g.progress||0} / ${g.target} min</span><span>${pct}%</span></div>
+        <div class="goal-bar-label"><span>${escHtml(String(g.progress||0))} / ${escHtml(String(g.target))} min</span><span>${pct}%</span></div>
         <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-          ${memberNames.map((n,i) => `<div class="goal-avatar" style="background:${COLORS[i%COLORS.length]};">${initialsFor(n)}</div>`).join('')}
-          ${isMember ? `<button class="btn-sm" style="background:#f0f7f5;color:#0f7b6c;border:none;margin-left:8px;" onclick="contributeGoal('${g.id}',10)">+10 min</button>` : ''}
+          ${memberNames.map((n,i) => `<div class="goal-avatar" style="background:${COLORS[i%COLORS.length]};">${escHtml(initialsFor(n))}</div>`).join('')}
+          ${isMember ? `<button class="btn-sm" style="background:#f0f7f5;color:#0f7b6c;border:none;margin-left:8px;" data-action="contribute" data-id="${id}">+10 min</button>` : ''}
         </div>
       </div>`
     }).join('')
@@ -1034,17 +1034,19 @@ function renderGoals() {
 
   // `_key` caches the Firebase push key alongside each goal (the leading
   // underscore marks it as local-only metadata, not part of the stored record).
-  // FIXME(medium): same unbounded listener leak as renderFeed() — a new
-  // .on('value') per renderGoals() call, i.e. per switch to the Goals tab, never
-  // detached. See the FIXME in renderFeed().
-  if (db) {
-    db.ref('goals').on('value', snap => {
+  // Paint from cache; the live listener is attached exactly once (guarded by
+  // goalsHandler) and detached in _pageCleanup, so switching to the Goals tab no
+  // longer stacks another subscription.
+  showGoals(goals)
+  if (db && !goalsHandler) {
+    goalsHandler = snap => {
       const data = snap.val() || {}
       goals = Object.entries(data).map(([k,v]) => ({...v, _key: k}))
       saveGoals()
       showGoals(goals)
-    })
-  } else showGoals(goals)
+    }
+    db.ref('goals').on('value', goalsHandler)
+  }
 }
 
 // The Firebase branch re-fetches all goals to map the client `id` back to a push
@@ -1158,10 +1160,13 @@ window.endStudyTogether = function() {
   toast('Study Together session ended')
 }
 
-// Check if we're invited to a study session
+// Check if we're invited to a study session. Called from initFirebase's
+// script2.onload (where `db` is actually set) — the old synchronous boot call
+// ran before Firebase finished loading, so `db` was always null and this never
+// subscribed. The handler ref is kept so _pageCleanup can .off() it.
 function checkStudyTogetherInvite() {
   if (!db) return
-  db.ref(`studyTogether`).on('value', snap => {
+  studyHandler = snap => {
     const sessions = snap.val() || {}
     Object.values(sessions).forEach(s => {
       if (s.guest === MY_CODE && s.active && !s.guestJoined) {
@@ -1173,12 +1178,81 @@ function checkStudyTogetherInvite() {
         }
       }
     })
+  }
+  db.ref(`studyTogether`).on('value', studyHandler)
+}
+
+// ── Event delegation ──────────────────────────────────────────
+// One delegated click listener per persistent list container. Buttons/cards
+// carry the entity code/id in data-* attributes; handlers resolve the entity
+// from the in-memory arrays, so no untrusted remote string is ever concatenated
+// into an inline onclick. The containers live inside #content and are destroyed
+// (with their listeners) when loadPage() swaps the page, so this leaks nothing.
+function initDelegation() {
+  document.getElementById('pending-list').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]'); if (!btn) return
+    const code = btn.dataset.code
+    if (btn.dataset.action === 'accept') { const req = pendingReqs.find(r => r.code === code); if (req) acceptRequest(req) }
+    else if (btn.dataset.action === 'decline') declineRequest(code)
+  })
+  document.getElementById('friends-list').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]'); if (!btn) return
+    const f = friends.find(x => x.code === btn.dataset.code); if (!f) return
+    if (btn.dataset.action === 'chat') openChat(f.code, f.username || f.code, f.status || 'offline')
+    else if (btn.dataset.action === 'study') window.startStudyTogether(f.code, f.username || f.code)
+    else if (btn.dataset.action === 'remove') removeFriend(f.code)
+  })
+  document.getElementById('convo-list').addEventListener('click', e => {
+    const card = e.target.closest('[data-code]'); if (!card) return
+    const f = friends.find(x => x.code === card.dataset.code); if (!f) return
+    openChat(f.code, f.username || f.code, f.status || 'offline')
+  })
+  document.getElementById('feed-list').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-emoji]'); if (!btn) return
+    react(btn.dataset.id, btn.dataset.emoji)
+  })
+  document.getElementById('goals-list').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]'); if (!btn) return
+    if (btn.dataset.action === 'join') joinGoal(btn.dataset.id)
+    else if (btn.dataset.action === 'contribute') contributeGoal(btn.dataset.id, 10)
   })
 }
 
+// ── window exports ────────────────────────────────────────────
+// The markup's inline onclick="…" attributes only resolve against globals; now
+// that the script is wrapped in an IIFE, every handler reachable from static
+// markup must be assigned to window explicitly. (startStudyTogether /
+// endStudyTogether are already window.* where they are defined.)
+Object.assign(window, {
+  switchTab, copyCode, sendFriendRequest, closeChat, sendMessage,
+  openBragModal, closeBragModal, postBrag, createGoal,
+  showFirebaseHelp, closeFirebaseModal, saveFirebaseConfig, enterDemoMode
+})
+
+// ── Cleanup ───────────────────────────────────────────────────
+// loadPage() calls window._pageCleanup() before swapping pages. Detach the
+// Firebase and window listeners this page attached so they don't stack across
+// visits (Firebase .on handlers live on the db object, not the DOM, so they are
+// not reclaimed when #content is cleared).
+window._pageCleanup = function() {
+  try {
+    if (db) {
+      if (feedHandler) db.ref('feed').off('value', feedHandler)
+      if (goalsHandler) db.ref('goals').off('value', goalsHandler)
+      if (requestsHandler) db.ref(`requests/${MY_CODE}`).off('value', requestsHandler)
+      if (studyHandler) db.ref('studyTogether').off('value', studyHandler)
+    }
+    if (chatUnsub) { chatUnsub(); chatUnsub = null }
+    if (sessionCompleteHandler) window.removeEventListener('cs:session-complete', sessionCompleteHandler)
+  } catch(e) { console.warn('social cleanup failed', e) }
+}
+
 // ── Boot ──────────────────────────────────────────────────────
+// checkStudyTogetherInvite() is NOT called here: `db` is null synchronously (it
+// is only set later in initFirebase's async onload, which is where the call now
+// lives).
 init()
-if (db) checkStudyTogetherInvite()
+})()
 </script>
 </body>
 </html>

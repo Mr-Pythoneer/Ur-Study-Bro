@@ -4,8 +4,7 @@
   Loaded by loadPage() (re-runs each visit; note the IIFE). A
   contenteditable editor with an AI sidebar (improve/shorten/expand/…)
   routed through callAI() -> window.api.askAI. Saved docs persist to
-  localStorage. See FIXMEs: AI is dead on default Ollama, and saved
-  docs use a global (cross-account) storage key.
+  per-account (csKey-scoped) storage; callAI() allows keyless Ollama.
 -->
 <style>
   .writer-shell {
@@ -358,9 +357,8 @@
   /* ── AI call ── */
   async function callAI(system, user) {
     const { provider, apiKey, model } = getApiCfg()
-    // FIXME(high): Ollama (default) has no apiKey, so this throws and the whole
-    // AI sidebar is dead by default. Gate the key check on provider !== 'ollama'.
-    if(!apiKey) throw new Error('no_key')
+    // Ollama runs locally and needs no key; only cloud providers require one.
+    if(provider !== 'ollama' && !apiKey) throw new Error('no_key')
     const res = await window.api.askAI({provider,apiKey,model,systemPrompt:system,messages:[{role:'user',content:user}]})
     if(res.error) throw new Error(res.error)
     return res.reply
@@ -546,22 +544,20 @@
     const html  = body.innerHTML.trim()
     const title = titleInput.value.trim() || 'Untitled'
     if(!html||html==='<br>'){document.getElementById('btnSave').textContent='Nothing to save'; setTimeout(()=>document.getElementById('btnSave').textContent='Save',1500);return}
-    const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+    const docs = window.csGetJSON('ai_writer_docs', [])
     const date = new Date().toISOString().slice(0,10)
     const existing = docs.findIndex(d=>d.title===title)
     if(existing>=0) docs[existing]={title,html,date}
     else docs.unshift({title,html,date})
-    // FIXME(medium): 'ai_writer_docs' is a GLOBAL key (not csKey-prefixed), so
-    // every account on this machine shares — and can read — the same saved docs.
-    // Use window.csSetJSON('ai_writer_docs', ...) to scope it per account.
-    localStorage.setItem('ai_writer_docs', JSON.stringify(docs.slice(0,30)))
+    // Scoped per account via csSetJSON so saved docs don't leak across accounts.
+    window.csSetJSON('ai_writer_docs', docs.slice(0,30))
     renderSaved()
     document.getElementById('btnSave').textContent='Saved ✓'
     setTimeout(()=>document.getElementById('btnSave').textContent='Save',1500)
   })
 
   function renderSaved(){
-    const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+    const docs = window.csGetJSON('ai_writer_docs', [])
     const list = document.getElementById('savedList')
     if(!docs.length){list.innerHTML='<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0;">No saved docs yet.</div>';return}
     list.innerHTML = docs.map((d,i)=>`
@@ -572,7 +568,7 @@
   }
 
   window.loadDoc = (i) => {
-    const docs = JSON.parse(localStorage.getItem('ai_writer_docs')||'[]')
+    const docs = window.csGetJSON('ai_writer_docs', [])
     const d = docs[i]; if(!d)return
     titleInput.value = d.title
     body.innerHTML = d.html
@@ -580,6 +576,16 @@
   }
 
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+  // One-time migration: move any legacy global ai_writer_docs into the current
+  // account's scoped key so saved docs survive the switch to per-account storage.
+  ;(function migrateGlobalDocs(){
+    const legacy = localStorage.getItem('ai_writer_docs')
+    if(legacy===null) return
+    if(localStorage.getItem('cs_currentUser')===null) return
+    if(!window.csGet('ai_writer_docs')) window.csSet('ai_writer_docs', legacy)
+    localStorage.removeItem('ai_writer_docs')
+  })()
 
   renderSaved()
 })()

@@ -171,10 +171,8 @@
       padding: 0 24px; z-index: 100;
       -webkit-app-region: drag;
     }
-    /* FIXME(medium): hard-codes a near-white pill background and
-       var(--text-primary) text, but body.dark-mode flips --text-primary to a
-       light colour — so in dark mode the username is light-on-white and
-       effectively invisible. Needs a body.dark-mode .user-badge override. */
+    /* The light pill background is hard-coded, so a body.dark-mode override
+       (below) is needed to keep the username readable in dark mode. */
     .user-badge {
       display: flex; align-items: center; gap: 8px;
       background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
@@ -185,6 +183,7 @@
       -webkit-app-region: no-drag;
     }
     .user-badge:hover { box-shadow: var(--shadow-md); }
+    body.dark-mode .user-badge { background: rgba(42,42,42,.85); border-color: #3a3a3a; color: #e8e8e6; }
     .user-avatar { font-size: 18px; }
 
     /* ── Sign-out dropdown ─────────────────────────────────────── */
@@ -441,7 +440,7 @@ document.addEventListener('DOMContentLoaded', checkFirstLaunch)
       </div>
       <div class="auth-input-group">
         <label>PASSWORD</label>
-        <input type="password" id="create-pass" placeholder="at least 4 characters" />
+        <input type="password" id="create-pass" placeholder="at least 8 characters" />
       </div>
       <div class="auth-input-group">
         <label>CONFIRM PASSWORD</label>
@@ -694,12 +693,9 @@ function toggleDarkMode() {
   const on = localStorage.getItem('cs_dark_mode') === 'true'
   localStorage.setItem('cs_dark_mode', String(!on))
   applyDarkMode()
-  // FIXME(critical): this writes an INLINE display:none on #user-menu, which
-  // outranks the `.user-menu.open { display:block }` rule forever after. Once a
-  // user toggles dark mode the menu can never reopen — Account Settings and
-  // Sign Out become permanently unreachable. Should call closeUserMenu(), which
-  // removes the .open class instead. See audit.
-  document.getElementById('user-menu').style.display = 'none'
+  // Close via the .open class contract — never write an inline display here, or
+  // it would outrank `.user-menu.open` and wedge the menu shut permanently.
+  closeUserMenu()
 }
 // Apply on load
 applyDarkMode()
@@ -730,13 +726,41 @@ document.addEventListener('keydown', e => {
 })
 
 // ── Crypto helpers ────────────────────────────────────────────────
-// FIXME(medium): single unsalted SHA-256 round, hash stored in plain
-// localStorage, and doCreateAccount() only enforces 4 characters — trivially
-// rainbow-tabled/brute-forced offline. Wants a salted KDF (PBKDF2/scrypt) if
-// this is ever meant to protect anything. See audit.
-async function hashPassword(password) {
+// Passwords are verified with a salted, slow KDF (PBKDF2-SHA256). Each account
+// stores {salt, iterations, passwordHash}; the per-account salt means identical
+// passwords never produce identical hashes and precomputed tables don't apply.
+const PBKDF2_ITERATIONS = 100_000
+
+const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+const fromHex = (hex) => new Uint8Array(hex.match(/../g).map(h => parseInt(h, 16)))
+
+async function pbkdf2Hex(password, saltBytes, iterations) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' }, key, 256)
+  return toHex(new Uint8Array(bits))
+}
+
+// Build a fresh salted password record for a new (or upgraded) account.
+async function makePasswordRecord(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const passwordHash = await pbkdf2Hex(password, salt, PBKDF2_ITERATIONS)
+  return { salt: toHex(salt), iterations: PBKDF2_ITERATIONS, passwordHash }
+}
+
+// Legacy verifier: pre-KDF accounts stored a single unsalted SHA-256 with no
+// salt/iterations fields. Kept only so existing accounts still sign in; on the
+// next successful sign-in doSignIn() upgrades them to a salted record.
+async function hashLegacySha256(password) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return toHex(new Uint8Array(buf))
+}
+
+async function verifyPassword(password, account) {
+  if (account.salt) {
+    const hash = await pbkdf2Hex(password, fromHex(account.salt), account.iterations || PBKDF2_ITERATIONS)
+    return hash === account.passwordHash
+  }
+  return (await hashLegacySha256(password)) === account.passwordHash
 }
 
 // ── Account storage helpers ───────────────────────────────────────
@@ -801,8 +825,15 @@ async function doSignIn() {
   const account = accounts.find(a => a.username === username)
   if (!account) return showAuthError(errEl, 'No account found with that username.')
 
-  const hash = await hashPassword(password)
-  if (hash !== account.passwordHash) return showAuthError(errEl, 'Incorrect password.')
+  if (!(await verifyPassword(password, account))) return showAuthError(errEl, 'Incorrect password.')
+
+  // Retire any legacy unsalted SHA-256 hash by re-storing a salted KDF record.
+  if (!account.salt) {
+    const rec = await makePasswordRecord(password)
+    const accts = getAccounts()
+    const a = accts.find(x => x.username === username)
+    if (a) { a.salt = rec.salt; a.iterations = rec.iterations; a.passwordHash = rec.passwordHash; saveAccounts(accts) }
+  }
 
   launchApp(username)
 }
@@ -821,14 +852,14 @@ async function doCreateAccount() {
   // renderManageList() HTML template + its onclick='...("${username}")' strings.
   // Allowing quotes, spaces or '_' -adjacent oddities would break both.
   if (!/^[a-z0-9_]+$/.test(username)) return showAuthError(errEl, 'Username: letters, numbers, _ only.')
-  if (password.length < 4) return showAuthError(errEl, 'Password must be at least 4 characters.')
+  if (password.length < 8) return showAuthError(errEl, 'Password must be at least 8 characters.')
   if (password !== password2) return showAuthError(errEl, 'Passwords do not match.')
 
   const accounts = getAccounts()
   if (accounts.find(a => a.username === username)) return showAuthError(errEl, 'That username is already taken.')
 
-  const passwordHash = await hashPassword(password)
-  accounts.push({ username, passwordHash, created: new Date().toISOString() })
+  const rec = await makePasswordRecord(password)
+  accounts.push({ username, salt: rec.salt, iterations: rec.iterations, passwordHash: rec.passwordHash, created: new Date().toISOString() })
   saveAccounts(accounts)
 
   launchApp(username, true)
@@ -839,13 +870,24 @@ function promptDeleteAccount(username) {
   if (!confirm(`Delete account "${username}"?\n\nAll study data for this account will be permanently removed.`)) return
   const accounts = getAccounts().filter(a => a.username !== username)
   saveAccounts(accounts)
-  // Wipe account data keys
-  // FIXME(high): prefix match, but '_' is a legal username character — deleting
-  // "alice" also matches "cs_alice_b_*" and silently destroys account
-  // "alice_b"'s entire dataset, which is still listed and still signed-in-able.
-  // Needs an exact <user> segment match. See audit.
+  // Wipe account data keys. '_' is a legal username character, so `cs_alice_`
+  // is an ambiguous prefix that also matches `cs_alice_b_*`. Exclude any key
+  // that belongs to another still-registered account (longest-prefix wins) so a
+  // sibling like "alice_b" never loses its data when "alice" is deleted.
+  // A key cs_<user>_<k> belongs to the account whose name is the LONGEST prefix
+  // match (both "alice" and "alice_b" prefix cs_alice_b_*). Delete a key only if
+  // the account it belongs to is the one being deleted — this deletes alice_b's
+  // own data AND spares alice_b's data when "alice" is deleted.
+  const allNames = accounts.map(a => a.username).concat(username)
   Object.keys(localStorage)
-    .filter(k => k.startsWith(`cs_${username}_`))
+    .filter(k => {
+      if (!k.startsWith('cs_')) return false
+      let owner = null
+      for (const name of allNames) {
+        if (k.startsWith(`cs_${name}_`) && (owner === null || name.length > owner.length)) owner = name
+      }
+      return owner === username
+    })
     .forEach(k => localStorage.removeItem(k))
   renderManageList()
 }
@@ -944,12 +986,15 @@ function grantDailyLoginBonus() {
 }
 
 // ── Sign Out ──────────────────────────────────────────────────────
-// FIXME(high): blows away #content below without ever calling
-// window._pageCleanup() — unlike loadPage(), which always does. The active
-// page's intervals/listeners survive, and an in-progress screen/mic recording
-// keeps capturing with its UI gone and its output unreachable. Must run the
-// same cleanup handshake loadPage() does. See audit.
+// Runs the active page's teardown BEFORE removing the session (mirroring
+// loadPage), while cs_currentUser still names the signing-out user, so a page
+// with an in-progress recording/interval stops cleanly instead of leaking and
+// capturing on at the login screen.
 function doSignOut() {
+  if (typeof window._pageCleanup === 'function') {
+    window._pageCleanup()
+    window._pageCleanup = null
+  }
   stopScheduler()
   // Cleared so the next account doesn't inherit "already notified" event ids.
   _notifiedEvents.clear()
@@ -1167,7 +1212,10 @@ window.navigateTo = (page) => {
 // (falsy) on purpose, and the model must always be sent explicitly since there
 // is no server-side default.
 window.aiChat = async function(payload) {
-  const provider = localStorage.getItem('ai_provider') || 'gemini'
+  // Default to Ollama (local, no key needed) to match the app's local-first
+  // positioning and the Quick Ask bubble's DEFAULT_PROVIDER — an unconfigured
+  // install shouldn't route to a cloud provider with an empty key.
+  const provider = localStorage.getItem('ai_provider') || 'ollama'
   const apiKey   = localStorage.getItem('ai_key_' + provider) || ''
   const model    = provider === 'ollama'
     ? (localStorage.getItem('ai_model_ollama') || 'gemma3:4b')
@@ -1217,17 +1265,62 @@ function stopScheduler() {
   _schedulerInterval = null
 }
 
+// Local (not UTC) day string, so occurrence dates line up with the local times
+// the user typed and the local basis fireNotification/`${ev.date}T${ev.start}` use.
+function localDay(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Expand recurring events into concrete per-date occurrences within [from, to],
+// mirroring calendar.html's getExpandedEvents(). The scheduler must do its own
+// expansion: calendar.html's copy only exists while the calendar page is open,
+// but reminders fire from the shell regardless of which page is showing.
+// Occurrence ids are `${ev.id}_${dateStr}` so _notifiedEvents dedupes per
+// occurrence rather than per series.
+function expandEventsForWindow(base, from, to) {
+  const results = []
+  base.forEach(ev => {
+    if (!ev.date) return
+    if (!ev.repeat || ev.repeat === 'none') { results.push(ev); return }
+    let cur = new Date(`${ev.date}T00:00:00`)
+    // Fast-forward fixed-interval repeats to near the window start so a
+    // long-running event isn't cut off by the step guard below.
+    const stepDays = ev.repeat === 'daily' ? 1 : ev.repeat === 'weekly' ? 7 : ev.repeat === 'biweekly' ? 14 : 0
+    if (stepDays && cur < from) {
+      const skip = Math.floor((from - cur) / 86_400_000 / stepDays)
+      if (skip > 0) cur.setDate(cur.getDate() + skip * stepDays)
+    }
+    let count = 0
+    while (cur <= to && count < 400) {
+      if (cur >= from) {
+        const dateStr = localDay(cur)
+        results.push({ ...ev, date: dateStr, id: `${ev.id}_${dateStr}` })
+      }
+      const next = new Date(cur)
+      if (ev.repeat === 'daily')         next.setDate(next.getDate() + 1)
+      else if (ev.repeat === 'weekly')   next.setDate(next.getDate() + 7)
+      else if (ev.repeat === 'biweekly') next.setDate(next.getDate() + 14)
+      else if (ev.repeat === 'monthly')  next.setMonth(next.getMonth() + 1)
+      else break
+      if (next.getTime() === cur.getTime()) break
+      cur = next; count++
+    }
+  })
+  return results
+}
+
 function checkUpcomingEvents() {
   // Required: the interval can outlive a sign-out race, and csGetJSON would
   // otherwise read the bogus "cs_null_calEvents" key.
   if (!currentUser()) return
 
-  // FIXME(medium): reads the RAW stored calEvents. Recurring events are stored
-  // once, as a single row with a recurrence rule and the ORIGINAL date — the
-  // calendar page expands them for display, this does not. So a repeating event
-  // only ever notifies for its first occurrence. Needs the same expansion. See audit.
-  const events = csGetJSON('calEvents', [])
   const now = new Date()
+  // Reminders fire ~5 min out, so a today..tomorrow window covers everything
+  // in range even just before local midnight. Expanding recurrences here is
+  // what makes a repeating event notify for every occurrence, not just the first.
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59)
+  const events = expandEventsForWindow(csGetJSON('calEvents', []), from, to)
 
   events.forEach(ev => {
     if (_notifiedEvents.has(ev.id)) return
@@ -1378,6 +1471,10 @@ function fmt12Time(t) {
   // context carry over to whoever signs in next on this machine.
   let history = []
 
+  // One shared default so the label and send() never disagree about which
+  // provider is active when ai_provider is unset. Ollama is local + keyless.
+  const DEFAULT_PROVIDER = 'ollama'
+
   function togglePanel() {
     open = !open
     panel.classList.toggle('open', open)
@@ -1385,11 +1482,7 @@ function fmt12Time(t) {
   }
 
   function updateProviderLabel() {
-    // FIXME(high): defaults to 'ollama' while send() below defaults the same
-    // read to 'gemini' — with ai_provider unset the panel advertises "Local AI
-    // (Ollama)" and then refuses to send, citing a missing Gemini key. The two
-    // defaults must agree. See audit.
-    const p = localStorage.getItem('ai_provider') || 'ollama'
+    const p = localStorage.getItem('ai_provider') || DEFAULT_PROVIDER
     const key = localStorage.getItem('ai_key_' + p)
     provLbl.textContent = p === 'ollama' ? 'Local AI (Ollama)' : key ? `Using ${p}` : 'No API key — visit AI Tutor'
   }
@@ -1410,14 +1503,9 @@ function fmt12Time(t) {
     const text = input.value.trim()
     if (!text) return
 
-    // FIXME(high): hard-gates on an API key, but Ollama is local and never has
-    // one — so with provider=ollama the bubble is 100% unusable and always
-    // answers "No API key found." The key check must be skipped for ollama.
-    // (Related: this defaults to 'gemini' where updateProviderLabel() defaults
-    // to 'ollama'.) See audit.
-    const provider = localStorage.getItem('ai_provider') || 'gemini'
-    const apiKey   = localStorage.getItem('ai_key_' + provider)
-    if (!apiKey) {
+    // Local providers (Ollama) have no API key, so only gate cloud providers.
+    const provider = localStorage.getItem('ai_provider') || DEFAULT_PROVIDER
+    if (provider !== 'ollama' && !localStorage.getItem('ai_key_' + provider)) {
       addMsg('bot', 'No API key found. Set one in AI Tutor first.')
       return
     }
@@ -1430,22 +1518,31 @@ function fmt12Time(t) {
     const typing = addMsg('bot', 'Thinking…', true)
 
     try {
-      // Calls window.api.askAI directly rather than window.aiChat, so it does
-      // NOT get aiChat's per-provider model injection — hence model:null.
-      // The try/catch is decorative: askAI never rejects (see aiChat contract).
-      const res = await window.api.askAI({
-        provider, apiKey,
-        model: null,
+      // Route through window.aiChat so provider/apiKey/model (incl. the Ollama
+      // model) are injected in one place. It resolves to {reply}|{error} and
+      // never throws, so the catch below only covers unexpected errors.
+      const res = await window.aiChat({
         systemPrompt: 'You are a helpful, friendly study assistant. Keep answers concise and clear.',
         messages: history
       })
       typing.remove()
-      // FIXME(high): never checks res.error. askAI resolves to {error} instead
-      // of throwing, so on any failure res.reply is undefined → botText is ''
-      // → the user gets a blank bubble with no explanation, AND an empty
-      // assistant turn is pushed into history, corrupting every later request.
-      // Must branch on res.error before this point. See audit.
+      // askAI resolves to {error} on failure rather than throwing — surface it
+      // and drop the just-added user turn so a poisoned history isn't re-sent.
+      if (res.error) {
+        addMsg('bot', 'Error: ' + res.error)
+        history.pop()
+        sendBtn.disabled = false
+        input.focus()
+        return
+      }
       const botText = (res.reply || '').trim()
+      if (!botText) {
+        addMsg('bot', 'The AI returned an empty response.')
+        history.pop()
+        sendBtn.disabled = false
+        input.focus()
+        return
+      }
       addMsg('bot', botText)
       history.push({ role: 'assistant', content: botText })
       // keep history bounded

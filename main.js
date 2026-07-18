@@ -38,9 +38,9 @@
 //
 // MAIN-PROCESS BLOCKING — READ BEFORE ADDING CODE
 //   This process runs the UI. Anything synchronous here (execSync, spawnSync,
-//   fs.*Sync) freezes the entire window, including animations and clicks. The
-//   file already violates this in several places (flagged with FIXME below);
-//   do not add more. Prefer async fs / spawn with a callback.
+//   fs.*Sync) freezes the entire window, including animations and clicks. A few
+//   deliberate, user-initiated one-shots remain sync (notes:sync, the focus
+//   guard); do not add more. Prefer async fs / spawn with a callback.
 //
 const {
   app, BrowserWindow, ipcMain, shell,
@@ -73,7 +73,7 @@ const { autoUpdater } = require('electron-updater')
 const path = require('path')
 const fs   = require('fs')
 const os   = require('os')
-const { execSync, spawnSync } = require('child_process')
+const { execSync, spawnSync, execFile } = require('child_process')
 const Imap = require('imap')
 const { simpleParser } = require('mailparser')
 
@@ -98,11 +98,11 @@ function createWindow() {
       const preferred = _preferredSourceId
         ? sources.find(s => s.id === _preferredSourceId)
         : null
-      // FIXME(medium): `|| sources[0]` silently falls back to the whole primary
-      // screen when no source was set (or the stale id no longer matches), so a
-      // stray getDisplayMedia() captures the full desktop without any consent.
-      // Should call callback({}) to deny instead. See audit.
-      callback({ video: preferred || sources[0] })
+      // No source explicitly picked (or the stale id no longer matches): DENY
+      // rather than silently falling back to sources[0] (the whole primary
+      // screen), which would capture the full desktop without any consent.
+      if (!preferred) { _preferredSourceId = null; return callback({}) }
+      callback({ video: preferred })
       _preferredSourceId = null
     }).catch(() => callback({}))
   })
@@ -122,6 +122,10 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, 'preload.js'),
+      // Keep timers/repaints running when the window is minimized or in the
+      // background — otherwise Chromium throttles setInterval and the focus/
+      // study timers stall. study.html also tracks wall-clock as a backstop.
+      backgroundThrottling: false,
     },
   })
   // Single-page shell. Every "page" under renderer/pages/*.html is fetched and
@@ -182,21 +186,29 @@ ipcMain.on('window:focus', () => {
 // carry native action buttons.
 // NOTE: ev.link ultimately originates from detectMeeting()'s regex over email
 // bodies — i.e. it is attacker-influenceable content being handed to
-// shell.openExternal on click. See the FIXME on detectMeeting below.
+// shell.openExternal on click, so the handlers below re-check the scheme and
+// show the real hostname. detectMeeting also host-anchors its match.
 ipcMain.on('notify:event', (_e, ev) => {
   if (!Notification.isSupported()) return
+  // Only ever open http(s) links (same scheme guard as shell:open), and surface
+  // the real hostname so a spoofed "Join Meeting" destination is visible.
+  let safeLink = null, linkHost = ''
+  if (ev.link && /^https?:\/\//i.test(ev.link)) {
+    safeLink = ev.link
+    try { linkHost = new URL(ev.link).hostname } catch {}
+  }
   const body = [`⏰ Starting in ~5 minutes`]
   if (ev.startLabel) body.push(`🕐 ${ev.startLabel}`)
-  if (ev.link)       body.push(`🔗 ${ev.linkLabel || 'Meeting link ready'}`)
+  if (safeLink)      body.push(`🔗 ${linkHost || ev.linkLabel || 'Meeting link ready'}`)
 
   const n = new Notification({
     title:           ev.title,
     body:            body.join('\n'),
-    actions:         ev.link ? [{ type: 'button', text: 'Join Meeting' }] : [],
+    actions:         safeLink ? [{ type: 'button', text: 'Join Meeting' }] : [],
     closeButtonText: 'Dismiss',
   })
-  n.on('click',   () => { BrowserWindow.getAllWindows()[0]?.focus(); if (ev.link) shell.openExternal(ev.link) })
-  n.on('action',  (_e2, i) => { if (i === 0 && ev.link) shell.openExternal(ev.link) })
+  n.on('click',   () => { BrowserWindow.getAllWindows()[0]?.focus(); if (safeLink) shell.openExternal(safeLink) })
+  n.on('action',  (_e2, i) => { if (i === 0 && safeLink) shell.openExternal(safeLink) })
   n.show()
 })
 
@@ -229,14 +241,16 @@ ipcMain.handle('recorder:getSources', async () => {
 // `filename` comes from the renderer and is NOT sanitised; it is joined into a
 // path directly.
 ipcMain.handle('recorder:save', async (_e, { buffer, filename }) => {
+  const fsp = require('fs/promises')
   const dir = path.join(os.homedir(), 'Documents', 'Ur Study Bro', 'Recordings')
-  fs.mkdirSync(dir, { recursive: true })
+  await fsp.mkdir(dir, { recursive: true })
   const filepath = path.join(dir, filename)
-  // FIXME(low): synchronous write of a whole recording freezes the UI for the
-  // duration, and Buffer.from() copies the (already IPC-copied) bytes a second
-  // time — a long capture spikes memory to several times its size. See audit.
-  fs.writeFileSync(filepath, Buffer.from(buffer))
-  return { filepath, size: fs.statSync(filepath).size }
+  // Async write so a large recording does not freeze the UI, and a zero-copy
+  // Buffer view over the transferred bytes rather than Buffer.from(buffer),
+  // which would duplicate the (already IPC-copied) payload a second time.
+  await fsp.writeFile(filepath, Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength))
+  const { size } = await fsp.stat(filepath)
+  return { filepath, size }
 })
 
 // ── Screen recorder: list saved recordings ────────────────────────
@@ -301,6 +315,7 @@ ipcMain.handle('ai:transcribe', async (_e, { audioBuffer, provider, apiKey }) =>
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': `multipart/form-data; boundary=${boundary}` },
       body,
+      signal: AbortSignal.timeout(60000),
     })
     const data = await res.json()
     if (!res.ok) return { error: data.error?.message || JSON.stringify(data) }
@@ -403,10 +418,10 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
       extractReply = d => d.content?.[0]?.text
     }
 
-    // FIXME(medium): no timeout / AbortSignal on this fetch (nor on any other
-    // net.fetch in this file) — a hung provider or an unreachable Ollama leaves
-    // the await pending forever and the caller's spinner never resolves. See audit.
-    const res = await net.fetch(url, { method: 'POST', headers, body })
+    // 60s AbortSignal so a hung provider or an unreachable Ollama rejects (caught
+    // below as {error}) instead of leaving the await — and the caller's spinner —
+    // pending forever.
+    const res = await net.fetch(url, { method: 'POST', headers, body, signal: AbortSignal.timeout(60000) })
     const data = await res.json()
     // Each provider nests its error differently, hence the || chain; the final
     // JSON.stringify is the "unknown shape" catch-all so something is always shown.
@@ -436,9 +451,19 @@ ipcMain.handle('ai:chat', async (_e, { provider, apiKey, model, messages, system
 ipcMain.on('ollama:stream', async (event, { model, messages, systemPrompt }) => {
   const { net } = require('electron')
   const ollamaModel = model || 'qwen2.5:7b'
+  // Abort the fetch if the connection wedges before headers arrive, or if the
+  // renderer that requested the stream is torn down mid-generation — so Ollama
+  // stops generating instead of streaming into a socket nobody reads.
+  const ac = new AbortController()
+  const connTimer = setTimeout(() => ac.abort(), 60000)
+  event.sender.once('destroyed', () => ac.abort())
   // Guarded because the renderer can be torn down mid-stream (page navigation,
-  // sign-out); sending to a destroyed webContents throws.
-  const send = (ch, data) => { try { event.sender.send(ch, data) } catch {} }
+  // sign-out); sending to a destroyed webContents throws. A dead consumer also
+  // aborts the in-flight fetch here rather than silently draining the response.
+  const send = (ch, data) => {
+    if (event.sender.isDestroyed()) { ac.abort(); return }
+    try { event.sender.send(ch, data) } catch {}
+  }
   try {
     const res = await net.fetch('http://localhost:11434/api/chat', {
       method: 'POST',
@@ -451,12 +476,18 @@ ipcMain.on('ollama:stream', async (event, { model, messages, systemPrompt }) => 
           ...messages,
         ],
       }),
+      signal: ac.signal,
     })
+    // Headers received — cancel the connect-phase timer so the generation itself
+    // is not capped by the wall clock.
+    clearTimeout(connTimer)
     if (!res.ok) {
       const txt = await res.text()
       send('ollama:stream-error', txt)
       return
     }
+    // Guard against a 200 with no body (getReader() would otherwise throw).
+    if (!res.body) { send('ollama:stream-error', 'Ollama returned an empty response'); return }
     // NDJSON: one JSON object per line. A chunk boundary can land mid-line, so
     // we buffer the trailing partial and only parse complete lines.
     // decode({stream:true}) is likewise required — a multi-byte UTF-8 char can
@@ -464,28 +495,32 @@ ipcMain.on('ollama:stream', async (event, { model, messages, systemPrompt }) => 
     const reader = res.body.getReader()
     const dec = new TextDecoder()
     let buf = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buf += dec.decode(value, { stream: true })
-      const lines = buf.split('\n')
-      buf = lines.pop() // keep incomplete last line
-      for (const line of lines) {
-        if (!line.trim()) continue
-        try {
-          const obj = JSON.parse(line)
-          const token = obj.message?.content
-          if (token) send('ollama:stream-token', token)
-          if (obj.done) send('ollama:stream-done', {})
-        } catch {}
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() // keep incomplete last line
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const obj = JSON.parse(line)
+            const token = obj.message?.content
+            if (token) send('ollama:stream-token', token)
+            if (obj.done) send('ollama:stream-done', {})
+          } catch {}
+        }
       }
+      send('ollama:stream-done', {})
+    } finally {
+      // Always release the reader/socket, even on a mid-drain read failure or abort.
+      try { await reader.cancel() } catch {}
     }
-    send('ollama:stream-done', {})
-  // FIXME(low): the reader is never reader.cancel()'d on error, and there is no
-  // abort channel at all — if the renderer navigates away mid-stream, Ollama
-  // keeps generating tokens into a socket nobody reads. See audit.
   } catch (e) {
     send('ollama:stream-error', e.message)
+  } finally {
+    clearTimeout(connTimer)
   }
 })
 
@@ -577,7 +612,7 @@ ipcMain.handle('system:info', async () => {
 ipcMain.handle('ollama:status', async () => {
   try {
     const { net } = require('electron')
-    const res = await net.fetch('http://localhost:11434/api/tags', { method: 'GET' })
+    const res = await net.fetch('http://localhost:11434/api/tags', { method: 'GET', signal: AbortSignal.timeout(2000) })
     if (!res.ok) return { running: false, models: [] }
     const data = await res.json()
     const models = (data.models || []).map(m => m.name)
@@ -741,7 +776,8 @@ const ALWAYS_ALLOWED = ['ur study bro', 'electron', 'finder', 'system preference
                          'system settings', 'loginwindow', 'dock', 'menubar']
 
 ipcMain.on('guard:start', (_e, allowedApps) => {
-  _guardAllowed = allowedApps.map(a => a.toLowerCase())
+  if (!Array.isArray(allowedApps)) return
+  _guardAllowed = allowedApps.filter(a => typeof a === 'string').map(a => a.toLowerCase())
   const win = BrowserWindow.getAllWindows()[0]
   if (win) win.setAlwaysOnTop(true, 'floating')
   if (_guardInterval) return
@@ -768,16 +804,13 @@ function _checkFrontmost() {
     const allowed = [...ALWAYS_ALLOWED, ..._guardAllowed]
     const ok = allowed.some(a => frontmost.includes(a))
     if (!ok) {
-      // Build the AppleScript allowed-name list for comparison
-      // FIXME(critical): app names are interpolated into the AppleScript source
-      // with ZERO escaping — a name containing a double-quote breaks out of the
-      // string literal and executes arbitrary AppleScript (which can `do shell
-      // script`). Names reach here from guard:start, i.e. the renderer's custom
-      // "add an app" field and the apps:scan of ~/Applications. The failure is
-      // also silent: the outer catch swallows it, disabling the guard. Reuse
-      // asStr() from notes:sync above. See audit.
+      // Build the AppleScript allowed-name list for comparison. Each name is
+      // escaped (\\ then ") so a name containing a double-quote can no longer
+      // break out of the string literal and inject arbitrary AppleScript — the
+      // same protection asStr() gives notes:sync. Names reach here from
+      // guard:start (the renderer's custom "add an app" field and apps:scan).
       const allowedNames = [...ALWAYS_ALLOWED, ..._guardAllowed]
-        .map(n => `"${n}"`)
+        .map(n => `"${n.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
         .join(', ')
 
       // Hide every process whose name doesn't match any allowed substring.
@@ -803,7 +836,10 @@ function _checkFrontmost() {
           end repeat
         end tell
       `
-      spawnSync('osascript', ['-e', script], { timeout: 3000 })
+      const guardResult = spawnSync('osascript', ['-e', script], { timeout: 3000 })
+      if (guardResult.status !== 0) {
+        console.error('[guard] hide script failed:', (guardResult.stderr || '').toString().trim())
+      }
 
       // Bring our window to front and send the nudge
       const win = BrowserWindow.getAllWindows()[0]
@@ -842,6 +878,16 @@ ipcMain.handle('email:fetch', async (_e, { limit = 30 } = {}) => {
   return { error: 'Auto-fetch not supported on this OS. Use IMAP instead.' }
 })
 
+// Promise-wrapped execFile so the native mail fetch does NOT block the main
+// process (spawnSync would freeze the whole UI for the timeout). Resolves to
+// {err, stdout, stderr}; a timeout kill shows up as err.killed / err.signal.
+function _execFileAsync(cmd, args, opts) {
+  return new Promise((resolve) => {
+    execFile(cmd, args, opts, (err, stdout, stderr) =>
+      resolve({ err, stdout: stdout || '', stderr: stderr || '' }))
+  })
+}
+
 // macOS — AppleScript → Mail.app (any account: Gmail, iCloud, Exchange…)
 // Output is one flat string, records joined by '###' and fields by '|||', then
 // split by _parseDelimited. Crude, and it corrupts any message that literally
@@ -861,34 +907,54 @@ tell application "Mail"
       set inboxes to every mailbox of acc whose name is "INBOX"
       if (count of inboxes) = 0 then set inboxes to every mailbox of acc whose name is "Inbox"
       repeat with mb in inboxes
-        repeat with m in (messages of mb)
-          set end of msgList to m
-        end repeat
+        set mcount to (count of messages of mb)
+        if mcount > 0 then
+          set topN to ${limit}
+          if mcount < topN then set topN to mcount
+          -- Mail lists messages newest-first, so message 1..topN is the tail we want.
+          repeat with i from 1 to topN
+            set end of msgList to (message i of mb)
+          end repeat
+        end if
       end repeat
     end try
   end repeat
-  set total to count of msgList
-  set startIdx to total - ${limit - 1}
-  if startIdx < 1 then set startIdx to 1
-  repeat with i from total to startIdx by -1
+  set outCount to count of msgList
+  if outCount > ${limit} then set outCount to ${limit}
+  repeat with i from 1 to outCount
     try
       set m to item i of msgList
       set bd to (content of m)
       if length of bd > 2000 then set bd to text 1 thru 2000 of bd
-      set output to output & (subject of m) & "|||" & (sender of m) & "|||" & ((date received of m) as string) & "|||" & bd & "###"
+      -- Emit a parseable local ISO-ish date (YYYY-MM-DDTHH:MM:SS); the plain
+      -- 'as string' form is a locale string JS Date() cannot parse.
+      set dr to date received of m
+      set moNum to (month of dr) as integer
+      set y to (year of dr) as text
+      set mo to text -2 thru -1 of ("0" & (moNum as text))
+      set dy to text -2 thru -1 of ("0" & ((day of dr) as text))
+      set secs to (time of dr)
+      set hh to text -2 thru -1 of ("0" & ((secs div 3600) as text))
+      set mm to text -2 thru -1 of ("0" & (((secs mod 3600) div 60) as text))
+      set ss to text -2 thru -1 of ("0" & ((secs mod 60) as text))
+      set dstr to y & "-" & mo & "-" & dy & "T" & hh & ":" & mm & ":" & ss
+      set output to output & (subject of m) & "|||" & (sender of m) & "|||" & dstr & "|||" & bd & "###"
     end try
   end repeat
 end tell
 return output`
 
-  // FIXME(high): spawnSync blocks the main process for up to 30s — the entire
-  // app is frozen (unclickable, unpainted) for the whole fetch. Compounded by
-  // the script above building msgList from EVERY message in EVERY inbox before
-  // slicing the last `limit`, so cost scales with mailbox size, not `limit`.
-  // See audit.
-  const result = spawnSync('osascript', ['-e', script], { timeout: 30000, encoding: 'utf8' })
-  if (result.status !== 0) return { error: (result.stderr || '').trim() || 'AppleScript failed. Make sure Mail.app is open and has accounts.' }
-  return _parseDelimited((result.stdout || '').trim())
+  // Async execFile so the UI is not frozen for the fetch, and the script pulls
+  // only the newest `limit` messages per inbox instead of materializing every
+  // message of every inbox before slicing (cost now scales with `limit`).
+  const { err, stdout, stderr } = await _execFileAsync(
+    'osascript', ['-e', script], { timeout: 30000, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }
+  )
+  if (err) {
+    if (err.killed || err.signal === 'SIGTERM') return { error: 'Mail.app took too long — try a smaller limit.' }
+    return { error: (stderr || '').trim() || 'AppleScript failed. Make sure Mail.app is open and has accounts.' }
+  }
+  return _parseDelimited((stdout || '').trim())
 }
 
 // Windows — PowerShell COM → Outlook (any account configured in Outlook)
@@ -896,9 +962,9 @@ return output`
 // Unlike the mac path this one strips the delimiters out of bodies first, and
 // sorts server-side then takes the top N (so it does NOT enumerate everything).
 // GetDefaultFolder(6) is olFolderInbox. ReceivedTime is formatted 'o' (ISO
-// round-trip) — which is why the mac path's non-ISO date string is the one that
-// trips the date bug in _parseDelimited below.
-// Also blocks the UI for up to 30s, same as the mac path.
+// round-trip); the mac path now emits a comparable local ISO-ish string so both
+// feed _parseDelimited cleanly.
+// Runs via async execFile so it does not block the UI, same as the mac path.
 async function _fetchWinOutlook(limit) {
   const ps = `
 $ErrorActionPreference = 'Stop'
@@ -922,9 +988,14 @@ try {
   Write-Error $_.Exception.Message
 }`
 
-  const result = spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 30000, encoding: 'utf8' })
-  if (result.status !== 0) return { error: (result.stderr || '').trim() || 'Could not open Outlook. Make sure Outlook is installed and has accounts.' }
-  return _parseDelimited((result.stdout || '').trim())
+  const { err, stdout, stderr } = await _execFileAsync(
+    'powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 30000, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }
+  )
+  if (err) {
+    if (err.killed || err.signal === 'SIGTERM') return { error: 'Outlook took too long — try a smaller limit.' }
+    return { error: (stderr || '').trim() || 'Could not open Outlook. Make sure Outlook is installed and has accounts.' }
+  }
+  return _parseDelimited((stdout || '').trim())
 }
 
 // IMAP fallback — Gmail, custom, etc.
@@ -936,10 +1007,10 @@ ipcMain.handle('email:fetch-imap', async (_e, { host, port, user, password, tls,
   return new Promise((resolve) => {
     const Imap = require('imap')
     const { simpleParser } = require('mailparser')
-    // FIXME(high): rejectUnauthorized:false disables TLS certificate
-    // verification — any MITM on the network can present a self-signed cert and
-    // harvest the user's mail password in cleartext. See audit.
-    const imap = new Imap({ host, port: port || 993, user, password, tls: tls !== false, tlsOptions: { rejectUnauthorized: false } })
+    // TLS certificate verification is left at Node's secure default
+    // (rejectUnauthorized:true), so a MITM presenting a self-signed cert is
+    // rejected rather than handed the user's mail password in cleartext.
+    const imap = new Imap({ host, port: port || 993, user, password, tls: tls !== false })
     const emails = []
 
     // Single funnel for both success and failure — guarantees imap.end() runs
@@ -967,13 +1038,14 @@ ipcMain.handle('email:fetch-imap', async (_e, { host, port, user, password, tls,
         const pending = []
         fetch.on('message', msg => {
           const p = new Promise(res => {
-            // FIXME(medium): `raw += d` implicitly decodes each Buffer chunk as
-            // UTF-8 in isolation, so any multi-byte char split across a chunk
-            // boundary is destroyed before simpleParser can apply the message's
-            // real charset. Collect chunks and Buffer.concat instead. See audit.
-            let raw = ''
-            msg.on('body', s => s.on('data', d => raw += d))
-            msg.once('end', () => res(raw))
+            // Collect the raw Buffer chunks and concat once, then hand the Buffer
+            // to simpleParser so it decodes per the message's own charset header.
+            // Concatenating as a string (raw += d) would UTF-8-decode each chunk
+            // in isolation, corrupting multi-byte chars split across a chunk
+            // boundary and any non-UTF-8 charset before the parser ever runs.
+            const chunks = []
+            msg.on('body', s => s.on('data', d => chunks.push(d)))
+            msg.once('end', () => res(Buffer.concat(chunks)))
           })
           pending.push(p)
         })
@@ -1012,12 +1084,11 @@ function _parseDelimited(raw) {
   const emails = raw.split('###').filter(Boolean).map((chunk, i) => {
     const [subject, from, dateStr, text] = chunk.split('|||')
     const body = (text || '').trim()
-    let date = new Date().toISOString()
-    // FIXME(high): AppleScript's `date received as string` is a locale format
-    // Date() cannot parse, so this yields Invalid Date, .toISOString() throws,
-    // the catch swallows it and EVERY Mail.app email silently keeps the `now`
-    // fallback above — real received dates are lost. See audit.
-    try { date = new Date(dateStr || '').toISOString() } catch {}
+    // The mac path now emits a parseable local ISO-ish date (YYYY-MM-DDTHH:MM:SS)
+    // and Windows emits round-trip ISO. If parsing still fails, return null so
+    // the UI can show 'unknown date' rather than fabricating the current time.
+    const parsedDate = new Date(dateStr || '')
+    const date = isNaN(parsedDate) ? null : parsedDate.toISOString()
     return { id: String(i), subject: (subject||'(no subject)').trim(), from: (from||'').trim(), date, text: body, meeting: detectMeeting(body, subject||'') }
   })
   return { emails }
@@ -1035,13 +1106,13 @@ function detectMeeting(body, subject) {
   const isMeeting = /\b(meeting|call|zoom|webinar|conference|interview|standup|sync|catch[\s-]up|google meet|teams|webex)\b/.test(combined)
   if (!isMeeting) return null
 
-  // Extract link
-  // FIXME(medium): this is not anchored to a host boundary, so the alternatives
-  // match anywhere in the authority — e.g. `https://meet.google.com.evil.tld/x`
-  // or a userinfo trick — and the resulting URL gets a trusted "Join Meeting"
-  // button that opens it in the real browser. Match the host, not a substring.
-  // See audit.
-  const linkMatch = body.match(/https?:\/\/([\w.-]*zoom\.us|meet\.google\.com|teams\.microsoft\.com|webex\.com|whereby\.com|meet\.jit\.si)[^\s"<>]*/i)
+  // Extract link — the host is anchored: any subdomains must each end in a dot,
+  // and the matched host must be immediately followed by /, ?, # or end-of-URL.
+  // That rejects the lookalikes the old substring match accepted
+  // (meet.google.com.evil.tld, evilzoom.us, zoom.us.attacker.tld, and the
+  // userinfo trick meet.google.com@evil.tld), so only genuine meeting hosts get
+  // a trusted "Join Meeting" button.
+  const linkMatch = body.match(/https?:\/\/(?:[\w-]+\.)*(?:zoom\.us|meet\.google\.com|teams\.microsoft\.com|webex\.com|whereby\.com|meet\.jit\.si)(?=[\/?#]|$)[^\s"<>]*/i)
   const link = linkMatch ? linkMatch[0] : null
 
   // Extract date — look for patterns like "May 20", "2026-05-20", "20/05/2026"
