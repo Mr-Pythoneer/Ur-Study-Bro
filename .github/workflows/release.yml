@@ -1,17 +1,24 @@
 name: Build & Release
 
 # Builds native installers for macOS, Windows, and Linux on their own runners
-# (no wine/Docker needed) and publishes them to a GitHub release.
+# (no wine/Docker needed) and publishes them to a single GitHub release.
 #
 # To cut a release:
-#   1. Bump "version" in package.json (e.g. 5.2.7) + commit
-#   2. git tag v5.2.7 && git push origin v5.2.7
+#   1. Bump "version" in package.json (e.g. 5.2.8) + commit
+#   2. git tag v5.2.8 && git push origin v5.2.8
 #   3. This workflow builds all 3 platforms and attaches them to a DRAFT
 #      release for that tag. Review it on GitHub, then click Publish.
+#      (Auto-update only sees PUBLISHED releases — a draft ships to nobody.)
 #
 # Or run it manually from the Actions tab (workflow_dispatch) against an
-# existing tag to backfill assets — e.g. to add native Windows/Linux builds
-# to a release that shipped Mac-only.
+# existing tag to rebuild/backfill assets.
+#
+# WHY TWO JOBS: previously each matrix job ran electron-builder with
+# `--publish always`, so all three raced to create the release. GitHub does
+# NOT dedupe *draft* releases by tag, so concurrent jobs each created their
+# own draft and the assets ended up split across several releases (this
+# happened on v5.2.7). Now the matrix only builds and uploads artifacts, and
+# a single dependent job publishes them all to one release.
 
 on:
   push:
@@ -20,14 +27,14 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Tag or branch to build (e.g. v5.2.7). Defaults to the current branch.'
+        description: 'Tag or branch to build (e.g. v5.2.8). Defaults to the current branch.'
         required: false
 
 permissions:
   contents: write   # needed to create/update releases
 
 jobs:
-  release:
+  build:
     strategy:
       fail-fast: false   # one platform failing shouldn't kill the others
       matrix:
@@ -41,14 +48,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
       # Node 22+ is required: electron 43 declares engines.node >= 22.12.0.
       # Building on Node 20 fails at install time.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -61,19 +68,16 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools
 
-      - name: Build & publish (${{ matrix.platform }})
-        run: npx electron-builder ${{ matrix.platform }} --publish always
+      # --publish never: publishing is the `publish` job's responsibility.
+      - name: Build (${{ matrix.platform }})
+        run: npx electron-builder ${{ matrix.platform }} --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # App is intentionally unsigned (no paid Apple cert) — matches local builds.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      # Always keep the built installers as downloadable artifacts — used to
-      # backfill an already-published release (where electron-builder refuses
-      # to publish over a non-draft release).
       - name: Upload installers
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: installers-${{ matrix.os }}
           path: |
@@ -84,3 +88,50 @@ jobs:
             dist/*.blockmap
             dist/latest*.yml
           if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    needs: build
+    if: always()   # publish whatever platforms succeeded
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v8
+        with:
+          pattern: installers-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_REF_NAME: ${{ github.event.inputs.ref || github.ref_name }}
+
+      - name: List assets
+        run: ls -lh release-assets/ || echo "no assets built"
+
+      # One release, created once. --clobber makes re-runs idempotent.
+      - name: Publish to a single draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          FILES=(release-assets/*)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "::error::No installers were produced — nothing to publish."
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG exists — uploading ${#FILES[@]} asset(s)."
+            gh release upload "$TAG" "${FILES[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            echo "Creating draft release $TAG with ${#FILES[@]} asset(s)."
+            gh release create "$TAG" "${FILES[@]}" \
+              --draft \
+              --title "${TAG#v}" \
+              --generate-notes \
+              --repo "$GITHUB_REPOSITORY"
+          fi
