@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Tag or branch to build (e.g. v5.2.6). Defaults to the current branch.'
+        description: 'Tag or branch to build (e.g. v5.2.7). Defaults to the current branch.'
         required: false
 
 permissions:
@@ -45,10 +45,12 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
+      # Node 22+ is required: electron 43 declares engines.node >= 22.12.0.
+      # Building on Node 20 fails at install time.
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies

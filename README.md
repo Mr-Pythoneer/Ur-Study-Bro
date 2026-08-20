@@ -1,7 +1,7 @@
 # Ur Study Bro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.2.6-blue.svg)](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
+[![Version](https://img.shields.io/badge/version-5.2.7-blue.svg)](https://github.com/Mr-Pythoneer/Ur-Study-Bro/releases)
 
 **Website: https://mr-pythoneer.github.io/Ur-Study-Bro/**
 
@@ -66,7 +66,7 @@ npm start
 ## Build
 
 ```bash
-npm run build   # produces dist/Ur Study Bro-5.2.6-arm64.dmg (Apple Silicon)
+npm run build   # produces dist/Ur Study Bro-5.2.7-arm64.dmg (Apple Silicon)
 ```
 
 ## Tech Stack
