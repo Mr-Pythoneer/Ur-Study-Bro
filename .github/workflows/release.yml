@@ -108,6 +108,25 @@ jobs:
         env:
           GITHUB_REF_NAME: ${{ github.event.inputs.ref || github.ref_name }}
 
+      # productName is "Ur Study Bro", so electron-builder writes files with
+      # SPACES ("Ur Study Bro-5.2.7-arm64.dmg") but records HYPHENATED urls in
+      # latest*.yml ("Ur-Study-Bro-5.2.7-arm64.dmg"). electron-builder's own
+      # uploader hyphenates on the way up; `gh release upload` instead turns
+      # spaces into DOTS, which silently breaks auto-update (the updater fetches
+      # the url from latest*.yml and 404s). Hyphenate here so the asset names
+      # match what latest*.yml already points at.
+      - name: Normalize asset filenames to match latest*.yml
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for f in *; do
+            n="${f// /-}"
+            if [ "$f" != "$n" ]; then
+              echo "  rename: $f -> $n"
+              mv -- "$f" "$n"
+            fi
+          done
+
       - name: List assets
         run: ls -lh release-assets/ || echo "no assets built"
 
