@@ -61,14 +61,19 @@
     }
   },
   "devDependencies": {
-    "electron": "^35.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3"
   },
   "author": { "name": "Mr-Pythoneer", "email": "mr.pythoneer@github.com" },
   "license": "MIT",
   "dependencies": {
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "imap": "^0.8.19",
-    "mailparser": "^3.9.8"
+    "mailparser": "^3.9.15"
+  },
+  "overrides": {
+    "html-to-text": "^10.0.1",
+    "js-yaml": "^4.3.1",
+    "utf7": { "semver": "^5.7.2" }
   }
 }
