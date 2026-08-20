@@ -204,11 +204,34 @@ ipcMain.on('notify:event', (_e, ev) => {
   const n = new Notification({
     title:           ev.title,
     body:            body.join('\n'),
-    actions:         safeLink ? [{ type: 'button', text: 'Join Meeting' }] : [],
+    // Always ship at least one action button. Electron 42+ routes macOS
+    // notifications through UNUserNotificationCenter, and the banner-body
+    // 'click' event does not fire while the app is frontmost
+    // (electron/electron#51885, closed as not-planned). Action buttons still
+    // work. Previously a reminder with no meeting link had actions:[] and
+    // therefore NO working interaction at all on macOS.
+    actions:         safeLink
+                       ? [{ type: 'button', text: 'Join Meeting' }]
+                       : [{ type: 'button', text: 'Open Ur Study Bro' }],
     closeButtonText: 'Dismiss',
   })
-  n.on('click',   () => { BrowserWindow.getAllWindows()[0]?.focus(); if (safeLink) shell.openExternal(safeLink) })
-  n.on('action',  (_e2, i) => { if (i === 0 && safeLink) shell.openExternal(safeLink) })
+  const focusApp = () => BrowserWindow.getAllWindows()[0]?.focus()
+  n.on('click',   () => { focusApp(); if (safeLink) shell.openExternal(safeLink) })
+  n.on('action',  (_e2, i) => { if (i !== 0) return; if (safeLink) shell.openExternal(safeLink); else focusApp() })
+  // macOS UNNotification requires a code-signed app; unsigned builds emit
+  // 'failed' and show nothing. Log it so it isn't a silent no-op.
+  n.on('failed',  (_e2, err) => {
+    console.error('[notify] native notification failed:', err)
+    // macOS refuses to register an UNSIGNED app with UNUserNotificationCenter
+    // (UNErrorDomain error 1), so the reminder would otherwise vanish with no
+    // trace. Fall back to an in-app banner so the user still gets it.
+    BrowserWindow.getAllWindows()[0]?.webContents.send('notify:fallback', {
+      title: ev.title,
+      body:  body.join(' · '),
+      link:  safeLink,
+      host:  linkHost,
+    })
+  })
   n.show()
 })
 

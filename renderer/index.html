@@ -271,6 +271,19 @@
   <button onclick="document.getElementById('updateBanner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;line-height:1;margin-left:auto;">✕</button>
 </div>
 
+<!-- ═════════════════ REMINDER FALLBACK BANNER ═══════════════════ -->
+<!-- Shown when the OS refuses to display a NATIVE notification. Electron 42+
+     routes macOS notifications through UNUserNotificationCenter, which requires
+     a code-signed app; this app ships unsigned, so macOS returns UNErrorDomain
+     error 1 and displays nothing at all. main.js listens for Notification's
+     'failed' event and sends notify:fallback here, so a meeting reminder is
+     still visible instead of silently disappearing. Starts hidden. -->
+<div id="reminderBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#b45309;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;align-items:center;gap:12px;-webkit-app-region:no-drag;">
+  <span id="reminderBannerText"></span>
+  <a id="reminderBannerLink" href="#" style="display:none;margin-left:auto;background:#fff;color:#b45309;border-radius:8px;padding:5px 14px;font-weight:700;font-size:12px;text-decoration:none;">Join Meeting</a>
+  <button onclick="document.getElementById('reminderBanner').style.display='none'" style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;line-height:1;margin-left:auto;">✕</button>
+</div>
+
 <!-- ══════════════════ PERMISSIONS WIZARD ════════════════════════ -->
 <!-- First-launch-only macOS permission walkthrough. It cannot *grant* anything:
      macOS only offers a permission prompt when the API is actually used, so
@@ -1577,6 +1590,24 @@ if (window.api && window.api.on) {
   const banner     = document.getElementById('updateBanner')
   const textEl     = document.getElementById('updateBannerText')
   const installBtn = document.getElementById('updateInstallBtn')
+
+  const remBanner = document.getElementById('reminderBanner')
+  const remText   = document.getElementById('reminderBannerText')
+  const remLink   = document.getElementById('reminderBannerLink')
+
+  // Fired by main.js only when the NATIVE notification failed (see the
+  // reminderBanner comment above). Never fires when notifications work.
+  window.api.on('notify:fallback', (ev) => {
+    remText.textContent = `${ev.title}${ev.body ? ' — ' + ev.body : ''}`
+    if (ev.link) {
+      remLink.style.display = 'inline-block'
+      remLink.textContent   = ev.host ? `Join (${ev.host})` : 'Join Meeting'
+      remLink.onclick = (e) => { e.preventDefault(); window.api.openExternal(ev.link) }
+    } else {
+      remLink.style.display = 'none'
+    }
+    remBanner.style.display = 'flex'
+  })
 
   window.api.on('update:available', (version) => {
     textEl.textContent = `🎉 v${version} is available — downloading in the background…`

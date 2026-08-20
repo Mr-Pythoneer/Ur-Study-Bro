@@ -20,6 +20,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "assets/**/*",
       "renderer/**/*",
       "node_modules/imap/**/*",
       "node_modules/mailparser/**/*",
@@ -62,7 +63,7 @@
   },
   "devDependencies": {
     "electron": "^43.4.1",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.7"
   },
   "author": { "name": "Mr-Pythoneer", "email": "mr.pythoneer@github.com" },
   "license": "MIT",
